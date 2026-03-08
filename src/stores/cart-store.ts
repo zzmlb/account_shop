@@ -13,9 +13,12 @@ export interface CartItem {
   image?: string;
 }
 
+const CART_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
+  updatedAt: number;
 }
 
 interface CartActions {
@@ -35,6 +38,7 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
       isOpen: false,
+      updatedAt: Date.now(),
 
       addItem: (item) => {
         set((state) => {
@@ -82,7 +86,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [] });
+        set({ items: [], updatedAt: Date.now() });
       },
 
       toggleCart: () => {
@@ -102,7 +106,13 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: "pj37-cart",
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, updatedAt: state.updatedAt }),
+      onRehydrateStorage: () => (state) => {
+        if (state && state.updatedAt && Date.now() - state.updatedAt > CART_TTL) {
+          state.items = [];
+          state.updatedAt = Date.now();
+        }
+      },
     }
   )
 );

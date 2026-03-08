@@ -90,6 +90,7 @@ export default function AdminCouponsContent() {
     setFormValue("");
     setFormMinAmount("");
     setFormMaxUses("");
+    setFormErrors({});
     // Default: start now, expire in 30 days
     const now = new Date();
     setFormStartAt(now.toISOString().slice(0, 16));
@@ -98,11 +99,42 @@ export default function AdminCouponsContent() {
     setDialogOpen(true);
   };
 
-  const handleCreate = async () => {
-    if (!formCode.trim() || !formValue) {
-      toast.error("请填写优惠码和优惠值");
-      return;
+  // Validation state
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formCode.trim()) {
+      errors.code = "请输入优惠码";
+    } else if (!/^[A-Z0-9]+$/.test(formCode.trim())) {
+      errors.code = "优惠码只能包含大写字母和数字";
     }
+
+    const numValue = Number(formValue);
+    if (!formValue || isNaN(numValue) || numValue <= 0) {
+      errors.value = "请输入有效的优惠值";
+    } else if (formType === "PERCENTAGE" && numValue > 100) {
+      errors.value = "百分比不能超过100";
+    }
+
+    if (formMinAmount) {
+      const numMin = Number(formMinAmount);
+      if (isNaN(numMin) || numMin < 0) {
+        errors.minAmount = "最低消费不能为负数";
+      }
+    }
+
+    if (formStartAt && formExpireAt && new Date(formExpireAt) <= new Date(formStartAt)) {
+      errors.expireAt = "过期时间必须晚于开始时间";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreate = async () => {
+    if (!validateForm()) return;
 
     setIsMutating(true);
     try {
@@ -348,9 +380,15 @@ export default function AdminCouponsContent() {
                 id="coupon-code"
                 placeholder="例如: WELCOME20"
                 value={formCode}
-                onChange={(e) => setFormCode(e.target.value.toUpperCase())}
-                className="font-mono"
+                onChange={(e) => {
+                  setFormCode(e.target.value.toUpperCase());
+                  setFormErrors((prev) => ({ ...prev, code: "" }));
+                }}
+                className={`font-mono ${formErrors.code ? "border-[var(--destructive)]" : ""}`}
               />
+              {formErrors.code && (
+                <p className="text-xs text-[var(--destructive)]">{formErrors.code}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -376,10 +414,17 @@ export default function AdminCouponsContent() {
                 <Input
                   id="coupon-value"
                   type="number"
-                  placeholder={formType === "FIXED" ? "金额 (元)" : "百分比"}
+                  placeholder={formType === "FIXED" ? "金额 (元)" : "百分比 (1-100)"}
                   value={formValue}
-                  onChange={(e) => setFormValue(e.target.value)}
+                  onChange={(e) => {
+                    setFormValue(e.target.value);
+                    setFormErrors((prev) => ({ ...prev, value: "" }));
+                  }}
+                  className={formErrors.value ? "border-[var(--destructive)]" : ""}
                 />
+                {formErrors.value && (
+                  <p className="text-xs text-[var(--destructive)]">{formErrors.value}</p>
+                )}
               </div>
             </div>
 
@@ -391,8 +436,15 @@ export default function AdminCouponsContent() {
                   type="number"
                   placeholder="¥0"
                   value={formMinAmount}
-                  onChange={(e) => setFormMinAmount(e.target.value)}
+                  onChange={(e) => {
+                    setFormMinAmount(e.target.value);
+                    setFormErrors((prev) => ({ ...prev, minAmount: "" }));
+                  }}
+                  className={formErrors.minAmount ? "border-[var(--destructive)]" : ""}
                 />
+                {formErrors.minAmount && (
+                  <p className="text-xs text-[var(--destructive)]">{formErrors.minAmount}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="coupon-max-uses">最大使用次数 (可选)</Label>
@@ -422,8 +474,15 @@ export default function AdminCouponsContent() {
                   id="coupon-expire"
                   type="datetime-local"
                   value={formExpireAt}
-                  onChange={(e) => setFormExpireAt(e.target.value)}
+                  onChange={(e) => {
+                    setFormExpireAt(e.target.value);
+                    setFormErrors((prev) => ({ ...prev, expireAt: "" }));
+                  }}
+                  className={formErrors.expireAt ? "border-[var(--destructive)]" : ""}
                 />
+                {formErrors.expireAt && (
+                  <p className="text-xs text-[var(--destructive)]">{formErrors.expireAt}</p>
+                )}
               </div>
             </div>
           </div>

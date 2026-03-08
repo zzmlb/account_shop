@@ -111,6 +111,10 @@ export default function AdminArticlesPageContent() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetArticle, setDeleteTargetArticle] = useState<ApiArticle | null>(null);
+
   // ---------------------------------------------------------------------------
   // Fetch articles
   // ---------------------------------------------------------------------------
@@ -271,8 +275,16 @@ export default function AdminArticlesPageContent() {
     }
   };
 
-  // Delete
-  const deleteArticle = async (id: string) => {
+  // Open delete confirmation
+  const openDeleteDialog = (article: ApiArticle) => {
+    setDeleteTargetArticle(article);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete
+  const confirmDeleteArticle = async () => {
+    if (!deleteTargetArticle) return;
+    const id = deleteTargetArticle.id;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/admin/articles?id=${id}`, {
@@ -286,6 +298,8 @@ export default function AdminArticlesPageContent() {
       }
 
       toast.success("文章已删除");
+      setDeleteDialogOpen(false);
+      setDeleteTargetArticle(null);
       fetchArticles();
     } catch {
       toast.error("网络错误，删除文章失败");
@@ -482,6 +496,33 @@ export default function AdminArticlesPageContent() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除文章「{deleteTargetArticle?.title}」吗？此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteArticle}
+              disabled={deletingId === deleteTargetArticle?.id}
+            >
+              {deletingId === deleteTargetArticle?.id && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -629,7 +670,7 @@ export default function AdminArticlesPageContent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => deleteArticle(article.id)}
+                        onClick={() => openDeleteDialog(article)}
                         disabled={deletingId === article.id}
                         className="text-[var(--destructive)] hover:text-[var(--destructive)]"
                         title="删除"

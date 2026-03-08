@@ -183,13 +183,15 @@ export async function POST(
       });
 
       if (result.allKeysAllocated) {
-        // Group keys by product for delivery email
+        // Batch fetch all card keys for delivery email (avoids N+1)
+        const itemIds = order.items.map((i) => i.id);
+        const allKeys = await db.cardKey.findMany({
+          where: { orderId: { in: itemIds }, status: "SOLD" },
+          select: { content: true, orderId: true },
+        });
         const keysByProduct: Record<string, { productName: string; cardKeys: string[] }> = {};
         for (const item of order.items) {
-          const itemKeys = await db.cardKey.findMany({
-            where: { orderId: item.id, status: "SOLD" },
-            select: { content: true },
-          });
+          const itemKeys = allKeys.filter((k) => k.orderId === item.id);
           keysByProduct[item.productId] = {
             productName: item.product.name,
             cardKeys: itemKeys.map((k) => decryptCardKey(k.content)),
@@ -261,8 +263,34 @@ export async function POST(
         );
       }
       if (error.message === "INSUFFICIENT_BALANCE") {
+        // Fetch current balance for detailed error
+        const session = decodeSession(request.cookies.get("session")?.value || "");
+        let balanceInfo: { currentBalance?: number; needed?: number } = {};
+        if (session) {
+          const user = await db.user.findUnique({
+            where: { id: session.id },
+            select: { balance: true },
+          });
+          const order = await db.order.findUnique({
+            where: { id: (await params).id },
+            select: { payAmount: true },
+          });
+          if (user && order) {
+            balanceInfo = {
+              currentBalance: Number(user.balance),
+              needed: Number(order.payAmount) - Number(user.balance),
+            };
+          }
+        }
         return NextResponse.json(
-          { success: false, message: "余额不足" },
+          {
+            success: false,
+            message: balanceInfo.needed
+              ? `余额不足，还需充值 ¥${balanceInfo.needed.toFixed(2)}`
+              : "余额不足",
+            code: "INSUFFICIENT_BALANCE",
+            ...balanceInfo,
+          },
           { status: 400 }
         );
       }
