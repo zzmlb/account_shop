@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, FileText, User } from "lucide-react";
+import { Home, Package, LayoutGrid, FileText, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const mobileNavItems = [
   { label: "首页", href: "/", icon: Home },
   { label: "商品", href: "/products", icon: Package },
+  { label: "分类", href: "/categories", icon: LayoutGrid },
   { label: "订单", href: "/dashboard/orders", icon: FileText },
   { label: "我的", href: "/dashboard", icon: User },
 ];
@@ -24,7 +25,7 @@ export default function MobileNav() {
         "safe-area-inset-bottom"
       )}
     >
-      <div className="grid h-16 grid-cols-4">
+      <div className="grid h-16 grid-cols-5">
         {mobileNavItems.map((item) => {
           const isActive =
             item.href === "/"

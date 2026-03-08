@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useFavoritesStore } from "@/stores/favorites-store";
 
 export interface AuthUser {
   id: string;
@@ -53,6 +54,8 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: () => {
         set({ user: null });
+        // Reset favorites store on logout
+        useFavoritesStore.getState().reset();
         // Clear the session cookie by calling a logout endpoint or
         // letting the cookie expire. For now, clear local state.
         fetch("/api/auth/logout", { method: "POST" }).catch(() => {

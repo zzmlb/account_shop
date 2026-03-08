@@ -6,11 +6,11 @@ import {
   Heart,
   HeartOff,
   ShoppingCart,
-  Star,
   Package,
   Trash2,
   Loader2,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,7 +28,6 @@ interface FavoriteProduct {
   slug: string;
   price: number;
   originalPrice?: number;
-  rating: number;
   salesCount: number;
   category: string;
   inStock: boolean;
@@ -61,7 +60,6 @@ function mapApiToFavorite(fav: ApiFavorite): FavoriteProduct {
     slug: fav.product.slug,
     price: fav.product.price,
     originalPrice: fav.product.originalPrice ?? undefined,
-    rating: 0,
     salesCount: fav.product.soldCount,
     category: fav.product.categoryName,
     inStock: fav.product.stockCount > 0,
@@ -227,9 +225,21 @@ export default function FavoritesPageContent() {
                   !product.inStock && "opacity-75"
                 )}
               >
-                {/* Product image placeholder */}
-                <div className="relative flex h-40 items-center justify-center bg-[var(--muted)]">
-                  <Package className="h-12 w-12 text-[var(--muted-foreground)]/50" />
+                {/* Product image */}
+                <div className="relative h-40 overflow-hidden bg-[var(--muted)]">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Package className="h-12 w-12 text-[var(--muted-foreground)]/50" />
+                    </div>
+                  )}
 
                   {/* Badges overlay */}
                   <div className="absolute left-3 top-3 flex flex-col gap-1.5">
@@ -268,13 +278,9 @@ export default function FavoritesPageContent() {
                     {product.name}
                   </Link>
 
-                  {/* Rating and sales */}
-                  <div className="mt-2 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      {product.rating}
-                    </span>
-                    <span>已售 {product.salesCount}</span>
+                  {/* Sales info */}
+                  <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                    已售 {product.salesCount}
                   </div>
 
                   {/* Price */}

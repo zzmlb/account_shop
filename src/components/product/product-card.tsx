@@ -49,7 +49,7 @@ export default function ProductCard({
     }
     addItem({
       id: slug,
-      productId: slug,
+      productId: productId || slug,
       name,
       slug,
       price,

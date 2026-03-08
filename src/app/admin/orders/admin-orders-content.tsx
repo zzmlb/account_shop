@@ -248,6 +248,75 @@ export default function AdminOrdersPageContent() {
     }
   };
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Fetch all orders matching current filters (up to 1000)
+      const params = new URLSearchParams();
+      params.set("page", "1");
+      params.set("pageSize", "1000");
+      if (activeTab && activeTab !== "ALL") {
+        params.set("status", activeTab);
+      }
+      if (searchQuery) {
+        params.set("search", searchQuery);
+      }
+
+      const res = await fetch(`/api/admin/orders?${params.toString()}`);
+      const data = await res.json();
+
+      if (!data.success || !data.orders?.length) {
+        toast.error("没有可导出的订单数据");
+        return;
+      }
+
+      // Build CSV
+      const header = "订单号,用户,邮箱,商品,数量,原价,实付,支付方式,状态,创建时间,支付时间\n";
+      const rows = (data.orders as Order[])
+        .map((o) => {
+          const user = o.user?.username || "-";
+          const email = o.user?.email || o.email || "-";
+          const products = o.items.map((i) => i.productName).join("; ");
+          const qty = o.items.reduce((s, i) => s + i.quantity, 0);
+          const status = statusConfig[o.status]?.label || o.status;
+          const payment = formatPaymentMethod(o.paymentMethod);
+          const paidAt = o.paidAt ? formatDateTime(o.paidAt) : "-";
+          return [
+            o.orderNo,
+            user,
+            email,
+            `"${products}"`,
+            qty,
+            o.totalAmount.toFixed(2),
+            o.payAmount.toFixed(2),
+            payment,
+            status,
+            formatDateTime(o.createdAt),
+            paidAt,
+          ].join(",");
+        })
+        .join("\n");
+
+      const bom = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+      const blob = new Blob([bom + header + rows], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orders_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`已导出 ${data.orders.length} 条订单`);
+    } catch {
+      toast.error("导出失败，请稍后重试");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const { total, totalPages } = pagination;
 
   return (
@@ -262,8 +331,17 @@ export default function AdminOrdersPageContent() {
             管理和追踪所有平台订单
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={handleExport}
+          disabled={exporting}
+        >
+          {exporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
           导出
         </Button>
       </div>
