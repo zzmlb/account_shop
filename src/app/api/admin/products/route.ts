@@ -79,7 +79,9 @@ export async function GET(request: NextRequest) {
       db.product.findMany({
         where,
         include: {
-          category: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
         skip: (page - 1) * pageSize,

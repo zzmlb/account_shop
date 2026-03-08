@@ -111,6 +111,19 @@ export async function POST(
         });
       }
 
+      // Re-validate stock inside transaction to prevent race conditions
+      for (const item of order.items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { stockCount: true, name: true },
+        });
+        if (!product || product.stockCount < item.quantity) {
+          throw new Error(
+            `STOCK_INSUFFICIENT:${product?.name ?? item.productId}`
+          );
+        }
+      }
+
       // Allocate card keys for each item
       const allocatedKeys: string[] = [];
       let allKeysAllocated = true;
@@ -282,6 +295,17 @@ export async function POST(
       if (error.message === "ORDER_ALREADY_PROCESSED") {
         return NextResponse.json(
           { success: false, message: "订单已处理，请勿重复支付" },
+          { status: 400 }
+        );
+      }
+      if (error.message.startsWith("STOCK_INSUFFICIENT:")) {
+        const productName = error.message.split(":")[1];
+        return NextResponse.json(
+          {
+            success: false,
+            message: `商品「${productName}」库存不足，请调整后重试`,
+            code: "STOCK_INSUFFICIENT",
+          },
           { status: 400 }
         );
       }

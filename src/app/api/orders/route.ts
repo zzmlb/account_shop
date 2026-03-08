@@ -6,6 +6,7 @@ import { createLogger } from "@/lib/logger";
 import { decryptCardKey } from "@/lib/crypto";
 import { createOrderSchema, formatZodError } from "@/lib/validators";
 import { notifyAdminsNewOrder } from "@/server/services/notification";
+import { maybeCleanupExpiredOrders } from "@/server/services/order-cleanup";
 
 const log = createLogger("orders");
 
@@ -21,6 +22,8 @@ function generateOrderNo(): string {
 
 export async function GET(request: NextRequest) {
   try {
+    maybeCleanupExpiredOrders();
+
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 

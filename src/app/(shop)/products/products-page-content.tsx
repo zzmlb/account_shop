@@ -168,6 +168,11 @@ export default function ProductsPageContent() {
     [searchParams, router]
   );
 
+  const handleQuickView = useCallback((p: ProductItem) => {
+    setQvImgError(false);
+    setQuickViewProduct(p);
+  }, []);
+
   const hasActiveFilters = !!(search || category || minPrice || maxPrice || inStock);
 
   const clearSearch = () => {
@@ -354,7 +359,7 @@ export default function ProductsPageContent() {
               ))}
             </div>
           ) : (
-            <ProductGrid products={products} searchQuery={search} onQuickView={(p) => { setQvImgError(false); setQuickViewProduct(p); }} />
+            <ProductGrid products={products} searchQuery={search} onQuickView={handleQuickView} />
           )}
 
           {/* Pagination */}
