@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 import { useCartStore } from "@/stores/cart-store";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface OrderItem {
   name: string;
@@ -183,15 +184,10 @@ export default function OrderDetailContent({ id }: { id: string }) {
   useEffect(() => {
     async function fetchOrder() {
       try {
-        const res = await fetch(`/api/orders/${id}`);
-        const data = await res.json();
-        if (data.success && data.order) {
-          setOrder(data.order);
-        } else {
-          setError(data.message || "订单不存在");
-        }
-      } catch {
-        setError("加载订单失败，请稍后重试");
+        const data = await apiFetch<{ order: OrderData }>(`/api/orders/${id}`);
+        setOrder(data.order);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "加载订单失败，请稍后重试");
       } finally {
         setLoading(false);
       }
@@ -204,25 +200,12 @@ export default function OrderDetailContent({ id }: { id: string }) {
     if (!order) return;
     const controller = new AbortController();
     const slugsInOrder = new Set(order.items.map((i) => i.slug));
-    fetch("/api/products?sort=popular&limit=8", { signal: controller.signal })
-      .then((r) => r.json())
+    apiFetch<{ products: Array<{ id: string; name: string; slug: string; price: number; originalPrice?: number; image?: string; soldCount: number; stockCount: number }> }>("/api/products?sort=popular&limit=8", { signal: controller.signal })
       .then((data) => {
-        if (data.success && data.products) {
-          const filtered = data.products
-            .filter((p: { slug: string }) => !slugsInOrder.has(p.slug))
-            .slice(0, 4)
-            .map((p: { id: string; name: string; slug: string; price: number; originalPrice?: number; image?: string; soldCount: number; stockCount: number }) => ({
-              id: p.id,
-              name: p.name,
-              slug: p.slug,
-              price: p.price,
-              originalPrice: p.originalPrice,
-              image: p.image,
-              soldCount: p.soldCount,
-              stockCount: p.stockCount,
-            }));
-          setRecommendedProducts(filtered);
-        }
+        const filtered = data.products
+          .filter((p) => !slugsInOrder.has(p.slug))
+          .slice(0, 4);
+        setRecommendedProducts(filtered);
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -237,12 +220,9 @@ export default function OrderDetailContent({ id }: { id: string }) {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/orders/${id}`);
-        const data = await res.json();
-        if (data.success && data.order) {
-          if (data.order.status !== order.status || data.order.cardKeys?.length !== order.cardKeys.length) {
-            setOrder(data.order);
-          }
+        const data = await apiFetch<{ order: OrderData }>(`/api/orders/${id}`);
+        if (data.order.status !== order.status || data.order.cardKeys?.length !== order.cardKeys.length) {
+          setOrder(data.order);
         }
       } catch {
         // Silently retry on next interval
@@ -269,20 +249,11 @@ export default function OrderDetailContent({ id }: { id: string }) {
     setCancelDialogOpen(false);
     setCancelling(true);
     try {
-      const res = await fetch(`/api/orders/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel" }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setOrder((prev) => prev ? { ...prev, status: "CANCELLED" } : prev);
-        toast.success("订单已取消");
-      } else {
-        toast.error(data.message || "取消失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      await apiMutate(`/api/orders/${id}`, "PATCH", { action: "cancel" });
+      setOrder((prev) => prev ? { ...prev, status: "CANCELLED" } : prev);
+      toast.success("订单已取消");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setCancelling(false);
     }
@@ -294,14 +265,11 @@ export default function OrderDetailContent({ id }: { id: string }) {
     const controller = new AbortController();
     async function checkRefund() {
       try {
-        const res = await fetch("/api/refunds", { signal: controller.signal });
-        const data = await res.json();
-        if (data.success && data.refunds) {
-          const match = data.refunds.find(
-            (r: { orderNo: string; status: string }) => r.orderNo === order!.orderNo
-          );
-          if (match) setRefundStatus(match.status);
-        }
+        const data = await apiFetch<{ refunds: Array<{ orderNo: string; status: string }> }>("/api/refunds", { signal: controller.signal });
+        const match = data.refunds.find(
+          (r) => r.orderNo === order!.orderNo
+        );
+        if (match) setRefundStatus(match.status);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
       }
@@ -314,25 +282,16 @@ export default function OrderDetailContent({ id }: { id: string }) {
     if (!order || refundReason.trim().length < 5) return;
     setRefundSubmitting(true);
     try {
-      const res = await fetch("/api/refunds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: order.id,
-          reason: refundReason.trim(),
-        }),
+      await apiMutate("/api/refunds", "POST", {
+        orderId: order.id,
+        reason: refundReason.trim(),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("退款申请已提交");
-        setRefundDialogOpen(false);
-        setRefundReason("");
-        setRefundStatus("PENDING");
-      } else {
-        toast.error(data.message || "提交失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      toast.success("退款申请已提交");
+      setRefundDialogOpen(false);
+      setRefundReason("");
+      setRefundStatus("PENDING");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setRefundSubmitting(false);
     }
@@ -342,25 +301,13 @@ export default function OrderDetailContent({ id }: { id: string }) {
     if (!order || order.status !== "PENDING") return;
     setPaying(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/pay`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethod: "balance" }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("支付成功！卡密即将发送至您的邮箱");
-        // Refresh order data
-        const refreshRes = await fetch(`/api/orders/${id}`);
-        const refreshData = await refreshRes.json();
-        if (refreshData.success && refreshData.order) {
-          setOrder(refreshData.order);
-        }
-      } else {
-        toast.error(data.message || "支付失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      await apiMutate(`/api/orders/${order.id}/pay`, "POST", { paymentMethod: "balance" });
+      toast.success("支付成功！卡密即将发送至您的邮箱");
+      // Refresh order data
+      const refreshData = await apiFetch<{ order: OrderData }>(`/api/orders/${id}`);
+      setOrder(refreshData.order);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setPaying(false);
     }
@@ -869,15 +816,10 @@ export default function OrderDetailContent({ id }: { id: string }) {
                   onClick={async () => {
                     setResendingEmail(true);
                     try {
-                      const res = await fetch(`/api/orders/${order.id}/resend-email`, { method: "POST" });
-                      const data = await res.json();
-                      if (data.success) {
-                        toast.success("卡密已重新发送至邮箱");
-                      } else {
-                        toast.error(data.message || "发送失败");
-                      }
-                    } catch {
-                      toast.error("网络错误，请稍后重试");
+                      await apiMutate(`/api/orders/${order.id}/resend-email`, "POST");
+                      toast.success("卡密已重新发送至邮箱");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
                     } finally {
                       setResendingEmail(false);
                     }

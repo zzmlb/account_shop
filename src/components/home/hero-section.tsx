@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface StatsData {
   products: string;
@@ -37,9 +38,8 @@ export default function HeroSection() {
 
     const load = async (attempt = 0) => {
       try {
-        const res = await fetch("/api/stats", { signal: ctrl.signal });
-        const data = await res.json();
-        if (!cancelled && data.success) setStats(data.stats);
+        const data = await apiFetch<{ stats: StatsData }>("/api/stats", { signal: ctrl.signal });
+        if (!cancelled) setStats(data.stats);
       } catch {
         if (!cancelled && attempt < 1) {
           // retry once after 2s

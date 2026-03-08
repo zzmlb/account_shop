@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { apiMutate } from "@/lib/api-fetch";
 
 export default function ForgotPasswordContent() {
   const [emailSent, setEmailSent] = useState(false);
@@ -29,28 +30,14 @@ export default function ForgotPasswordContent() {
 
   const onSubmit = async (data: ForgotPasswordInput) => {
     try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email }),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        toast.error("发送失败", {
-          description: result.message || "请稍后重试",
-        });
-        return;
-      }
-
+      const result = await apiMutate<{ message?: string }>("/api/auth/forgot-password", "POST", { email: data.email });
       setEmailSent(true);
       toast.success("邮件已发送", {
         description: result.message || "重置链接已发送到您的邮箱",
       });
-    } catch {
+    } catch (err) {
       toast.error("发送失败", {
-        description: "网络错误，请稍后重试",
+        description: err instanceof Error ? err.message : "网络错误，请稍后重试",
       });
     }
   };

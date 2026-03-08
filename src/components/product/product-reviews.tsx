@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Pagination from "@/components/shared/pagination";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 /* ---------- types ---------- */
 
@@ -146,16 +147,13 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       });
       if (ratingFilter) params.set("rating", String(ratingFilter));
       if (sortBy !== "newest") params.set("sort", sortBy);
-      const res = await fetch(`/api/reviews?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setReviews(data.reviews);
-        setStats(data.stats);
-        setTotalPages(data.pagination.totalPages);
-        setTotalReviews(data.pagination.total ?? 0);
-      }
-    } catch {
-      toast.error("评价加载失败，请刷新重试");
+      const data = await apiFetch<{ reviews: ReviewItem[]; stats: ReviewStats; pagination: { totalPages: number; total?: number } }>(`/api/reviews?${params}`);
+      setReviews(data.reviews);
+      setStats(data.stats);
+      setTotalPages(data.pagination.totalPages);
+      setTotalReviews(data.pagination.total ?? 0);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "评价加载失败，请刷新重试");
     } finally {
       setLoading(false);
     }
@@ -172,28 +170,19 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     }
     setSubmitting(true);
     try {
-      const res = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          rating: formRating,
-          content: formContent.trim(),
-        }),
+      await apiMutate("/api/reviews", "POST", {
+        productId,
+        rating: formRating,
+        content: formContent.trim(),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("评价提交成功");
-        setFormContent("");
-        setFormRating(5);
-        setShowForm(false);
-        setPage(1);
-        fetchReviews();
-      } else {
-        toast.error(data.message || "提交失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      toast.success("评价提交成功");
+      setFormContent("");
+      setFormRating(5);
+      setShowForm(false);
+      setPage(1);
+      fetchReviews();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setSubmitting(false);
     }

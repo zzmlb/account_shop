@@ -34,6 +34,7 @@ import RecentlyViewed from "@/components/home/recently-viewed";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
 import { BLUR_DATA_URL } from "@/lib/constants";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ApiProduct {
   id: string;
@@ -113,42 +114,39 @@ export default function ProductsPageContent() {
       if (maxPrice) params.set("maxPrice", maxPrice);
       if (inStock === "true") params.set("inStock", "true");
 
-      const res = await fetch(`/api/products?${params.toString()}`);
-      const data: ApiResponse = await res.json();
-      if (data.success) {
-        setProducts(
-          data.products.map((p) => ({
-            productId: p.id,
-            name: p.name,
-            slug: p.slug,
-            price: p.price,
-            originalPrice: p.originalPrice,
-            image: p.image || undefined,
-            stockCount: p.stock,
-            soldCount: p.salesCount,
-            categoryName: p.category,
-            avgRating: p.avgRating,
-            reviewCount: p.reviewCount,
-            description: p.description,
-          }))
-        );
-        setTotalPages(data.pagination.totalPages);
-        setTotal(data.pagination.total);
-        setError("");
+      const data = await apiFetch<ApiResponse>(`/api/products?${params.toString()}`);
+      setProducts(
+        data.products.map((p) => ({
+          productId: p.id,
+          name: p.name,
+          slug: p.slug,
+          price: p.price,
+          originalPrice: p.originalPrice,
+          image: p.image || undefined,
+          stockCount: p.stock,
+          soldCount: p.salesCount,
+          categoryName: p.category,
+          avgRating: p.avgRating,
+          reviewCount: p.reviewCount,
+          description: p.description,
+        }))
+      );
+      setTotalPages(data.pagination.totalPages);
+      setTotal(data.pagination.total);
+      setError("");
 
-        // If current page exceeds total pages, redirect to last valid page
-        if (data.pagination.totalPages > 0 && page > data.pagination.totalPages) {
-          const params = new URLSearchParams(searchParams?.toString() ?? "");
-          if (data.pagination.totalPages <= 1) {
-            params.delete("page");
-          } else {
-            params.set("page", String(data.pagination.totalPages));
-          }
-          router.replace(`/products${params.toString() ? `?${params.toString()}` : ""}`);
+      // If current page exceeds total pages, redirect to last valid page
+      if (data.pagination.totalPages > 0 && page > data.pagination.totalPages) {
+        const params = new URLSearchParams(searchParams?.toString() ?? "");
+        if (data.pagination.totalPages <= 1) {
+          params.delete("page");
+        } else {
+          params.set("page", String(data.pagination.totalPages));
         }
+        router.replace(`/products${params.toString() ? `?${params.toString()}` : ""}`);
       }
-    } catch {
-      setError("商品加载失败，请刷新重试");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "商品加载失败，请刷新重试");
     } finally {
       setLoading(false);
     }

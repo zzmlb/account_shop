@@ -34,6 +34,7 @@ import {
 import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useAuthStore } from "@/stores/auth-store";
+import { apiFetch } from "@/lib/api-fetch";
 import CartSummary from "@/components/cart/cart-summary";
 import Breadcrumb from "@/components/ui/breadcrumb";
 
@@ -134,11 +135,10 @@ export default function CheckoutContent() {
       try {
         setStockValidating(true);
         const slugs = items.map((i) => i.slug);
-        const res = await fetch(`/api/products?slugs=${slugs.join(",")}&limit=50`, {
+        const data = await apiFetch<{ products: ServerProduct[] }>(`/api/products?slugs=${slugs.join(",")}&limit=50`, {
           signal: controller.signal,
         });
-        const data = await res.json();
-        if (!data.success || !Array.isArray(data.products)) return;
+        if (!Array.isArray(data.products)) return;
 
         const serverProducts = new Map<string, ServerProduct>(
           data.products.map((p: ServerProduct) => [p.slug, p])
@@ -238,7 +238,7 @@ export default function CheckoutContent() {
 
     try {
       // Create order via API (with idempotency key to prevent duplicate submissions)
-      const orderRes = await fetch("/api/orders", {
+      const orderData = await apiFetch<{ order: { id: string; orderNo: string } }>("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -255,38 +255,19 @@ export default function CheckoutContent() {
         }),
       });
 
-      const orderData = await orderRes.json();
-      if (!orderData.success) {
-        // If stock issue, re-validate cart to update quantities
-        if (orderData.code === "STOCK_INSUFFICIENT") {
-          setPriceChecked(false); // Trigger cart re-validation
-          toast.error("库存不足", {
-            description: orderData.message || "部分商品库存已变化，正在重新检查…",
-          });
-        } else {
-          toast.error("下单失败", {
-            description: orderData.message || "请检查商品库存后重试",
-          });
-        }
-        setIsSubmitting(false);
-        return;
-      }
-
       // Auto-pay with balance if selected
       if (paymentMethod === "balance") {
-        const payRes = await fetch(`/api/orders/${orderData.order.id}/pay`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentMethod: "balance" }),
-        });
-        const payData = await payRes.json();
-
-        if (!payData.success) {
+        let payData: { cardKeys?: string[]; needed?: number };
+        try {
+          payData = await apiFetch<{ cardKeys?: string[] }>(`/api/orders/${orderData.order.id}/pay`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ paymentMethod: "balance" }),
+          });
+        } catch (payErr) {
           // Balance payment failed — navigate to order page with PENDING status
           // so user can retry payment or choose another method
-          const description = payData.needed
-            ? `余额不足，还需充值 ${formatPrice(payData.needed)}`
-            : payData.message || "余额不足，请充值后在订单页重新支付";
+          const description = payErr instanceof Error ? payErr.message : "余额不足，请充值后在订单页重新支付";
           toast.error("余额支付失败", { description });
           sessionStorage.setItem(
             `order-${orderData.order.orderNo}`,
@@ -355,16 +336,23 @@ export default function CheckoutContent() {
 
       clearCart();
       router.push(`/order/${orderData.order.orderNo}`);
-    } catch {
+    } catch (err) {
       // Regenerate idempotency key so the retry is treated as a new attempt
       idempotencyKeyRef.current = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      toast.error("网络错误", {
-        description: "请检查网络连接后重试，您的购物车内容不会丢失",
-        action: {
-          label: "重试",
-          onClick: () => handleSubmit(),
-        },
-      });
+      const msg = err instanceof Error ? err.message : "请检查网络连接后重试";
+      // If stock issue, re-validate cart to update quantities
+      if (msg.includes("库存")) {
+        setPriceChecked(false);
+        toast.error("库存不足", { description: msg });
+      } else {
+        toast.error("下单失败", {
+          description: msg,
+          action: {
+            label: "重试",
+            onClick: () => handleSubmit(),
+          },
+        });
+      }
       setIsSubmitting(false);
     }
   };

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
+import { apiMutate } from "@/lib/api-fetch";
 
 const CATEGORIES = [
   { value: "support", label: "技术支持" },
@@ -54,22 +55,12 @@ export default function ContactForm() {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, _t: mountedAt.current }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success("留言已提交", { description: "我们会尽快通过邮件回复您" });
-        setSuccess(true);
-        setForm({ name: "", email: "", category: "", subject: "", message: "", website: "" });
-      } else {
-        setError(data.message || "提交失败，请稍后重试");
-      }
-    } catch {
-      setError("网络错误，请稍后重试");
+      await apiMutate("/api/contact", "POST", { ...form, _t: mountedAt.current });
+      toast.success("留言已提交", { description: "我们会尽快通过邮件回复您" });
+      setSuccess(true);
+      setForm({ name: "", email: "", category: "", subject: "", message: "", website: "" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setSubmitting(false);
     }

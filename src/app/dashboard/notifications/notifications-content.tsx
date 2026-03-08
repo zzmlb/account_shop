@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { timeAgo } from "@/lib/utils";
 import ConfirmDialog from "@/components/shared/confirm-dialog";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface Notification {
   id: string;
@@ -93,18 +94,17 @@ export default function NotificationsContent() {
         if (filter === "unread") params.set("unread", "true");
         if (typeFilter !== "all") params.set("type", typeFilter);
 
-        const res = await fetch(`/api/notifications?${params.toString()}`);
-        const data = await res.json();
-        if (data.success) {
-          setNotifications(data.notifications);
-          setPagination(data.pagination);
-          setUnreadCount(data.unreadCount);
-          setError("");
-        } else {
-          setError(data.message || "获取通知列表失败");
-        }
-      } catch {
-        setError("网络错误，获取通知列表失败");
+        const data = await apiFetch<{
+          notifications: Notification[];
+          pagination: Pagination;
+          unreadCount: number;
+        }>(`/api/notifications?${params.toString()}`);
+        setNotifications(data.notifications);
+        setPagination(data.pagination);
+        setUnreadCount(data.unreadCount);
+        setError("");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "获取通知列表失败");
       } finally {
         setLoading(false);
       }
@@ -119,21 +119,12 @@ export default function NotificationsContent() {
   const handleMarkAllRead = async () => {
     setMarkingAll(true);
     try {
-      const res = await fetch("/api/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ all: true }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        setUnreadCount(0);
-        toast.success("已全部标记为已读");
-      } else {
-        toast.error("操作失败");
-      }
-    } catch {
-      toast.error("网络错误，操作失败");
+      await apiMutate("/api/notifications", "PUT", { all: true });
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+      toast.success("已全部标记为已读");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setMarkingAll(false);
     }
@@ -142,11 +133,7 @@ export default function NotificationsContent() {
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read if unread
     if (!notification.isRead) {
-      fetch("/api/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [notification.id] }),
-      }).catch(() => {});
+      apiMutate("/api/notifications", "PUT", { ids: [notification.id] }).catch(() => {});
 
       setNotifications((prev) =>
         prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
@@ -163,16 +150,13 @@ export default function NotificationsContent() {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (data.success) {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
-        const deleted = notifications.find((n) => n.id === id);
-        if (deleted && !deleted.isRead) setUnreadCount((c) => Math.max(0, c - 1));
-        toast.success("通知已删除");
-      }
-    } catch {
-      toast.error("删除失败");
+      await apiFetch(`/api/notifications?id=${id}`, { method: "DELETE" });
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      const deleted = notifications.find((n) => n.id === id);
+      if (deleted && !deleted.isRead) setUnreadCount((c) => Math.max(0, c - 1));
+      toast.success("通知已删除");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除失败");
     }
   };
 
@@ -198,25 +182,18 @@ export default function NotificationsContent() {
     if (selectedIds.size === 0) return;
     setBatchDeleting(true);
     try {
-      const res = await fetch("/api/notifications", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      const data = await apiMutate<{ message?: string }>("/api/notifications", "DELETE", {
+        ids: Array.from(selectedIds),
       });
-      const data = await res.json();
-      if (data.success) {
-        const deletedUnread = notifications.filter(
-          (n) => selectedIds.has(n.id) && !n.isRead
-        ).length;
-        setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
-        setUnreadCount((c) => Math.max(0, c - deletedUnread));
-        setSelectedIds(new Set());
-        toast.success(data.message || "批量删除成功");
-      } else {
-        toast.error(data.message || "批量删除失败");
-      }
-    } catch {
-      toast.error("网络错误，批量删除失败");
+      const deletedUnread = notifications.filter(
+        (n) => selectedIds.has(n.id) && !n.isRead
+      ).length;
+      setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
+      setUnreadCount((c) => Math.max(0, c - deletedUnread));
+      setSelectedIds(new Set());
+      toast.success(data.message || "批量删除成功");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "批量删除失败");
     } finally {
       setBatchDeleting(false);
     }

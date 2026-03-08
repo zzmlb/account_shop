@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 import { useAuthStore } from "@/stores/auth-store";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface SearchResult {
   orderId: string;
@@ -87,24 +88,18 @@ export default function OrderSearchPageContent() {
 
     try {
       const emailParam = email.trim() ? `?email=${encodeURIComponent(email.trim())}` : "";
-      const res = await fetch(`/api/orders/${orderNo.trim()}${emailParam}`);
-      const data = await res.json();
-
-      if (data.success && data.order) {
-        const order = data.order;
-        setResult({
-          orderId: order.orderNo,
-          status: order.status,
-          items: order.items,
-          cardKeys: order.cardKeys || [],
-          createdAt: order.createdAt,
-          total: order.totalAmount,
-        });
-      } else {
-        setSearchError(data.message || "未找到该订单，请检查订单号是否正确");
-      }
-    } catch {
-      setSearchError("查询失败，请稍后重试");
+      const data = await apiFetch<{ order: { orderNo: string; status: string; items: Array<{ name: string; slug: string; quantity: number; price: number }>; cardKeys: string[]; createdAt: string; totalAmount: number } }>(`/api/orders/${orderNo.trim()}${emailParam}`);
+      const order = data.order;
+      setResult({
+        orderId: order.orderNo,
+        status: order.status,
+        items: order.items,
+        cardKeys: order.cardKeys || [],
+        createdAt: order.createdAt,
+        total: order.totalAmount,
+      });
+    } catch (err) {
+      setSearchError(err instanceof Error ? err.message : "查询失败，请稍后重试");
     } finally {
       setIsSearching(false);
     }

@@ -45,6 +45,7 @@ import {
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface FormMessage {
   type: "success" | "error";
@@ -144,11 +145,11 @@ export default function DashboardSettingsPageContent() {
   /* ---- Fetch login history ---- */
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/auth/login-history", { signal: controller.signal })
-      .then((r) => r.json())
+    apiFetch<{ logs: LoginLogEntry[] }>("/api/auth/login-history", {
+      signal: controller.signal,
+    })
       .then((data) => {
-        if (data.success) setLoginHistory(data.logs);
-        else setLoginHistoryError(true);
+        setLoginHistory(data.logs);
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -180,35 +181,21 @@ export default function DashboardSettingsPageContent() {
 
     setPasswordSaving(true);
     try {
-      const res = await fetch("/api/auth/password", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setPasswordMessage({
-          type: "error",
-          text: data.message || "密码修改失败",
-        });
-        toast.error(data.message || "密码修改失败");
-      } else {
-        setPasswordMessage({ type: "success", text: "密码修改成功，即将跳转到登录页..." });
-        toast.success("密码修改成功，请重新登录");
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        // Server clears session cookie; redirect to login after brief delay
-        setTimeout(() => {
-          logout();
-          router.push("/login");
-        }, 1500);
-      }
-    } catch {
-      setPasswordMessage({ type: "error", text: "网络错误，请稍后重试" });
-      toast.error("网络错误，请稍后重试");
+      await apiMutate("/api/auth/password", "PUT", { currentPassword, newPassword });
+      setPasswordMessage({ type: "success", text: "密码修改成功，即将跳转到登录页..." });
+      toast.success("密码修改成功，请重新登录");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      // Server clears session cookie; redirect to login after brief delay
+      setTimeout(() => {
+        logout();
+        router.push("/login");
+      }, 1500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "密码修改失败";
+      setPasswordMessage({ type: "error", text: msg });
+      toast.error(msg);
     } finally {
       setPasswordSaving(false);
     }
@@ -239,23 +226,14 @@ export default function DashboardSettingsPageContent() {
     }
     setEmailSaving(true);
     try {
-      const res = await fetch("/api/auth/email", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("邮箱已更新");
-        setEditingEmail(false);
-        // Refresh auth state
-        const { checkAuth } = useAuthStore.getState();
-        checkAuth();
-      } else {
-        toast.error(data.message || "更新失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      await apiMutate("/api/auth/email", "PUT", { email: trimmed });
+      toast.success("邮箱已更新");
+      setEditingEmail(false);
+      // Refresh auth state
+      const { checkAuth } = useAuthStore.getState();
+      checkAuth();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "更新失败");
     } finally {
       setEmailSaving(false);
     }
@@ -272,21 +250,12 @@ export default function DashboardSettingsPageContent() {
     }
     setDeleting(true);
     try {
-      const res = await fetch("/api/auth/delete-account", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: deletePassword }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("账户已删除");
-        logout();
-        router.push("/");
-      } else {
-        toast.error(data.message || "删除失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      await apiMutate("/api/auth/delete-account", "POST", { password: deletePassword });
+      toast.success("账户已删除");
+      logout();
+      router.push("/");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除失败");
     } finally {
       setDeleting(false);
     }
@@ -310,25 +279,13 @@ export default function DashboardSettingsPageContent() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("purpose", "avatar");
-      const uploadRes = await fetch("/api/upload", {
+      const uploadData = await apiFetch<{ url: string }>("/api/upload", {
         method: "POST",
         body: formData,
       });
-      const uploadData = await uploadRes.json();
-      if (!uploadData.success) {
-        throw new Error(uploadData.message || "上传失败");
-      }
 
       // Update profile with new avatar URL
-      const profileRes = await fetch("/api/auth/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ avatar: uploadData.url }),
-      });
-      const profileData = await profileRes.json();
-      if (!profileData.success) {
-        throw new Error(profileData.message || "更新头像失败");
-      }
+      await apiMutate("/api/auth/me", "PUT", { avatar: uploadData.url });
 
       // Refresh auth store
       useAuthStore.getState().checkAuth();

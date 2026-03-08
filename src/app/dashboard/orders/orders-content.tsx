@@ -21,6 +21,7 @@ import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/lib/api-fetch";
 
 /* ---------- types ---------- */
 
@@ -153,16 +154,10 @@ export default function OrdersPageContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/orders?pageSize=50");
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.message || "获取订单失败");
-        setOrders([]);
-      } else {
-        setOrders(data.orders ?? []);
-      }
-    } catch {
-      setError("网络错误，请稍后重试");
+      const data = await apiFetch<{ orders?: ApiOrder[] }>("/api/orders?pageSize=50");
+      setOrders(data.orders ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "获取订单失败");
       setOrders([]);
     } finally {
       setLoading(false);

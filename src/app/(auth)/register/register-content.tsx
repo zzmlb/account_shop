@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 function getPasswordStrength(password: string): {
   level: "weak" | "medium" | "strong";
@@ -99,8 +100,7 @@ export default function RegisterContent() {
     if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
     usernameTimerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(watchedUsername)}`);
-        const data = await res.json();
+        const data = await apiFetch<{ available: boolean }>(`/api/auth/check-username?username=${encodeURIComponent(watchedUsername)}`);
         setUsernameStatus(data.available ? "available" : "taken");
       } catch {
         setUsernameStatus("idle");
@@ -127,31 +127,18 @@ export default function RegisterContent() {
     }
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: data.username,
-          email: data.email,
-          password: data.password,
-        }),
+      await apiMutate("/api/auth/register", "POST", {
+        username: data.username,
+        email: data.email,
+        password: data.password,
       });
-
-      const result = await res.json();
-
-      if (result.success) {
-        toast.success("注册成功", {
-          description: "请使用新账户登录",
-        });
-        router.push("/login");
-      } else {
-        toast.error("注册失败", {
-          description: result.message || "请稍后重试",
-        });
-      }
-    } catch {
-      toast.error("网络错误", {
-        description: "请检查网络连接后重试",
+      toast.success("注册成功", {
+        description: "请使用新账户登录",
+      });
+      router.push("/login");
+    } catch (err) {
+      toast.error("注册失败", {
+        description: err instanceof Error ? err.message : "请检查网络连接后重试",
       });
     }
   };

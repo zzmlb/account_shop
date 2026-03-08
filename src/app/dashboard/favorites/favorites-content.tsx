@@ -25,6 +25,7 @@ import EmptyState from "@/components/shared/empty-state";
 import ConfirmDialog from "@/components/shared/confirm-dialog";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-fetch";
 
 type SortOption = "newest" | "oldest" | "price-asc" | "price-desc" | "name";
 
@@ -114,15 +115,10 @@ export default function FavoritesPageContent() {
   const fetchFavorites = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/favorites");
-      const data = await res.json();
-      if (data.success) {
-        setFavorites(data.favorites.map(mapApiToFavorite));
-      } else {
-        toast.error(data.message || "获取收藏列表失败");
-      }
-    } catch {
-      toast.error("网络错误，获取收藏列表失败");
+      const data = await apiFetch<{ favorites: ApiFavorite[] }>("/api/favorites");
+      setFavorites(data.favorites.map(mapApiToFavorite));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取收藏列表失败");
     } finally {
       setLoading(false);
     }
@@ -135,24 +131,18 @@ export default function FavoritesPageContent() {
   const handleUnfavorite = async (product: FavoriteProduct) => {
     setRemovingId(product.id);
     try {
-      const res = await fetch(
+      await apiFetch(
         `/api/favorites?productId=${encodeURIComponent(product.productId)}`,
         { method: "DELETE" }
       );
-      const data = await res.json();
-      if (data.success) {
-        // Small delay for the fade-out animation
-        setTimeout(() => {
-          setFavorites((prev) => prev.filter((item) => item.id !== product.id));
-          setRemovingId(null);
-        }, 300);
-        toast.success("已取消收藏");
-      } else {
-        toast.error(data.message || "取消收藏失败");
+      // Small delay for the fade-out animation
+      setTimeout(() => {
+        setFavorites((prev) => prev.filter((item) => item.id !== product.id));
         setRemovingId(null);
-      }
-    } catch {
-      toast.error("网络错误，取消收藏失败");
+      }, 300);
+      toast.success("已取消收藏");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "取消收藏失败");
       setRemovingId(null);
     }
   };
@@ -168,14 +158,14 @@ export default function FavoritesPageContent() {
     try {
       const results = await Promise.allSettled(
         favorites.map((fav) =>
-          fetch(
+          apiFetch(
             `/api/favorites?productId=${encodeURIComponent(fav.productId)}`,
             { method: "DELETE" }
-          ).then((res) => res.json())
+          )
         )
       );
       const failedCount = results.filter(
-        (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)
+        (r) => r.status === "rejected"
       ).length;
       if (failedCount === 0) {
         setFavorites([]);

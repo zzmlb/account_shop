@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-fetch";
 
 type CouponStatus = "available" | "used" | "expired";
 
@@ -278,15 +279,10 @@ export default function CouponsPageContent() {
   const fetchCoupons = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/coupons");
-      const data = await res.json();
-      if (data.success) {
-        setCoupons(data.coupons.map(mapApiToCoupon));
-      } else {
-        toast.error(data.message || "获取优惠券列表失败");
-      }
-    } catch {
-      toast.error("网络错误，获取优惠券列表失败");
+      const data = await apiFetch<{ coupons: ApiCoupon[] }>("/api/coupons");
+      setCoupons(data.coupons.map(mapApiToCoupon));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取优惠券列表失败");
     } finally {
       setLoading(false);
     }

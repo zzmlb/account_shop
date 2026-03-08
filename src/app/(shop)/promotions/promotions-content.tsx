@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface AvailableCoupon {
   id: string;
@@ -53,13 +54,10 @@ export default function PromotionsContent() {
 
   const fetchCoupons = useCallback(async () => {
     try {
-      const res = await fetch("/api/coupons/available");
-      const data = await res.json();
-      if (data.success) {
-        setCoupons(data.coupons);
-      }
-    } catch {
-      toast.error("获取优惠券失败，请刷新重试");
+      const data = await apiFetch<{ coupons: AvailableCoupon[] }>("/api/coupons/available");
+      setCoupons(data.coupons);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取优惠券失败，请刷新重试");
     } finally {
       setLoading(false);
     }
@@ -74,32 +72,22 @@ export default function PromotionsContent() {
       if (couponId) setClaimingId(couponId);
       else setClaimingManual(true);
 
-      const res = await fetch("/api/coupons/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+      await apiMutate("/api/coupons/claim", "POST", { code });
+      toast.success("优惠券领取成功", {
+        description: `${code} 已添加到您的优惠券中`,
       });
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success("优惠券领取成功", {
-          description: `${code} 已添加到您的优惠券中`,
-        });
-        // Update local state
-        setCoupons((prev) =>
-          prev.map((c) =>
-            c.id === couponId ? { ...c, isClaimed: true } : c
-          )
-        );
-        if (!couponId) {
-          setManualCode("");
-          fetchCoupons();
-        }
-      } else {
-        toast.error(data.message || "领取失败");
+      // Update local state
+      setCoupons((prev) =>
+        prev.map((c) =>
+          c.id === couponId ? { ...c, isClaimed: true } : c
+        )
+      );
+      if (!couponId) {
+        setManualCode("");
+        fetchCoupons();
       }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setClaimingId(null);
       setClaimingManual(false);

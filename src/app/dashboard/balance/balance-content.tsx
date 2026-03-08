@@ -25,6 +25,7 @@ import {
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-fetch";
 
 type LogType = "RECHARGE" | "PURCHASE" | "REFUND" | "ADMIN_ADJUST";
 
@@ -108,18 +109,14 @@ export default function BalancePageContent() {
         params.set("type", filterType);
       }
       const qs = params.toString();
-      const res = await fetch(`/api/balance-logs${qs ? `?${qs}` : ""}`);
-      const data = await res.json();
-
-      if (data.success) {
-        setLogs(data.logs);
-        setBalance(data.balance);
-        setError("");
-      } else {
-        setError(data.message || "获取余额记录失败");
-      }
-    } catch {
-      setError("网络错误，请稍后重试");
+      const data = await apiFetch<{ logs: BalanceLog[]; balance: number }>(
+        `/api/balance-logs${qs ? `?${qs}` : ""}`
+      );
+      setLogs(data.logs);
+      setBalance(data.balance);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "获取余额记录失败");
     } finally {
       setLoading(false);
       setRefreshing(false);

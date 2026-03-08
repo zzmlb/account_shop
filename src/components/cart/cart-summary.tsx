@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface CouponState {
   code: string;
@@ -47,15 +48,14 @@ export default function CartSummary({
     const controller = new AbortController();
     async function fetchCoupons() {
       try {
-        const res = await fetch("/api/coupons", { signal: controller.signal });
-        const data = await res.json();
-        if (data.success && Array.isArray(data.coupons)) {
+        const data = await apiFetch<{ coupons: Array<{ isUsed: boolean; endDate: string; startDate: string; code: string; type: string; value: number; minAmount: number | null }> }>("/api/coupons", { signal: controller.signal });
+        if (Array.isArray(data.coupons)) {
           const now = new Date();
           const usable = data.coupons
-            .filter((c: { isUsed: boolean; endDate: string; startDate: string }) =>
+            .filter((c) =>
               !c.isUsed && new Date(c.endDate) > now && new Date(c.startDate) <= now
             )
-            .map((c: { code: string; type: string; value: number; minAmount: number | null }) => ({
+            .map((c) => ({
               code: c.code,
               type: c.type,
               value: c.value,
@@ -83,30 +83,15 @@ export default function CartSummary({
 
     setIsValidating(true);
     try {
-      const res = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponCode.trim(), amount: subtotal }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setCouponApplied(true);
-        setDiscount(data.discount);
-        
-        setCouponError("");
-        onCouponChange?.({ code: couponCode.trim().toUpperCase(), couponId: data.couponId, discount: data.discount });
-      } else {
-        setCouponApplied(false);
-        setDiscount(0);
-
-        setCouponError(data.message || "无效的优惠码");
-        onCouponChange?.(null);
-      }
-    } catch {
+      const data = await apiMutate<{ discount: number; couponId: string }>("/api/coupons/validate", "POST", { code: couponCode.trim(), amount: subtotal });
+      setCouponApplied(true);
+      setDiscount(data.discount);
+      setCouponError("");
+      onCouponChange?.({ code: couponCode.trim().toUpperCase(), couponId: data.couponId, discount: data.discount });
+    } catch (err) {
       setCouponApplied(false);
       setDiscount(0);
-      setCouponError("验证优惠码时出错，请重试");
+      setCouponError(err instanceof Error ? err.message : "验证优惠码时出错，请重试");
       onCouponChange?.(null);
     } finally {
       setIsValidating(false);

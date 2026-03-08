@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface RefundItem {
   id: string;
@@ -46,15 +47,10 @@ export default function RefundsContent() {
 
   const fetchRefunds = useCallback(async () => {
     try {
-      const res = await fetch("/api/refunds");
-      const data = await res.json();
-      if (data.success) {
-        setRefunds(data.refunds);
-      } else {
-        toast.error(data.message || "获取退款列表失败");
-      }
-    } catch {
-      toast.error("网络错误，获取退款列表失败");
+      const data = await apiFetch<{ refunds: RefundItem[] }>("/api/refunds");
+      setRefunds(data.refunds);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取退款列表失败");
     } finally {
       setLoading(false);
     }

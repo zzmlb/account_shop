@@ -7,6 +7,7 @@ import { KeyRound, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-reac
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 export default function ResetPasswordContent() {
   const searchParams = useSearchParams();
@@ -26,8 +27,7 @@ export default function ResetPasswordContent() {
       setTokenStatus("invalid");
       return;
     }
-    fetch(`/api/auth/check-reset-token?token=${encodeURIComponent(token)}`)
-      .then((res) => res.json())
+    apiFetch<{ valid: boolean; reason?: string }>(`/api/auth/check-reset-token?token=${encodeURIComponent(token)}`)
       .then((data) => {
         if (data.valid) {
           setTokenStatus("valid");
@@ -117,22 +117,12 @@ export default function ResetPasswordContent() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setSuccess(true);
-      } else {
-        setError(data.message || "重置失败，请重试");
-        toast.error(data.message || "重置失败");
-      }
-    } catch {
-      setError("网络错误，请稍后重试");
+      await apiMutate("/api/auth/reset-password", "POST", { token, password });
+      setSuccess(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "网络错误，请稍后重试";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

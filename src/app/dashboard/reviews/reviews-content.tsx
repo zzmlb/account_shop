@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ReviewProduct {
   id: string;
@@ -64,15 +65,10 @@ export default function ReviewsContent() {
 
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch("/api/reviews/my");
-      const data = await res.json();
-      if (data.success) {
-        setReviews(data.reviews);
-      } else {
-        toast.error(data.message || "获取评价失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiFetch<{ reviews: MyReview[] }>("/api/reviews/my");
+      setReviews(data.reviews);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取评价失败");
     } finally {
       setLoading(false);
     }

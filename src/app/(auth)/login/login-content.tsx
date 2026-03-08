@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { apiMutate } from "@/lib/api-fetch";
 
 export default function LoginContent() {
   const router = useRouter();
@@ -44,29 +45,16 @@ export default function LoginContent() {
 
   const onSubmit = async (data: LoginInput) => {
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, rememberMe }),
+      const result = await apiMutate<{ user: { id: string; username: string; email: string; role: "user" | "admin" | "super_admin"; balance: number; avatar?: string | null } }>("/api/auth/login", "POST", { ...data, rememberMe });
+      login(result.user);
+      toast.success("登录成功", {
+        description: `欢迎回来，${result.user.username}`,
       });
-
-      const result = await res.json();
-
-      if (result.success) {
-        login(result.user);
-        toast.success("登录成功", {
-          description: `欢迎回来，${result.user.username}`,
-        });
-        const redirectTo = searchParams.get("from") || "/";
-        router.push(redirectTo);
-      } else {
-        toast.error("登录失败", {
-          description: result.message || "用户名或密码错误",
-        });
-      }
-    } catch {
-      toast.error("网络错误", {
-        description: "请检查网络连接后重试",
+      const redirectTo = searchParams.get("from") || "/";
+      router.push(redirectTo);
+    } catch (err) {
+      toast.error("登录失败", {
+        description: err instanceof Error ? err.message : "请检查网络连接后重试",
       });
     }
   };
