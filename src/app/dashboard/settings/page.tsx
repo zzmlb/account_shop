@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Lock,
-  Mail,
   User,
   Camera,
   Eye,

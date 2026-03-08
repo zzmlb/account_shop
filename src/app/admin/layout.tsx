@@ -1,0 +1,299 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import {
+  LayoutDashboard,
+  Package,
+  Key,
+  FileText,
+  Users,
+  BookOpen,
+  Settings,
+  LogOut,
+  Bell,
+  Menu,
+  ShieldAlert,
+  ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
+import { SITE_NAME } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+const sidebarLinks = [
+  { label: "概览", href: "/admin", icon: LayoutDashboard },
+  { label: "商品管理", href: "/admin/products", icon: Package },
+  { label: "卡密管理", href: "/admin/card-keys", icon: Key },
+  { label: "订单管理", href: "/admin/orders", icon: FileText },
+  { label: "用户管理", href: "/admin/users", icon: Users },
+  { label: "文章管理", href: "/admin/articles", icon: BookOpen },
+  { label: "系统设置", href: "/admin/settings", icon: Settings },
+];
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const { user, logout } = useAuthStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  /* ---------- Not logged in ---------- */
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+        <div className="mx-auto max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--destructive)]/10">
+            <ShieldAlert className="h-8 w-8 text-[var(--destructive)]" />
+          </div>
+          <h2 className="text-xl font-bold text-[var(--foreground)]">
+            请先登录
+          </h2>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            您需要登录管理员账户才能访问管理后台
+          </p>
+          <Button asChild className="mt-6 w-full" size="lg">
+            <Link href="/login">
+              前往登录
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Not admin ---------- */
+  if (user.role !== "admin") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+        <div className="mx-auto max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--warning)]/10">
+            <ShieldAlert className="h-8 w-8 text-[var(--warning)]" />
+          </div>
+          <h2 className="text-xl font-bold text-[var(--foreground)]">
+            无权限
+          </h2>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            您的账户没有管理员权限，无法访问此页面
+          </p>
+          <Button asChild variant="outline" className="mt-6 w-full" size="lg">
+            <Link href="/">
+              返回首页
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Helper: is link active ---------- */
+  const isActive = (href: string) =>
+    href === "/admin"
+      ? pathname === "/admin"
+      : pathname.startsWith(href);
+
+  /* ---------- Sidebar nav content (shared between desktop + mobile) ---------- */
+  const SidebarNav = ({ onLinkClick }: { onLinkClick?: () => void }) => (
+    <nav className="flex flex-col gap-1">
+      {sidebarLinks.map((link) => {
+        const active = isActive(link.href);
+        const Icon = link.icon;
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            onClick={onLinkClick}
+            className={cn(
+              "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors",
+              active
+                ? "bg-[var(--primary)]/10 text-[var(--primary)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {link.label}
+          </Link>
+        );
+      })}
+
+      <Separator className="my-2" />
+
+      <button
+        onClick={() => {
+          onLinkClick?.();
+          logout();
+        }}
+        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--destructive)] transition-colors"
+      >
+        <LogOut className="h-4 w-4" />
+        退出登录
+      </button>
+    </nav>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-[var(--background)]">
+      {/* ========== Desktop Sidebar ========== */}
+      <aside className="hidden w-64 shrink-0 border-r border-[var(--border)] bg-[var(--card)] lg:flex lg:flex-col">
+        {/* Sidebar header / logo */}
+        <div className="flex h-16 items-center gap-2 border-b border-[var(--border)] px-6">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)]">
+            <LayoutDashboard className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent">
+              {SITE_NAME}
+            </span>
+            <span className="text-[10px] text-[var(--muted-foreground)]">
+              管理后台
+            </span>
+          </div>
+        </div>
+
+        {/* Sidebar nav */}
+        <div className="flex-1 overflow-y-auto px-3 py-4">
+          <SidebarNav />
+        </div>
+
+        {/* Sidebar footer: admin info */}
+        <div className="border-t border-[var(--border)] p-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-[var(--primary)]/10 text-xs font-semibold text-[var(--primary)]">
+                {user.username?.charAt(0).toUpperCase() ?? "A"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-[var(--foreground)]">
+                {user.username}
+              </span>
+              <span className="text-[10px] text-[var(--muted-foreground)]">
+                管理员
+              </span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* ========== Main area ========== */}
+      <div className="flex flex-1 flex-col min-w-0">
+        {/* Top header bar */}
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/80 px-4 backdrop-blur-xl lg:px-8">
+          {/* Left: mobile menu + breadcrumb area */}
+          <div className="flex items-center gap-3">
+            {/* Mobile hamburger */}
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="lg:hidden"
+                >
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">打开菜单</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <SheetHeader className="border-b border-[var(--border)] px-6 py-4">
+                  <SheetTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)]">
+                      <LayoutDashboard className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent">
+                      {SITE_NAME} 管理后台
+                    </span>
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="px-3 py-4">
+                  <SidebarNav onLinkClick={() => setMobileOpen(false)} />
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Page title for desktop */}
+            <h1 className="hidden text-lg font-semibold text-[var(--foreground)] lg:block">
+              {SITE_NAME} 管理后台
+            </h1>
+
+            {/* Mobile logo */}
+            <span className="text-sm font-bold bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent lg:hidden">
+              {SITE_NAME}
+            </span>
+          </div>
+
+          {/* Right side: notifications, avatar, logout */}
+          <div className="flex items-center gap-2">
+            {/* Notification bell */}
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5 text-[var(--muted-foreground)]" />
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--destructive)] text-[10px] font-bold text-white">
+                3
+              </span>
+              <span className="sr-only">通知</span>
+            </Button>
+
+            <Separator orientation="vertical" className="hidden h-6 sm:block" />
+
+            {/* Return to shop */}
+            <Link
+              href="/"
+              className="hidden text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors sm:inline-block"
+            >
+              返回商城
+            </Link>
+
+            <Separator orientation="vertical" className="hidden h-6 sm:block" />
+
+            {/* Avatar + name */}
+            <div className="hidden items-center gap-2 sm:flex">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-[var(--primary)]/10 text-xs font-semibold text-[var(--primary)]">
+                  {user.username?.charAt(0).toUpperCase() ?? "A"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-[var(--foreground)]">
+                  {user.username}
+                </span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  管理员
+                </Badge>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="hidden gap-1.5 text-[var(--muted-foreground)] hover:text-[var(--destructive)] sm:inline-flex"
+            >
+              <LogOut className="h-4 w-4" />
+              退出
+            </Button>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

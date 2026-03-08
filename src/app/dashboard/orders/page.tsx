@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+// cn utility available if needed
 
 type OrderStatus = "all" | "pending" | "delivered" | "cancelled";
 
@@ -53,6 +53,8 @@ const statusTabs = [
 ];
 
 const PAGE_SIZE = 5;
+
+export const dynamic = "force-dynamic";
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState<string>("all");

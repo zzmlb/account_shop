@@ -15,8 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { cn, formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
+
+export const dynamic = "force-dynamic";
 
 interface SearchResult {
   orderId: string;
