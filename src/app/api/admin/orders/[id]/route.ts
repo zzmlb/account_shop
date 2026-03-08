@@ -96,6 +96,23 @@ export async function GET(
       );
     }
 
+    // Fetch coupon info separately since it's not a relation
+    let couponInfo = null;
+    if (order.couponId) {
+      const coupon = await db.coupon.findUnique({
+        where: { id: order.couponId },
+        select: { id: true, code: true, type: true, value: true },
+      });
+      if (coupon) {
+        couponInfo = {
+          id: coupon.id,
+          code: coupon.code,
+          type: coupon.type,
+          value: Number(coupon.value),
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       order: {
@@ -122,7 +139,7 @@ export async function GET(
         expireAt: order.expireAt.toISOString(),
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
-        couponId: order.couponId ?? null,
+        coupon: couponInfo,
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,

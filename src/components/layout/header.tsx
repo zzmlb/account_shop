@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut } from "lucide-react";
@@ -10,6 +10,7 @@ import { useTheme } from "@/components/providers/theme-provider";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCartStore } from "@/stores/cart-store";
 import { useSiteSettingsStore } from "@/stores/site-settings-store";
+import { useNotificationStore } from "@/stores/notification-store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header() {
@@ -19,25 +20,19 @@ export default function Header() {
   const { user, logout } = useAuthStore();
   const cartCount = useCartStore((s) => s.getItemCount());
   const { siteName, load: loadSettings } = useSiteSettingsStore();
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const unreadNotifications = useNotificationStore((s) => s.unreadCount);
+  const fetchNotifCount = useNotificationStore((s) => s.fetchCount);
 
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
-  const fetchNotifCount = useCallback(() => {
-    if (!user) return;
-    fetch("/api/notifications/unread-count")
-      .then((r) => r.json())
-      .then((d) => setUnreadNotifications(d.count ?? 0))
-      .catch(() => {});
-  }, [user]);
-
   useEffect(() => {
+    if (!user) return;
     fetchNotifCount();
     const interval = setInterval(fetchNotifCount, 60_000);
     return () => clearInterval(interval);
-  }, [fetchNotifCount]);
+  }, [user, fetchNotifCount]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");

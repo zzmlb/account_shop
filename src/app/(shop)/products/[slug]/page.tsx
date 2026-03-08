@@ -4,7 +4,7 @@ import ProductDetailContent from "./product-detail-content";
 import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR: revalidate every 60 seconds
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;

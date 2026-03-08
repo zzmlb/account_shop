@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import { useNotificationStore } from "@/stores/notification-store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -49,20 +50,15 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const fetchNotifCount = useNotificationStore((s) => s.fetchCount);
 
   useEffect(() => {
     if (!user) return;
-    const fetchCount = () => {
-      fetch("/api/notifications/unread-count")
-        .then((r) => r.json())
-        .then((d) => setUnreadCount(d.count ?? 0))
-        .catch(() => {});
-    };
-    fetchCount();
-    const interval = setInterval(fetchCount, 60_000);
+    fetchNotifCount();
+    const interval = setInterval(fetchNotifCount, 60_000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, fetchNotifCount]);
 
   /* ---------- Not logged in ---------- */
   if (!user) {

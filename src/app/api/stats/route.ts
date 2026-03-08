@@ -35,7 +35,7 @@ export async function GET() {
         }),
       ]);
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       stats: {
         products: formatCount(productsCount),
@@ -44,6 +44,11 @@ export async function GET() {
       },
       trending: trending.map((p) => p.name),
     });
+    res.headers.set(
+      "Cache-Control",
+      "public, s-maxage=300, stale-while-revalidate=600"
+    );
+    return res;
   } catch (error) {
     log.error({ err: error }, "Public stats GET error");
     return NextResponse.json(

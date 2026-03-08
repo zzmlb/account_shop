@@ -34,7 +34,9 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ success: true, reviews: masked });
+    const res = NextResponse.json({ success: true, reviews: masked });
+    res.headers.set("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1800");
+    return res;
   } catch {
     return NextResponse.json({ success: true, reviews: [] });
   }
