@@ -360,7 +360,7 @@ export default function AdminUsersPageContent() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-10 w-10 sm:h-8 sm:w-8"
                                 disabled={isActionLoading}
                               >
                                 {isActionLoading ? (

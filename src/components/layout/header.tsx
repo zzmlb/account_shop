@@ -47,7 +47,7 @@ export default function Header() {
         </Link>
 
         {/* Center: Navigation (desktop) */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav aria-label="主导航" className="hidden items-center gap-1 md:flex">
           {NAV_LINKS.map((link) => {
             const isActive =
               link.href === "/"
@@ -160,6 +160,7 @@ export default function Header() {
                 onClick={logout}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--destructive)] hover:bg-[var(--destructive)]/10 transition-colors"
                 title="退出登录"
+                aria-label="退出登录"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -178,7 +179,8 @@ export default function Header() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors md:hidden"
-            aria-label="Toggle menu"
+            aria-label={mobileMenuOpen ? "关闭菜单" : "打开菜单"}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? (
               <X className="h-5 w-5" />

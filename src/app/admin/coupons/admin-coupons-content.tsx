@@ -298,7 +298,7 @@ export default function AdminCouponsContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10 sm:h-8 sm:w-8"
                   onClick={() => toggleActive(coupon)}
                   title={coupon.isActive ? "点击停用" : "点击启用"}
                 >
@@ -315,7 +315,7 @@ export default function AdminCouponsContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-[var(--destructive)] hover:text-[var(--destructive)]"
+                  className="h-10 w-10 sm:h-8 sm:w-8 text-[var(--destructive)] hover:text-[var(--destructive)]"
                   onClick={() => {
                     setDeletingCoupon(coupon);
                     setDeleteDialogOpen(true);

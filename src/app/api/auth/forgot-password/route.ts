@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
         to: user.email,
         resetToken: token,
         username: user.username,
-      }).catch(() => {});
+      }).catch((err) => {
+        log.error({ err, userId: user.id }, "Failed to send password reset email");
+      });
 
       log.info({ userId: user.id }, "Password reset token generated and email sent");
     }

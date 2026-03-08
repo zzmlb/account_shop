@@ -125,6 +125,7 @@ export default function LoginContent() {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
               tabIndex={-1}
+              aria-label={showPassword ? "隐藏密码" : "显示密码"}
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" />

@@ -309,7 +309,7 @@ export default function AdminCategoriesContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10 sm:h-8 sm:w-8"
                   onClick={() => toggleActive(cat)}
                   title={cat.isActive ? "点击隐藏" : "点击启用"}
                 >
@@ -326,7 +326,7 @@ export default function AdminCategoriesContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-10 w-10 sm:h-8 sm:w-8"
                   onClick={() => openEditDialog(cat)}
                   title="编辑"
                 >
@@ -335,7 +335,7 @@ export default function AdminCategoriesContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-[var(--destructive)] hover:text-[var(--destructive)]"
+                  className="h-10 w-10 sm:h-8 sm:w-8 text-[var(--destructive)] hover:text-[var(--destructive)]"
                   onClick={() => {
                     setDeletingCategory(cat);
                     setDeleteDialogOpen(true);

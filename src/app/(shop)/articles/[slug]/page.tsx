@@ -45,7 +45,9 @@ export default async function ArticleDetailPage({ params }: Props) {
   db.article.update({
     where: { id: article.id },
     data: { viewCount: { increment: 1 } },
-  }).catch(() => {});
+  }).catch(() => {
+    // View count increment is non-critical, silently ignore
+  });
 
   // Fetch related articles (same category, different slug)
   const related = await db.article.findMany({

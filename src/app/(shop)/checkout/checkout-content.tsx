@@ -329,13 +329,16 @@ export default function CheckoutContent() {
               <CreditCard className="h-5 w-5 text-[var(--primary)]" />
               支付方式
             </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="支付方式">
               {PAYMENT_METHODS.map((method) => {
                 const isSelected = paymentMethod === method.id;
                 return (
                   <button
                     key={method.id}
                     onClick={() => setPaymentMethod(method.id)}
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-label={method.label}
                     className={cn(
                       "flex items-center gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-all",
                       isSelected

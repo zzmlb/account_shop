@@ -18,6 +18,7 @@ export default function MobileNav() {
 
   return (
     <nav
+      aria-label="移动端导航"
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50 md:hidden",
         "border-t border-[var(--border)]",
