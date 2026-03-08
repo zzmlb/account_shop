@@ -1,145 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decodeSession } from "@/lib/auth";
+import { db } from "@/server/db";
 
-interface OrderItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
+function generateOrderNo(): string {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `PJ37-${date}-${rand}`;
 }
 
-interface Order {
-  id: string;
-  orderNo: string;
-  userId: string;
-  items: OrderItem[];
-  totalAmount: number;
-  status: "pending" | "paid" | "processing" | "completed" | "cancelled" | "refunded";
-  paymentMethod: "alipay" | "wechat" | "crypto" | "balance";
-  createdAt: string;
-}
-
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "ord_001",
-    orderNo: "PJ37-20260301-0001",
-    userId: "usr_001",
-    items: [{ productId: "prod_001", productName: "Gmail 全新账号", quantity: 2, unitPrice: 5.99 }],
-    totalAmount: 11.98,
-    status: "completed",
-    paymentMethod: "alipay",
-    createdAt: "2026-03-01T10:30:00Z",
-  },
-  {
-    id: "ord_002",
-    orderNo: "PJ37-20260301-0002",
-    userId: "usr_001",
-    items: [{ productId: "prod_005", productName: "Netflix 高级会员 1 个月", quantity: 1, unitPrice: 15.99 }],
-    totalAmount: 15.99,
-    status: "completed",
-    paymentMethod: "wechat",
-    createdAt: "2026-03-01T14:22:00Z",
-  },
-  {
-    id: "ord_003",
-    orderNo: "PJ37-20260302-0001",
-    userId: "usr_002",
-    items: [{ productId: "prod_003", productName: "Twitter / X 高质量账号", quantity: 1, unitPrice: 29.99 }],
-    totalAmount: 29.99,
-    status: "paid",
-    paymentMethod: "crypto",
-    createdAt: "2026-03-02T09:15:00Z",
-  },
-  {
-    id: "ord_004",
-    orderNo: "PJ37-20260302-0002",
-    userId: "usr_001",
-    items: [
-      { productId: "prod_009", productName: "ChatGPT Plus 共享账号", quantity: 1, unitPrice: 19.99 },
-      { productId: "prod_010", productName: "Adobe Creative Cloud 年订阅", quantity: 1, unitPrice: 129.00 },
-    ],
-    totalAmount: 148.99,
-    status: "processing",
-    paymentMethod: "alipay",
-    createdAt: "2026-03-02T16:45:00Z",
-  },
-  {
-    id: "ord_005",
-    orderNo: "PJ37-20260303-0001",
-    userId: "usr_003",
-    items: [{ productId: "prod_006", productName: "Spotify Premium 年卡", quantity: 1, unitPrice: 39.99 }],
-    totalAmount: 39.99,
-    status: "completed",
-    paymentMethod: "wechat",
-    createdAt: "2026-03-03T11:00:00Z",
-  },
-  {
-    id: "ord_006",
-    orderNo: "PJ37-20260304-0001",
-    userId: "usr_001",
-    items: [{ productId: "prod_011", productName: "NordVPN 2 年套餐", quantity: 1, unitPrice: 59.99 }],
-    totalAmount: 59.99,
-    status: "pending",
-    paymentMethod: "balance",
-    createdAt: "2026-03-04T08:30:00Z",
-  },
-  {
-    id: "ord_007",
-    orderNo: "PJ37-20260305-0001",
-    userId: "usr_002",
-    items: [{ productId: "prod_002", productName: "Outlook 企业邮箱", quantity: 5, unitPrice: 12.99 }],
-    totalAmount: 64.95,
-    status: "completed",
-    paymentMethod: "alipay",
-    createdAt: "2026-03-05T13:20:00Z",
-  },
-  {
-    id: "ord_008",
-    orderNo: "PJ37-20260306-0001",
-    userId: "usr_004",
-    items: [{ productId: "prod_004", productName: "Instagram 老号带粉", quantity: 1, unitPrice: 45.00 }],
-    totalAmount: 45.00,
-    status: "cancelled",
-    paymentMethod: "wechat",
-    createdAt: "2026-03-06T17:10:00Z",
-  },
-  {
-    id: "ord_009",
-    orderNo: "PJ37-20260307-0001",
-    userId: "usr_001",
-    items: [{ productId: "prod_008", productName: "Epic Games 全游戏库账号", quantity: 1, unitPrice: 89.99 }],
-    totalAmount: 89.99,
-    status: "refunded",
-    paymentMethod: "crypto",
-    createdAt: "2026-03-07T10:05:00Z",
-  },
-  {
-    id: "ord_010",
-    orderNo: "PJ37-20260308-0001",
-    userId: "usr_005",
-    items: [
-      { productId: "prod_001", productName: "Gmail 全新账号", quantity: 10, unitPrice: 5.99 },
-      { productId: "prod_012", productName: "ExpressVPN 1 年订阅", quantity: 1, unitPrice: 49.99 },
-    ],
-    totalAmount: 109.89,
-    status: "paid",
-    paymentMethod: "alipay",
-    createdAt: "2026-03-08T07:45:00Z",
-  },
-];
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    return NextResponse.json({
-      success: true,
-      orders: MOCK_ORDERS,
-      total: MOCK_ORDERS.length,
-    });
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "服务器内部错误",
+    const session = decodeSession(
+      request.cookies.get("session")?.value || ""
+    );
+
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
+    const orders = await db.order.findMany({
+      where: { userId: session.id },
+      include: {
+        items: {
+          include: {
+            product: { select: { name: true, slug: true } },
+            cardKeys: { select: { content: true } },
+          },
+        },
       },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const formatted = orders.map((o) => ({
+      id: o.id,
+      orderNo: o.orderNo,
+      totalAmount: Number(o.totalAmount),
+      payAmount: Number(o.payAmount),
+      status: o.status,
+      paymentMethod: o.paymentMethod,
+      email: o.email,
+      createdAt: o.createdAt.toISOString(),
+      paidAt: o.paidAt?.toISOString(),
+      items: o.items.map((item) => ({
+        productName: item.product.name,
+        productSlug: item.product.slug,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        cardKeys: item.cardKeys.map((k) => k.content),
+      })),
+    }));
+
+    return NextResponse.json({ success: true, orders: formatted });
+  } catch (error) {
+    console.error("Orders API error:", error);
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
       { status: 500 }
     );
   }
@@ -147,52 +66,94 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const session = decodeSession(
+      request.cookies.get("session")?.value || ""
+    );
 
-    const { items, paymentMethod } = body;
+    const body = await request.json();
+    const { items, paymentMethod, email } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "订单商品不能为空",
-        },
+        { success: false, message: "订单商品不能为空" },
         { status: 400 }
       );
     }
 
-    // Calculate total
-    const totalAmount = items.reduce(
-      (sum: number, item: OrderItem) => sum + item.unitPrice * item.quantity,
-      0
-    );
+    // Calculate total from DB prices (never trust frontend prices)
+    let totalAmount = 0;
+    const productDetails = [];
 
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const seq = String(MOCK_ORDERS.length + 1).padStart(4, "0");
+    for (const item of items) {
+      const product = await db.product.findUnique({
+        where: { id: item.productId },
+      });
 
-    const newOrder: Order = {
-      id: `ord_${Date.now()}`,
-      orderNo: `PJ37-${dateStr}-${seq}`,
-      userId: "usr_001", // Mock: would come from session in production
-      items,
-      totalAmount: Math.round(totalAmount * 100) / 100,
-      status: "pending",
-      paymentMethod: paymentMethod || "alipay",
-      createdAt: now.toISOString(),
-    };
+      if (!product || !product.isActive) {
+        return NextResponse.json(
+          { success: false, message: `商品不存在或已下架: ${item.productId}` },
+          { status: 400 }
+        );
+      }
+
+      if (product.stockCount < item.quantity) {
+        return NextResponse.json(
+          { success: false, message: `${product.name} 库存不足` },
+          { status: 400 }
+        );
+      }
+
+      const subtotal = Number(product.price) * item.quantity;
+      totalAmount += subtotal;
+      productDetails.push({ product, quantity: item.quantity, unitPrice: Number(product.price) });
+    }
+
+    // Create order with items
+    const order = await db.order.create({
+      data: {
+        orderNo: generateOrderNo(),
+        userId: session?.id,
+        email: email || null,
+        totalAmount,
+        payAmount: totalAmount,
+        status: "PENDING",
+        paymentMethod: paymentMethod || null,
+        expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min expiry
+        items: {
+          create: productDetails.map((d) => ({
+            productId: d.product.id,
+            quantity: d.quantity,
+            unitPrice: d.unitPrice,
+          })),
+        },
+      },
+      include: {
+        items: {
+          include: { product: { select: { name: true } } },
+        },
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      message: "订单创建成功",
-      order: newOrder,
-    });
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "服务器内部错误",
+      order: {
+        id: order.id,
+        orderNo: order.orderNo,
+        totalAmount: Number(order.totalAmount),
+        status: order.status,
+        createdAt: order.createdAt.toISOString(),
+        expireAt: order.expireAt.toISOString(),
+        items: order.items.map((item) => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+        })),
       },
+    });
+  } catch (error) {
+    console.error("Create order error:", error);
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
       { status: 500 }
     );
   }
