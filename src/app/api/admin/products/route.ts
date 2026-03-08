@@ -1,0 +1,408 @@
+import { NextRequest, NextResponse } from "next/server";
+import { decodeSession } from "@/lib/auth";
+import { db } from "@/server/db";
+
+function isAdmin(role: string): boolean {
+  const upper = role.toUpperCase();
+  return upper === "ADMIN" || upper === "SUPER_ADMIN";
+}
+
+function getAdminSession(request: NextRequest) {
+  const session = decodeSession(
+    request.cookies.get("session")?.value || ""
+  );
+
+  if (!session) {
+    return {
+      session: null,
+      error: NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (!isAdmin(session.role)) {
+    return {
+      session: null,
+      error: NextResponse.json(
+        { success: false, message: "无管理员权限" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { session, error: null };
+}
+
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[\s]+/g, "-")
+    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    || `product-${Date.now()}`;
+}
+
+// GET - List all products (admin only)
+export async function GET(request: NextRequest) {
+  try {
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search");
+
+    const where: Record<string, unknown> = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const products = await db.product.findMany({
+      where,
+      include: {
+        category: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    });
+
+    const formatted = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+      categoryId: p.categoryId,
+      category: {
+        id: p.category.id,
+        name: p.category.name,
+        slug: p.category.slug,
+      },
+      image: p.image,
+      tags: p.tags,
+      stockCount: p.stockCount,
+      soldCount: p.soldCount,
+      isActive: p.isActive,
+      sortOrder: p.sortOrder,
+      deliveryType: p.deliveryType,
+      afterSaleHours: p.afterSaleHours,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    }));
+
+    return NextResponse.json({ success: true, products: formatted });
+  } catch (error) {
+    console.error("Admin products GET error:", error);
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a new product (admin only)
+export async function POST(request: NextRequest) {
+  try {
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const {
+      name,
+      slug,
+      description,
+      price,
+      categoryId,
+      stockCount,
+      originalPrice,
+      tags,
+      image,
+      isActive,
+      deliveryType,
+      afterSaleHours,
+    } = body;
+
+    // Validate required fields
+    if (!name || !description || price === undefined || !categoryId || stockCount === undefined) {
+      return NextResponse.json(
+        { success: false, message: "缺少必填字段: name, description, price, categoryId, stockCount" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof price !== "number" || price < 0) {
+      return NextResponse.json(
+        { success: false, message: "价格必须为非负数" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof stockCount !== "number" || stockCount < 0 || !Number.isInteger(stockCount)) {
+      return NextResponse.json(
+        { success: false, message: "库存数量必须为非负整数" },
+        { status: 400 }
+      );
+    }
+
+    // Verify category exists
+    const category = await db.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { success: false, message: "分类不存在" },
+        { status: 400 }
+      );
+    }
+
+    // Generate slug from name if not provided
+    const productSlug = slug || generateSlug(name);
+
+    // Check slug uniqueness
+    const existing = await db.product.findUnique({
+      where: { slug: productSlug },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { success: false, message: `slug 已存在: ${productSlug}` },
+        { status: 409 }
+      );
+    }
+
+    const product = await db.product.create({
+      data: {
+        name,
+        slug: productSlug,
+        description,
+        price,
+        categoryId,
+        stockCount,
+        originalPrice: originalPrice ?? undefined,
+        tags: tags ?? [],
+        image: image ?? undefined,
+        isActive: isActive ?? true,
+        deliveryType: deliveryType ?? undefined,
+        afterSaleHours: afterSaleHours ?? undefined,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      product: {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        price: Number(product.price),
+        originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+        categoryId: product.categoryId,
+        category: {
+          id: product.category.id,
+          name: product.category.name,
+          slug: product.category.slug,
+        },
+        image: product.image,
+        tags: product.tags,
+        stockCount: product.stockCount,
+        soldCount: product.soldCount,
+        isActive: product.isActive,
+        sortOrder: product.sortOrder,
+        deliveryType: product.deliveryType,
+        afterSaleHours: product.afterSaleHours,
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Admin products POST error:", error);
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update a product (admin only)
+export async function PUT(request: NextRequest) {
+  try {
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "缺少商品ID参数" },
+        { status: 400 }
+      );
+    }
+
+    // Check product exists
+    const existing = await db.product.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "商品不存在" },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const {
+      name,
+      slug,
+      description,
+      price,
+      categoryId,
+      stockCount,
+      originalPrice,
+      tags,
+      image,
+      isActive,
+      sortOrder,
+      deliveryType,
+      afterSaleHours,
+    } = body;
+
+    // If categoryId is being changed, verify the new category exists
+    if (categoryId && categoryId !== existing.categoryId) {
+      const category = await db.category.findUnique({
+        where: { id: categoryId },
+      });
+      if (!category) {
+        return NextResponse.json(
+          { success: false, message: "分类不存在" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // If slug is being changed, check uniqueness
+    if (slug && slug !== existing.slug) {
+      const slugExists = await db.product.findUnique({
+        where: { slug },
+      });
+      if (slugExists) {
+        return NextResponse.json(
+          { success: false, message: `slug 已存在: ${slug}` },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Build update data with only provided fields
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (slug !== undefined) updateData.slug = slug;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = price;
+    if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (stockCount !== undefined) updateData.stockCount = stockCount;
+    if (originalPrice !== undefined) updateData.originalPrice = originalPrice;
+    if (tags !== undefined) updateData.tags = tags;
+    if (image !== undefined) updateData.image = image;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+    if (deliveryType !== undefined) updateData.deliveryType = deliveryType;
+    if (afterSaleHours !== undefined) updateData.afterSaleHours = afterSaleHours;
+
+    const product = await db.product.update({
+      where: { id },
+      data: updateData,
+      include: {
+        category: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      product: {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        price: Number(product.price),
+        originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+        categoryId: product.categoryId,
+        category: {
+          id: product.category.id,
+          name: product.category.name,
+          slug: product.category.slug,
+        },
+        image: product.image,
+        tags: product.tags,
+        stockCount: product.stockCount,
+        soldCount: product.soldCount,
+        isActive: product.isActive,
+        sortOrder: product.sortOrder,
+        deliveryType: product.deliveryType,
+        afterSaleHours: product.afterSaleHours,
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Admin products PUT error:", error);
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Soft delete a product (admin only)
+export async function DELETE(request: NextRequest) {
+  try {
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "缺少商品ID参数" },
+        { status: 400 }
+      );
+    }
+
+    // Check product exists
+    const existing = await db.product.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "商品不存在" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete: set isActive to false
+    await db.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "商品已下架",
+    });
+  } catch (error) {
+    console.error("Admin products DELETE error:", error);
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}

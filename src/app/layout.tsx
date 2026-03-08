@@ -90,6 +90,18 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${inter.variable} ${notoSansSC.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: SITE_NAME,
+              url: SITE_URL,
+              description: SITE_DESCRIPTION,
+            }),
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

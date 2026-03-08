@@ -115,7 +115,32 @@ export default async function ProductDetailPage({
     categoryName: p.category.name,
   }));
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description || `${product.name} - 数字商品`,
+    url: `${SITE_URL}/products/${product.slug}`,
+    ...(product.image && { image: product.image }),
+    brand: { "@type": "Brand", name: SITE_NAME },
+    offers: {
+      "@type": "Offer",
+      price: Number(product.price),
+      priceCurrency: "CNY",
+      availability: product.stockCount > 0
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      seller: { "@type": "Organization", name: SITE_NAME },
+    },
+  };
+
   return (
-    <ProductDetailContent product={productData} relatedProducts={relatedData} />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <ProductDetailContent product={productData} relatedProducts={relatedData} />
+    </>
   );
 }
