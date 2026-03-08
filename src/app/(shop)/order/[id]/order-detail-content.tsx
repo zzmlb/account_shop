@@ -161,6 +161,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
   const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
@@ -431,6 +432,23 @@ export default function OrderDetailContent({ id }: { id: string }) {
           )}
         </div>
       </div>
+
+      {/* Delivery success banner */}
+      {order.status === "DELIVERED" && (
+        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--success)]/30 bg-[var(--success)]/5 p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--success)]/15">
+            <CheckCircle2 className="h-6 w-6 text-[var(--success)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              订单已完成，卡密已交付
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+              请在下方查看您的卡密信息，建议及时保存或使用
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Status timeline */}
       {activeStepIndex >= 0 && (
@@ -707,7 +725,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
             })}
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-[var(--muted-foreground)]">
               卡密信息已同步发送至您的邮箱。请妥善保管卡密，避免泄露。
             </p>
@@ -743,6 +761,33 @@ export default function OrderDetailContent({ id }: { id: string }) {
                 <Copy className="h-3.5 w-3.5" />
                 复制全部
               </Button>
+              {order.email && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={resendingEmail}
+                  onClick={async () => {
+                    setResendingEmail(true);
+                    try {
+                      const res = await fetch(`/api/orders/${order.id}/resend-email`, { method: "POST" });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success("卡密已重新发送至邮箱");
+                      } else {
+                        toast.error(data.message || "发送失败");
+                      }
+                    } catch {
+                      toast.error("网络错误，请稍后重试");
+                    } finally {
+                      setResendingEmail(false);
+                    }
+                  }}
+                  className="gap-1.5"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  {resendingEmail ? "发送中..." : "重发邮件"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
