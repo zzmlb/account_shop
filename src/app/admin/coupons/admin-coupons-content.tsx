@@ -541,6 +541,28 @@ export default function AdminCouponsContent() {
                 {formErrors.expireAt && (
                   <p className="text-xs text-[var(--destructive)]">{formErrors.expireAt}</p>
                 )}
+                {/* Quick presets */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: "7天", days: 7 },
+                    { label: "30天", days: 30 },
+                    { label: "90天", days: 90 },
+                    { label: "365天", days: 365 },
+                  ].map(({ label, days }) => (
+                    <button
+                      key={days}
+                      type="button"
+                      className="rounded-[var(--radius-sm)] border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                      onClick={() => {
+                        const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+                        setFormExpireAt(d.toISOString().slice(0, 16));
+                        setFormErrors((prev) => ({ ...prev, expireAt: "" }));
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

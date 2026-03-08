@@ -320,9 +320,19 @@ export default function CouponsPageContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-        <p className="text-sm text-[var(--muted-foreground)]">加载优惠券中...</p>
+      <div className="space-y-4" aria-busy="true">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-[var(--radius-md)] bg-[var(--muted)]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-28 rounded bg-[var(--muted)]" />
+                <div className="h-3 w-40 rounded bg-[var(--muted)]" />
+              </div>
+              <div className="h-8 w-16 rounded bg-[var(--muted)]" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

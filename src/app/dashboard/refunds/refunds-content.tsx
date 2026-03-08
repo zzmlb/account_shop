@@ -75,8 +75,18 @@ export default function RefundsContent() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+        <div className="space-y-3" aria-busy="true">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-4 w-32 rounded bg-[var(--muted)]" />
+                  <div className="h-3 w-48 rounded bg-[var(--muted)]" />
+                </div>
+                <div className="h-6 w-16 rounded bg-[var(--muted)]" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : refunds.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center">

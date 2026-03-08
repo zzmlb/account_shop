@@ -156,9 +156,22 @@ export default function FavoritesPageContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-        <p className="text-sm text-[var(--muted-foreground)]">加载收藏列表中...</p>
+      <div className="space-y-6" aria-busy="true">
+        <div className="flex items-center justify-between">
+          <div className="h-7 w-32 animate-pulse rounded bg-[var(--muted)]" />
+          <div className="h-8 w-20 animate-pulse rounded bg-[var(--muted)]" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+              <div className="aspect-[4/3] bg-[var(--muted)]" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 w-3/4 rounded bg-[var(--muted)]" />
+                <div className="h-3 w-1/2 rounded bg-[var(--muted)]" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
