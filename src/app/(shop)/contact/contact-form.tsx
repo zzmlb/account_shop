@@ -1,16 +1,33 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth-store";
+
+const CATEGORIES = [
+  { value: "support", label: "技术支持" },
+  { value: "billing", label: "支付/账单问题" },
+  { value: "feedback", label: "意见反馈" },
+  { value: "other", label: "其他" },
+];
 
 export default function ContactForm() {
+  const user = useAuthStore((s) => s.user);
   const [form, setForm] = useState({
     name: "",
     email: "",
+    category: "",
     subject: "",
     message: "",
     website: "", // honeypot field
@@ -19,6 +36,17 @@ export default function ContactForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  // Auto-fill name/email for logged-in users
+  useEffect(() => {
+    if (user) {
+      setForm((f) => ({
+        ...f,
+        name: f.name || user.username,
+        email: f.email || user.email,
+      }));
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +64,7 @@ export default function ContactForm() {
       if (data.success) {
         toast.success("留言已提交", { description: "我们会尽快通过邮件回复您" });
         setSuccess(true);
-        setForm({ name: "", email: "", subject: "", message: "", website: "" });
+        setForm({ name: "", email: "", category: "", subject: "", message: "", website: "" });
       } else {
         setError(data.message || "提交失败，请稍后重试");
       }
@@ -103,6 +131,27 @@ export default function ContactForm() {
             maxLength={100}
           />
         </div>
+      </div>
+
+      <div className="mt-4">
+        <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+          问题类型
+        </label>
+        <Select
+          value={form.category}
+          onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="选择问题类型（可选）" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.value} value={c.value}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="mt-4">

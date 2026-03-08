@@ -41,6 +41,7 @@ export default async function ArticlesPage() {
     tags: a.tags,
     date: a.createdAt.toISOString().split("T")[0],
     readCount: a.viewCount,
+    wordCount: a.content.replace(/<[^>]*>/g, "").length,
   }));
 
   const jsonLd = {

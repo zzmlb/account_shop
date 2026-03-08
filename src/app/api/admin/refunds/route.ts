@@ -67,6 +67,17 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Gather stats (always, regardless of filters)
+    const [pendingCount, approvedStats, rejectedCount] = await Promise.all([
+      db.refundRequest.count({ where: { status: "PENDING" } }),
+      db.refundRequest.aggregate({
+        where: { status: "APPROVED" },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      db.refundRequest.count({ where: { status: "REJECTED" } }),
+    ]);
+
     const [refunds, total] = await Promise.all([
       db.refundRequest.findMany({
         where,
@@ -102,8 +113,20 @@ export async function GET(request: NextRequest) {
       db.refundRequest.count({ where }),
     ]);
 
+    const totalProcessed = (approvedStats._count || 0) + rejectedCount;
+    const approvalRate = totalProcessed > 0
+      ? Math.round(((approvedStats._count || 0) / totalProcessed) * 100)
+      : 0;
+
     return NextResponse.json({
       success: true,
+      stats: {
+        pendingCount,
+        approvedCount: approvedStats._count || 0,
+        approvedAmount: Number(approvedStats._sum.amount || 0),
+        rejectedCount,
+        approvalRate,
+      },
       refunds: refunds.map((r) => ({
         id: r.id,
         orderId: r.orderId,
@@ -361,6 +384,76 @@ export async function PUT(request: NextRequest) {
       );
     }
     log.error({ err: error }, "处理退款申请失败");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Batch reject refund requests (batch approve is too risky)
+export async function PATCH(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { ids, action, adminNote: note } = body as {
+      ids: string[];
+      action: "reject";
+      adminNote?: string;
+    };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "请选择至少一个退款申请" },
+        { status: 400 }
+      );
+    }
+
+    if (ids.length > 50) {
+      return NextResponse.json(
+        { success: false, message: "单次批量操作最多50个" },
+        { status: 400 }
+      );
+    }
+
+    // Only allow batch reject for safety (approve needs individual review for balance refund)
+    if (action !== "reject") {
+      return NextResponse.json(
+        { success: false, message: "批量操作仅支持拒绝（批量通过需逐一审核以确保退款金额正确）" },
+        { status: 400 }
+      );
+    }
+
+    const cleanNote = note ? stripHtml(note).slice(0, 500) : null;
+
+    const result = await db.refundRequest.updateMany({
+      where: {
+        id: { in: ids },
+        status: "PENDING",
+      },
+      data: {
+        status: "REJECTED",
+        adminNote: cleanNote,
+      },
+    });
+
+    log.info(
+      { adminId: session.id, ids, affected: result.count },
+      "Admin batch rejected refund requests"
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: `已拒绝 ${result.count} 个退款申请${ids.length !== result.count ? `（${ids.length - result.count} 个已跳过）` : ""}`,
+      affected: result.count,
+    });
+  } catch (error) {
+    log.error({ err: error }, "批量处理退款申请失败");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

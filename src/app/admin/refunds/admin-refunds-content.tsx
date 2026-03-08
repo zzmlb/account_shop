@@ -10,6 +10,11 @@ import {
   AlertCircle,
   User,
   ShoppingBag,
+  Download,
+  CheckSquare,
+  Clock,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +34,14 @@ import {
 import { formatDateTime } from "@/lib/utils";
 
 type StatusFilter = "all" | "PENDING" | "APPROVED" | "REJECTED";
+
+interface RefundStats {
+  pendingCount: number;
+  approvedCount: number;
+  approvedAmount: number;
+  rejectedCount: number;
+  approvalRate: number;
+}
 
 interface RefundItem {
   id: string;
@@ -74,6 +87,11 @@ export default function AdminRefundsContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<RefundStats | null>(null);
+
+  // Batch selection state
+  const [selectedRefunds, setSelectedRefunds] = useState<Set<string>>(new Set());
+  const [batchRejecting, setBatchRejecting] = useState(false);
 
   // Action dialog state
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
@@ -98,6 +116,7 @@ export default function AdminRefundsContent() {
         setRefunds(data.refunds);
         setTotalPages(data.pagination.totalPages);
         setTotal(data.pagination.total);
+        if (data.stats) setStats(data.stats);
       } else {
         setError(data.message || "加载失败");
       }
@@ -170,6 +189,88 @@ export default function AdminRefundsContent() {
     }
   };
 
+  // Clear selection when filters/page change
+  useEffect(() => {
+    setSelectedRefunds(new Set());
+  }, [statusFilter, debouncedSearch, page]);
+
+  const pendingRefunds = refunds.filter((r) => r.status === "PENDING");
+  const allPendingSelected = pendingRefunds.length > 0 && pendingRefunds.every((r) => selectedRefunds.has(r.id));
+
+  const toggleSelectAll = () => {
+    if (allPendingSelected) {
+      setSelectedRefunds(new Set());
+    } else {
+      setSelectedRefunds(new Set(pendingRefunds.map((r) => r.id)));
+    }
+  };
+
+  const toggleSelectRefund = (id: string) => {
+    setSelectedRefunds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBatchReject = async () => {
+    if (selectedRefunds.size === 0) return;
+    setBatchRejecting(true);
+    try {
+      const res = await fetch("/api/admin/refunds", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedRefunds),
+          action: "reject",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setSelectedRefunds(new Set());
+        fetchRefunds();
+      } else {
+        toast.error(data.message || "批量操作失败");
+      }
+    } catch {
+      toast.error("网络错误");
+    } finally {
+      setBatchRejecting(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const items = selectedRefunds.size > 0 ? refunds.filter((r) => selectedRefunds.has(r.id)) : refunds;
+    if (items.length === 0) {
+      toast.error("没有可导出的数据");
+      return;
+    }
+    const headers = ["订单号", "用户名", "邮箱", "退款金额", "退款原因", "状态", "管理员备注", "申请时间", "处理时间"];
+    const statusLabel = (s: string) => STATUS_MAP[s]?.label || s;
+    const rows = items.map((r) => [
+      r.orderNo,
+      r.user.username,
+      r.user.email || "",
+      r.amount.toFixed(2),
+      `"${r.reason.replace(/"/g, '""')}"`,
+      statusLabel(r.status),
+      r.adminNote ? `"${r.adminNote.replace(/"/g, '""')}"` : "",
+      r.createdAt,
+      r.updatedAt,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `refunds-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`已导出 ${items.length} 条退款记录`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -182,6 +283,40 @@ export default function AdminRefundsContent() {
           审核和处理用户的退款申请
         </p>
       </div>
+
+      {/* Stats cards */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <Clock className="h-3.5 w-3.5" />
+              待处理
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--foreground)]">{stats.pendingCount}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              已通过
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--success)]">{stats.approvedCount}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <DollarSign className="h-3.5 w-3.5" />
+              退款总额
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--foreground)]">¥{stats.approvedAmount.toFixed(2)}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <TrendingUp className="h-3.5 w-3.5" />
+              通过率
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--foreground)]">{stats.approvalRate}%</p>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -204,6 +339,45 @@ export default function AdminRefundsContent() {
           />
         </div>
       </div>
+
+      {/* Bulk action bar */}
+      {selectedRefunds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-3">
+          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+          <span className="text-sm font-medium">
+            已选择 {selectedRefunds.size} 项
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1" onClick={handleExportCSV}>
+              <Download className="h-3.5 w-3.5" />
+              导出选中
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1"
+              onClick={handleBatchReject}
+              disabled={batchRejecting}
+            >
+              {batchRejecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+              批量拒绝
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedRefunds(new Set())}>
+              取消选择
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Export all button (when no selection) */}
+      {!loading && !error && refunds.length > 0 && selectedRefunds.size === 0 && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="gap-1" onClick={handleExportCSV}>
+            <Download className="h-3.5 w-3.5" />
+            导出当前页
+          </Button>
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (

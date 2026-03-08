@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, ChevronRight, Eye, Calendar } from "lucide-react";
+import { Search, ChevronRight, Eye, Calendar, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import AnimatedSection from "@/components/shared/animated-section";
@@ -17,6 +17,14 @@ export interface ArticleItem {
   tags?: string[];
   date: string;
   readCount: number;
+  wordCount?: number;
+}
+
+function estimateReadTime(wordCount?: number): string {
+  if (!wordCount || wordCount <= 0) return "1 分钟";
+  // Average Chinese reading speed: ~400 chars/min
+  const minutes = Math.max(1, Math.ceil(wordCount / 400));
+  return `${minutes} 分钟`;
 }
 
 interface ArticlesPageContentProps {
@@ -167,6 +175,10 @@ export default function ArticlesPageContent({
                       <span className="flex items-center gap-1">
                         <Eye className="h-3.5 w-3.5" />
                         {article.readCount.toLocaleString()} 阅读
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {estimateReadTime(article.wordCount)}
                       </span>
                     </div>
                   </div>
