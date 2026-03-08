@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
+    const now = new Date();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
@@ -99,7 +100,14 @@ export async function GET(request: NextRequest) {
       where.createdAt = createdAt;
     }
 
-    const [orders, total] = await Promise.all([
+    // Calculate today's stats
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+    const [orders, total, todayOrders, todayRevenue, pendingCount, paidCount] = await Promise.all([
       db.order.findMany({
         where,
         include: {
@@ -135,6 +143,13 @@ export async function GET(request: NextRequest) {
         take: pageSize,
       }),
       db.order.count({ where }),
+      db.order.count({ where: { createdAt: { gte: todayStart } } }),
+      db.order.aggregate({
+        _sum: { payAmount: true },
+        where: { status: { in: ["PAID", "DELIVERED"] }, createdAt: { gte: todayStart } },
+      }),
+      db.order.count({ where: { status: "PENDING" } }),
+      db.order.count({ where: { status: "PAID" } }),
     ]);
 
     const formatted = orders.map((o) => ({
@@ -186,6 +201,12 @@ export async function GET(request: NextRequest) {
         pageSize,
         total,
         totalPages: Math.ceil(total / pageSize),
+      },
+      stats: {
+        todayOrders,
+        todayRevenue: Number(todayRevenue._sum.payAmount ?? 0),
+        pendingCount,
+        paidCount,
       },
     });
   } catch (error) {

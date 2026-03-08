@@ -92,6 +92,7 @@ export default function NotificationsContent() {
   const [error, setError] = useState("");
   const [markingAll, setMarkingAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const fetchNotifications = useCallback(
     async (page: number, filter: "all" | "unread") => {
@@ -101,6 +102,7 @@ export default function NotificationsContent() {
         params.set("page", String(page));
         params.set("pageSize", "20");
         if (filter === "unread") params.set("unread", "true");
+        if (typeFilter !== "all") params.set("type", typeFilter);
 
         const res = await fetch(`/api/notifications?${params.toString()}`);
         const data = await res.json();
@@ -118,12 +120,12 @@ export default function NotificationsContent() {
         setLoading(false);
       }
     },
-    []
+    [typeFilter]
   );
 
   useEffect(() => {
     fetchNotifications(pagination.page, activeFilter);
-  }, [pagination.page, activeFilter, fetchNotifications]);
+  }, [pagination.page, activeFilter, typeFilter, fetchNotifications]);
 
   const handleMarkAllRead = async () => {
     setMarkingAll(true);
@@ -239,44 +241,73 @@ export default function NotificationsContent() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2" role="tablist" aria-label="通知筛选">
-        <button
-          role="tab"
-          aria-selected={activeFilter === "all"}
-          onClick={() => {
-            setActiveFilter("all");
-            setPagination((p) => ({ ...p, page: 1 }));
-          }}
-          className={cn(
-            "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-            activeFilter === "all"
-              ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-              : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-          )}
-        >
-          全部
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeFilter === "unread"}
-          onClick={() => {
-            setActiveFilter("unread");
-            setPagination((p) => ({ ...p, page: 1 }));
-          }}
-          className={cn(
-            "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-            activeFilter === "unread"
-              ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-              : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-          )}
-        >
-          未读
-          {unreadCount > 0 && (
-            <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--primary-foreground)]/20 text-xs">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </button>
+      <div className="space-y-2">
+        <div className="flex gap-2" role="tablist" aria-label="通知筛选">
+          <button
+            role="tab"
+            aria-selected={activeFilter === "all"}
+            onClick={() => {
+              setActiveFilter("all");
+              setPagination((p) => ({ ...p, page: 1 }));
+            }}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              activeFilter === "all"
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            )}
+          >
+            全部
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeFilter === "unread"}
+            onClick={() => {
+              setActiveFilter("unread");
+              setPagination((p) => ({ ...p, page: 1 }));
+            }}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+              activeFilter === "unread"
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            )}
+          >
+            未读
+            {unreadCount > 0 && (
+              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--primary-foreground)]/20 text-xs">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+        {/* Type filter */}
+        <div className="flex flex-wrap gap-1.5">
+          {([
+            { value: "all", label: "全部类型" },
+            { value: "ORDER", label: "订单" },
+            { value: "REFUND", label: "退款" },
+            { value: "BALANCE", label: "余额" },
+            { value: "SYSTEM", label: "系统" },
+            { value: "COUPON", label: "优惠" },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setTypeFilter(opt.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                typeFilter === opt.value
+                  ? "bg-[var(--foreground)] text-[var(--background)]"
+                  : "border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Notification list */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Star, Loader2, MessageSquare, Send } from "lucide-react";
+import { Star, Loader2, MessageSquare, Send, ArrowUpDown, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
@@ -15,8 +15,12 @@ interface ReviewItem {
   content: string;
   username: string;
   avatar: string | null;
+  adminReply: string | null;
+  repliedAt: string | null;
   createdAt: string;
 }
+
+type SortOption = "newest" | "oldest" | "rating-high" | "rating-low";
 
 interface ReviewStats {
   avgRating: number;
@@ -118,6 +122,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalReviews, setTotalReviews] = useState(0);
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   // Avatar error tracking
   const [failedAvatars, setFailedAvatars] = useState<Set<string>>(new Set());
@@ -137,6 +142,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         pageSize: "5",
       });
       if (ratingFilter) params.set("rating", String(ratingFilter));
+      if (sortBy !== "newest") params.set("sort", sortBy);
       const res = await fetch(`/api/reviews?${params}`);
       const data = await res.json();
       if (data.success) {
@@ -150,7 +156,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     } finally {
       setLoading(false);
     }
-  }, [productId, page, ratingFilter]);
+  }, [productId, page, ratingFilter, sortBy]);
 
   useEffect(() => {
     fetchReviews();
@@ -317,19 +323,44 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         </div>
       )}
 
-      {/* Active filter indicator */}
-      {ratingFilter && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-          <span>筛选: {ratingFilter}星评价</span>
-          <button
-            type="button"
-            onClick={() => { setRatingFilter(null); setPage(1); }}
-            className="text-[var(--primary)] hover:underline"
-          >
-            清除筛选
-          </button>
+      {/* Sort & active filter */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+          {ratingFilter && (
+            <>
+              <span>筛选: {ratingFilter}星评价</span>
+              <button
+                type="button"
+                onClick={() => { setRatingFilter(null); setPage(1); }}
+                className="text-[var(--primary)] hover:underline"
+              >
+                清除筛选
+              </button>
+            </>
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-1">
+          <ArrowUpDown className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+          {([
+            { value: "newest" as const, label: "最新" },
+            { value: "oldest" as const, label: "最早" },
+            { value: "rating-high" as const, label: "好评优先" },
+            { value: "rating-low" as const, label: "差评优先" },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { setSortBy(opt.value); setPage(1); }}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                sortBy === opt.value
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Reviews list */}
       {loading ? (
@@ -397,6 +428,22 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
               <p className="whitespace-pre-line text-sm leading-relaxed text-[var(--card-foreground)]">
                 {review.content}
               </p>
+              {review.adminReply && (
+                <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-3">
+                  <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-[var(--primary)]">
+                    <Shield className="h-3 w-3" />
+                    商家回复
+                    {review.repliedAt && (
+                      <span className="ml-auto text-[var(--muted-foreground)]">
+                        {formatDate(review.repliedAt)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="whitespace-pre-line text-sm text-[var(--muted-foreground)]">
+                    {review.adminReply}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
 

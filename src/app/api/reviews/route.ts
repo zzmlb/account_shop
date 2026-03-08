@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize")) || 10));
     const ratingParam = searchParams.get("rating");
     const ratingFilter = ratingParam ? Math.min(5, Math.max(1, Number(ratingParam))) : null;
+    const sortParam = searchParams.get("sort");
 
     const where = {
       productId,
@@ -35,13 +36,29 @@ export async function GET(request: NextRequest) {
       ...(ratingFilter ? { rating: ratingFilter } : {}),
     };
 
+    // Determine sort order
+    let orderBy: Record<string, string>;
+    switch (sortParam) {
+      case "oldest":
+        orderBy = { createdAt: "asc" };
+        break;
+      case "rating-high":
+        orderBy = { rating: "desc" };
+        break;
+      case "rating-low":
+        orderBy = { rating: "asc" };
+        break;
+      default:
+        orderBy = { createdAt: "desc" };
+    }
+
     const [reviews, total] = await Promise.all([
       db.review.findMany({
         where,
         include: {
           user: { select: { id: true, username: true, avatar: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -69,6 +86,8 @@ export async function GET(request: NextRequest) {
       content: r.content,
       username: r.user.username,
       avatar: r.user.avatar,
+      adminReply: r.adminReply,
+      repliedAt: r.repliedAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
     }));
 

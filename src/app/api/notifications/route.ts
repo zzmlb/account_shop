@@ -35,10 +35,15 @@ export async function GET(request: NextRequest) {
     const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
     const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
     const unreadOnly = searchParams.get("unread") === "true";
+    const typeFilter = searchParams.get("type");
+    const validTypes = ["ORDER", "REFUND", "BALANCE", "SYSTEM", "COUPON"];
 
     const where: Record<string, unknown> = { userId: session.id };
     if (unreadOnly) {
       where.isRead = false;
+    }
+    if (typeFilter && validTypes.includes(typeFilter)) {
+      where.type = typeFilter;
     }
 
     const [notifications, total, unreadCount] = await Promise.all([
