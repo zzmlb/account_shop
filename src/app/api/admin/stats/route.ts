@@ -253,6 +253,22 @@ export async function GET(request: NextRequest) {
         count: m._count.id,
       }));
 
+    // ---------- Low Stock Products (top 8) ----------
+
+    const lowStockProducts = await db.product.findMany({
+      where: { isActive: true, stockCount: { lt: 10 } },
+      orderBy: { stockCount: "asc" },
+      take: 8,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        stockCount: true,
+        soldCount: true,
+        price: true,
+      },
+    });
+
     // ---------- Recent Login Activity (last 10) ----------
 
     const recentLoginsRaw = await db.loginLog.findMany({
@@ -301,6 +317,14 @@ export async function GET(request: NextRequest) {
       ordersByStatus,
       revenueByMethod,
       recentLogins,
+      lowStockProducts: lowStockProducts.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        stockCount: p.stockCount,
+        soldCount: p.soldCount,
+        price: Number(p.price),
+      })),
     });
   } catch (error) {
     log.error({ err: error }, "Admin stats GET error");

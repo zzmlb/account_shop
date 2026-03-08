@@ -26,6 +26,7 @@ import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useAuthStore } from "@/stores/auth-store";
 import CartSummary from "@/components/cart/cart-summary";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 interface ServerProduct {
   slug: string;
@@ -88,6 +89,7 @@ export default function CheckoutContent() {
   const [mounted, setMounted] = useState(false);
   const [priceChecked, setPriceChecked] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponState | null>(null);
+  const [stockValidating, setStockValidating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -106,6 +108,7 @@ export default function CheckoutContent() {
 
     async function validateCart() {
       try {
+        setStockValidating(true);
         const slugs = items.map((i) => i.slug);
         const res = await fetch(`/api/products?slugs=${slugs.join(",")}&limit=50`);
         const data = await res.json();
@@ -141,6 +144,8 @@ export default function CheckoutContent() {
         }
       } catch {
         // Silent fail — server will validate on submit
+      } finally {
+        setStockValidating(false);
       }
     }
     validateCart();
@@ -333,22 +338,22 @@ export default function CheckoutContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Back link */}
-      <Link
-        href="/products"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        继续购物
-      </Link>
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "全部商品", href: "/products" },
+          { label: "确认订单" },
+        ]}
+        className="mb-6"
+      />
 
       {/* Page title */}
       <h1 className="mb-8 text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
         确认订单
       </h1>
 
-      {/* Two column layout */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
+      {/* Two column layout - side by side on md+ */}
+      <div className="grid gap-8 md:grid-cols-[1fr_340px] lg:grid-cols-[1fr_400px]">
         {/* Left column: Payment method + Contact info */}
         <div className="space-y-8">
           {/* Contact info */}
@@ -518,6 +523,33 @@ export default function CheckoutContent() {
             </div>
           </div>
 
+          {/* Stock validation status */}
+          <div className={cn(
+            "flex items-center gap-3 rounded-[var(--radius-md)] border px-4 py-3 transition-colors",
+            stockValidating
+              ? "border-[var(--border)] bg-[var(--muted)]/30"
+              : priceChecked
+                ? "border-green-500/20 bg-green-500/5"
+                : "border-[var(--warning)]/20 bg-[var(--warning)]/5"
+          )}>
+            {stockValidating ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent flex-shrink-0" />
+                <p className="text-xs text-[var(--muted-foreground)]">正在检查商品库存和价格...</p>
+              </>
+            ) : priceChecked ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
+                <p className="text-xs text-green-700 dark:text-green-400">商品库存和价格已确认，可安全下单</p>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 text-[var(--warning)]" />
+                <p className="text-xs text-[var(--warning)]">库存信息验证中，请稍候...</p>
+              </>
+            )}
+          </div>
+
           {/* Security notice */}
           <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]/50 px-4 py-3">
             <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--primary)]" />
@@ -528,7 +560,7 @@ export default function CheckoutContent() {
         </div>
 
         {/* Right column: Order summary */}
-        <div className="lg:sticky lg:top-24 lg:self-start">
+        <div className="md:sticky md:top-24 md:self-start">
           <CartSummary
             onSubmit={handleSubmit}
             submitLabel="提交订单"

@@ -315,11 +315,39 @@ export default function ProductDetailContent({
           </div>
 
           {/* Stock & Sold */}
-          <div className="mb-6 flex items-center gap-4">
-            <StockBadge stockCount={product.stockCount} />
-            <span className="text-sm text-[var(--muted-foreground)]">
-              累计销量 {product.soldCount.toLocaleString()} 件
-            </span>
+          <div className="mb-6 space-y-2">
+            <div className="flex items-center gap-4">
+              <StockBadge stockCount={product.stockCount} />
+              <span className="text-sm text-[var(--muted-foreground)]">
+                累计销量 {product.soldCount.toLocaleString()} 件
+              </span>
+            </div>
+            {product.stockCount > 0 && product.stockCount <= 20 && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className={product.stockCount <= 5 ? "text-[var(--destructive)] font-medium" : "text-[var(--warning)]"}>
+                    仅剩 {product.stockCount} 件库存
+                  </span>
+                  <span className="text-[var(--muted-foreground)]">
+                    {Math.round((product.stockCount / (product.stockCount + product.soldCount)) * 100)}% 剩余
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      product.stockCount <= 5
+                        ? "bg-[var(--destructive)]"
+                        : product.stockCount <= 10
+                          ? "bg-[var(--warning)]"
+                          : "bg-[var(--primary)]"
+                    }`}
+                    style={{
+                      width: `${Math.max(5, Math.round((product.stockCount / (product.stockCount + product.soldCount)) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Divider */}

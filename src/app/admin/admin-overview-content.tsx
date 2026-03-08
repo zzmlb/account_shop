@@ -100,6 +100,15 @@ interface PaymentMethodStat {
   count: number;
 }
 
+interface LowStockProduct {
+  id: string;
+  name: string;
+  slug: string;
+  stockCount: number;
+  soldCount: number;
+  price: number;
+}
+
 interface ApiResponse {
   success: boolean;
   stats: StatsData;
@@ -110,6 +119,7 @@ interface ApiResponse {
   ordersByStatus: OrderStatusCount[];
   revenueByMethod?: PaymentMethodStat[];
   recentLogins?: RecentLogin[];
+  lowStockProducts?: LowStockProduct[];
 }
 
 /* ---------- Status Mapping ---------- */
@@ -187,6 +197,7 @@ export default function AdminOverviewPageContent() {
   const [ordersByStatus, setOrdersByStatus] = useState<OrderStatusCount[]>([]);
   const [recentLogins, setRecentLogins] = useState<RecentLogin[]>([]);
   const [revenueByMethod, setRevenueByMethod] = useState<PaymentMethodStat[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -207,6 +218,7 @@ export default function AdminOverviewPageContent() {
         setOrdersByStatus(data.ordersByStatus || []);
         setRecentLogins(data.recentLogins || []);
         setRevenueByMethod(data.revenueByMethod || []);
+        setLowStockProducts(data.lowStockProducts || []);
         setLastRefresh(new Date());
         if (isManual) toast.success("数据已刷新");
       } else if (isManual || isInitial) {
@@ -743,6 +755,59 @@ export default function AdminOverviewPageContent() {
                   );
                 });
               })()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ========== Low Stock Alert ========== */}
+      {lowStockProducts.length > 0 && (
+        <Card className="border-[var(--warning)]/30">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <AlertTriangle className="h-4 w-4 text-[var(--warning)]" />
+              库存告警
+              <Badge variant="outline" className="border-[var(--warning)] text-[var(--warning)]">
+                {lowStockProducts.length} 件
+              </Badge>
+            </CardTitle>
+            <Link
+              href="/admin/products"
+              className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+            >
+              管理商品
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {lowStockProducts.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/admin/products`}
+                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3 transition-colors hover:bg-[var(--muted)]/50"
+                >
+                  <div className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-sm font-bold",
+                    product.stockCount === 0
+                      ? "bg-[var(--destructive)]/10 text-[var(--destructive)]"
+                      : product.stockCount <= 3
+                        ? "bg-[var(--warning)]/10 text-[var(--warning)]"
+                        : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+                  )}>
+                    {product.stockCount}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-[var(--foreground)]">
+                      {product.name}
+                    </p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {product.stockCount === 0 ? "已售罄" : `剩余 ${product.stockCount} 件`}
+                      {" · "}已售 {product.soldCount}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>

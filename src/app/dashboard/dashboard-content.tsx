@@ -102,6 +102,14 @@ const quickActions = [
     bg: "bg-[var(--primary)]/10",
   },
   {
+    label: "退款申请",
+    description: "查看退款状态与记录",
+    href: "/dashboard/refunds",
+    icon: RotateCcw,
+    color: "text-[var(--warning)]",
+    bg: "bg-[var(--warning)]/10",
+  },
+  {
     label: "帮助中心",
     description: "常见问题与使用指南",
     href: "/articles",
