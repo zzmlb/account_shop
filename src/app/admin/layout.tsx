@@ -24,6 +24,7 @@ import {
   ChevronRight,
   AlertTriangle,
   Info,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -45,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import AdminCommandPalette from "@/components/admin/admin-command-palette";
 
 interface Notification {
   id: string;
@@ -80,30 +82,43 @@ export default function AdminLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifCount, setNotifCount] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [pendingRefunds, setPendingRefunds] = useState(0);
 
   useEffect(() => {
     if (!user) return;
-    fetch("/api/admin/notifications")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) {
-          setNotifications(data.notifications || []);
-          setNotifCount(data.count || 0);
-        }
-      })
-      .catch(() => {});
-    // Refresh every 60 seconds
-    const timer = setInterval(() => {
+    const fetchNotifications = () => {
       fetch("/api/admin/notifications")
         .then((r) => r.json())
         .then((data) => {
           if (data.success) {
             setNotifications(data.notifications || []);
             setNotifCount(data.count || 0);
+            // Extract low stock and pending refund counts from notifications
+            const lowStock = (data.notifications || []).find(
+              (n: Notification) => n.id === "low-stock" || n.id === "out-of-stock"
+            );
+            const refundNotif = (data.notifications || []).find(
+              (n: Notification) => n.id === "pending-refunds"
+            );
+            if (lowStock) {
+              const match = lowStock.description.match(/(\d+)/);
+              setLowStockCount(match ? parseInt(match[1], 10) : 0);
+            } else {
+              setLowStockCount(0);
+            }
+            if (refundNotif) {
+              const match = refundNotif.description.match(/(\d+)/);
+              setPendingRefunds(match ? parseInt(match[1], 10) : 0);
+            } else {
+              setPendingRefunds(0);
+            }
           }
         })
         .catch(() => {});
-    }, 60000);
+    };
+    fetchNotifications();
+    const timer = setInterval(fetchNotifications, 60000);
     return () => clearInterval(timer);
   }, [user]);
 
@@ -163,12 +178,18 @@ export default function AdminLayout({
       ? pathname === "/admin"
       : (pathname ?? "").startsWith(href);
 
+  /* ---------- Badge counts for sidebar ---------- */
+  const sidebarBadges: Record<string, number> = {};
+  if (lowStockCount > 0) sidebarBadges["/admin/products"] = lowStockCount;
+  if (pendingRefunds > 0) sidebarBadges["/admin/refunds"] = pendingRefunds;
+
   /* ---------- Sidebar nav content (shared between desktop + mobile) ---------- */
   const SidebarNav = ({ onLinkClick }: { onLinkClick?: () => void }) => (
     <nav className="flex flex-col gap-1">
       {sidebarLinks.map((link) => {
         const active = isActive(link.href);
         const Icon = link.icon;
+        const badgeCount = sidebarBadges[link.href] || 0;
         return (
           <Link
             key={link.href}
@@ -182,7 +203,12 @@ export default function AdminLayout({
             )}
           >
             <Icon className="h-4 w-4" />
-            {link.label}
+            <span className="flex-1">{link.label}</span>
+            {badgeCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--destructive)]/15 px-1.5 text-[10px] font-bold text-[var(--destructive)]">
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -318,6 +344,20 @@ export default function AdminLayout({
             <span className="text-sm font-bold bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent lg:hidden">
               {SITE_NAME}
             </span>
+
+            {/* Cmd+K shortcut hint */}
+            <button
+              onClick={() => {
+                document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+              }}
+              className="hidden items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--secondary)] px-2.5 py-1 text-xs text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)] lg:flex"
+            >
+              <Search className="h-3 w-3" />
+              <span>快速跳转</span>
+              <kbd className="ml-1 rounded border border-[var(--border)] bg-[var(--muted)] px-1 py-0.5 text-[10px] font-mono">
+                ⌘K
+              </kbd>
+            </button>
           </div>
 
           {/* Right side: notifications, avatar, logout */}
@@ -409,6 +449,9 @@ export default function AdminLayout({
           {children}
         </main>
       </div>
+
+      {/* Command palette */}
+      <AdminCommandPalette />
     </div>
   );
 }
