@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("articles/detail");
 
 // GET - Public article detail by slug
 export async function GET(
@@ -24,7 +27,9 @@ export async function GET(
     db.article.update({
       where: { id: article.id },
       data: { viewCount: { increment: 1 } },
-    }).catch(() => {});
+    }).catch((err) => {
+      log.warn({ err, slug }, "Failed to increment article view count");
+    });
 
     return NextResponse.json({
       success: true,
@@ -40,9 +45,10 @@ export async function GET(
         updatedAt: article.updatedAt.toISOString(),
       },
     });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Article detail GET error");
     return NextResponse.json(
-      { success: false, message: "服务器内部错误" },
+      { success: false, message: "获取文章详情失败" },
       { status: 500 }
     );
   }

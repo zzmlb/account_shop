@@ -100,8 +100,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error({ err: error }, "Upload error");
+    const message =
+      error instanceof Error && error.message.includes("ENOSPC")
+        ? "服务器存储空间不足"
+        : error instanceof Error && error.message.includes("EACCES")
+          ? "服务器文件权限错误"
+          : "文件上传失败，请稍后再试";
     return NextResponse.json(
-      { success: false, message: "上传失败" },
+      { success: false, message },
       { status: 500 }
     );
   }

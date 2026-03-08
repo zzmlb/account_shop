@@ -3,6 +3,9 @@ import { z } from "zod";
 import { db } from "@/server/db";
 import { hashPassword, encodeSession } from "@/lib/auth";
 import { registerLimiter } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("auth/register");
 
 const registerBodySchema = z.object({
   username: z
@@ -108,9 +111,10 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Register error");
     return NextResponse.json(
-      { success: false, message: "服务器内部错误" },
+      { success: false, message: "注册失败，请稍后再试" },
       { status: 500 }
     );
   }

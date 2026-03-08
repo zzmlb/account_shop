@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("health");
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +13,8 @@ export async function GET() {
   try {
     await db.$queryRaw`SELECT 1`;
     checks.database = "ok";
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Database health check failed");
     checks.database = "error";
   }
 

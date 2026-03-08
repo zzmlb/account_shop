@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("settings");
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +26,10 @@ export async function GET() {
     }
 
     return NextResponse.json({ success: true, settings });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Settings GET error");
     return NextResponse.json(
-      { success: false, message: "服务器错误" },
+      { success: false, message: "获取站点设置失败" },
       { status: 500 }
     );
   }

@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("auth/logout");
 
 export async function POST() {
   try {
@@ -17,11 +20,12 @@ export async function POST() {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Logout error");
     return NextResponse.json(
       {
         success: false,
-        message: "服务器内部错误",
+        message: "退出登录失败",
       },
       { status: 500 }
     );

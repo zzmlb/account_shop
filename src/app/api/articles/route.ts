@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("articles");
 
 // GET - Public articles list (published only)
 export async function GET(request: NextRequest) {
@@ -67,9 +70,10 @@ export async function GET(request: NextRequest) {
       page,
       limit,
     });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Articles GET error");
     return NextResponse.json(
-      { success: false, message: "服务器内部错误" },
+      { success: false, message: "获取文章列表失败" },
       { status: 500 }
     );
   }
