@@ -122,3 +122,55 @@ describe("stripHtml edge cases", () => {
     expect(stripHtml("<div class='test'>Text</div>")).toBe("Text");
   });
 });
+
+describe("sanitizeHtml XSS vectors", () => {
+  it("removes javascript: protocol in links", () => {
+    const input = '<a href="javascript:alert(1)">Click</a>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("javascript:");
+  });
+
+  it("removes SVG onload events", () => {
+    const input = '<svg onload="alert(1)"><circle r="50"/></svg>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("onload");
+  });
+
+  it("removes onmouseover event handlers", () => {
+    const input = '<div onmouseover="alert(1)">Hover me</div>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("onmouseover");
+  });
+
+  it("removes onfocus event handlers", () => {
+    const input = '<input onfocus="alert(1)" autofocus>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("onfocus");
+  });
+
+  it("removes embedded onerror without quotes", () => {
+    const input = "<img src=x onerror=alert(1)//>";
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("onerror");
+  });
+
+  it("removes object and embed tags", () => {
+    const input = '<object data="evil.swf"><embed src="evil.swf"></object>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("<object");
+    expect(result).not.toContain("<embed");
+  });
+
+  it("strips meta refresh redirect", () => {
+    const input = '<meta http-equiv="refresh" content="0;url=http://evil.com"><p>Safe</p>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("<meta");
+    expect(result).toContain("<p>Safe</p>");
+  });
+
+  it("strips base tag hijacking", () => {
+    const input = '<base href="http://evil.com/"><a href="/login">Login</a>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("<base");
+  });
+});

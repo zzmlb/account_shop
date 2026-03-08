@@ -42,6 +42,7 @@ import {
   Copy,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -180,17 +181,8 @@ export default function AdminProductsPageContent() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/products");
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || `请求失败 (${res.status})`);
-      }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.products)) {
-        setProducts(data.products.map(mapApiProduct));
-      } else {
-        throw new Error(data.message || "获取商品列表失败");
-      }
+      const data = await apiFetch<{ success: boolean; products: ApiProduct[] }>("/api/admin/products");
+      setProducts(data.products.map(mapApiProduct));
     } catch (err) {
       toast.error("加载商品失败", {
         description: err instanceof Error ? err.message : "未知错误",
@@ -200,15 +192,8 @@ export default function AdminProductsPageContent() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories");
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || `请求失败 (${res.status})`);
-      }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.categories)) {
-        setCategories(data.categories);
-      }
+      const data = await apiFetch<{ success: boolean; categories: Category[] }>("/api/categories");
+      setCategories(data.categories);
     } catch (err) {
       toast.error("加载分类失败", {
         description: err instanceof Error ? err.message : "未知错误",
@@ -364,21 +349,16 @@ export default function AdminProductsPageContent() {
   async function reconcileStock() {
     setReconciling(true);
     try {
-      const res = await fetch("/api/admin/products", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reconcile-stock" }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "校准失败");
-      }
+      const data = await apiMutate<{
+        success: boolean;
+        message: string;
+        fixedCount: number;
+        fixes: { name: string; oldStock: number; newStock: number }[];
+      }>("/api/admin/products", "PATCH", { action: "reconcile-stock" });
       if (data.fixedCount > 0) {
         toast.success(data.message, {
           description: data.fixes
-            .map((f: { name: string; oldStock: number; newStock: number }) =>
-              `${f.name}: ${f.oldStock} → ${f.newStock}`
-            )
+            .map((f) => `${f.name}: ${f.oldStock} → ${f.newStock}`)
             .join("\n"),
         });
         await fetchProducts();
@@ -401,15 +381,7 @@ export default function AdminProductsPageContent() {
     const newIsActive = product.status !== "上架";
     setMutating(true);
     try {
-      const res = await fetch(`/api/admin/products?id=${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: newIsActive }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "操作失败");
-      }
+      await apiMutate(`/api/admin/products?id=${id}`, "PUT", { isActive: newIsActive });
       toast.success(newIsActive ? "商品已上架" : "商品已下架");
       await fetchProducts();
     } catch (err) {
@@ -424,13 +396,7 @@ export default function AdminProductsPageContent() {
   async function duplicateProduct(id: string) {
     setMutating(true);
     try {
-      const res = await fetch(`/api/admin/products?duplicateId=${id}`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "复制失败");
-      }
+      await apiMutate(`/api/admin/products?duplicateId=${id}`, "POST");
       toast.success("商品已复制", {
         description: "副本已创建为下架状态，请编辑后上架",
       });
@@ -449,16 +415,12 @@ export default function AdminProductsPageContent() {
     const ids = Array.from(selectedIds);
     setMutating(true);
     try {
-      const results = await Promise.all(
+      const results = await Promise.allSettled(
         ids.map((id) =>
-          fetch(`/api/admin/products?id=${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isActive }),
-          }).then((r) => r.json())
+          apiMutate(`/api/admin/products?id=${id}`, "PUT", { isActive })
         )
       );
-      const failures = results.filter((r) => !r.success);
+      const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
         toast.warning(`部分操作失败: ${failures.length}/${ids.length} 件商品未能更新`);
       } else {
@@ -483,14 +445,12 @@ export default function AdminProductsPageContent() {
 
     setMutating(true);
     try {
-      const results = await Promise.all(
+      const results = await Promise.allSettled(
         idsToDelete.map((id) =>
-          fetch(`/api/admin/products?id=${id}`, {
-            method: "DELETE",
-          }).then((r) => r.json())
+          apiMutate(`/api/admin/products?id=${id}`, "DELETE")
         )
       );
-      const failures = results.filter((r) => !r.success);
+      const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
         toast.warning(
           `部分删除失败: ${failures.length}/${idsToDelete.length} 件商品未能删除`
@@ -558,64 +518,27 @@ export default function AdminProductsPageContent() {
 
     setMutating(true);
     try {
-      if (editingProduct) {
-        // Update existing product
-        const body: Record<string, unknown> = {
-          name: formName.trim(),
-          categoryId: formCategoryId,
-          price: priceVal,
-          stockCount: stockVal,
-          description: formDescription.trim(),
-          image: formImage.trim() || null,
-          images: formImages.filter((u) => u.trim()),
-          isActive: formStatus === "上架",
-          tags: parsedTags,
-          afterSaleHours: parsedAfterSale,
-          sortOrder: parsedSortOrder,
-        };
-        if (formSlug.trim()) body.slug = formSlug.trim();
-        if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
+      const body: Record<string, unknown> = {
+        name: formName.trim(),
+        categoryId: formCategoryId,
+        price: priceVal,
+        stockCount: stockVal,
+        description: formDescription.trim(),
+        image: formImage.trim() || null,
+        images: formImages.filter((u) => u.trim()),
+        isActive: formStatus === "上架",
+        tags: parsedTags,
+        afterSaleHours: parsedAfterSale,
+        sortOrder: parsedSortOrder,
+      };
+      if (formSlug.trim()) body.slug = formSlug.trim();
+      if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
 
-        const res = await fetch(
-          `/api/admin/products?id=${editingProduct.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          }
-        );
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || "更新失败");
-        }
+      if (editingProduct) {
+        await apiMutate(`/api/admin/products?id=${editingProduct.id}`, "PUT", body);
         toast.success("商品更新成功");
       } else {
-        // Create new product
-        const body: Record<string, unknown> = {
-          name: formName.trim(),
-          categoryId: formCategoryId,
-          price: priceVal,
-          stockCount: stockVal,
-          description: formDescription.trim(),
-          image: formImage.trim() || null,
-          images: formImages.filter((u) => u.trim()),
-          isActive: formStatus === "上架",
-          tags: parsedTags,
-          afterSaleHours: parsedAfterSale,
-          sortOrder: parsedSortOrder,
-        };
-        if (formSlug.trim()) body.slug = formSlug.trim();
-        if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
-
-        const res = await fetch("/api/admin/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || "创建失败");
-        }
+        await apiMutate("/api/admin/products", "POST", body);
         toast.success("商品添加成功");
       }
 
@@ -639,16 +562,14 @@ export default function AdminProductsPageContent() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) {
-        setFormImage(data.url);
-        toast.success("图片上传成功");
-      } else {
-        toast.error(data.message || "上传失败");
-      }
-    } catch {
-      toast.error("上传失败");
+      const data = await apiFetch<{ success: boolean; url: string }>("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      setFormImage(data.url);
+      toast.success("图片上传成功");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "上传失败");
     } finally {
       setIsUploading(false);
       // Reset file input so the same file can be re-selected
@@ -664,16 +585,14 @@ export default function AdminProductsPageContent() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.success) {
-        setFormImages((prev) => [...prev, data.url]);
-        toast.success("附加图片上传成功");
-      } else {
-        toast.error(data.message || "上传失败");
-      }
-    } catch {
-      toast.error("上传失败");
+      const data = await apiFetch<{ success: boolean; url: string }>("/api/upload", {
+        method: "POST",
+        body: fd,
+      });
+      setFormImages((prev) => [...prev, data.url]);
+      toast.success("附加图片上传成功");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "上传失败");
     } finally {
       setIsUploading(false);
       e.target.value = "";

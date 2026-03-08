@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(
@@ -132,18 +133,14 @@ export default function AdminArticlesPageContent() {
       if (search.trim()) params.set("search", search.trim());
       if (categoryFilter !== "all") params.set("category", categoryFilter);
 
-      const res = await fetch(`/api/admin/articles?${params.toString()}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        toast.error(data.message || "获取文章列表失败");
-        return;
-      }
+      const data = await apiFetch<{ success: boolean; articles: ApiArticle[]; total: number }>(
+        `/api/admin/articles?${params.toString()}`
+      );
 
       setArticles(data.articles);
       setTotal(data.total);
-    } catch {
-      toast.error("网络错误，获取文章列表失败");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取文章列表失败");
     } finally {
       setLoading(false);
     }
@@ -178,23 +175,13 @@ export default function AdminArticlesPageContent() {
     if (!createTitle.trim() || !createCategory) return;
     setCreating(true);
     try {
-      const res = await fetch("/api/admin/articles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: createTitle.trim(),
-          content: createContent.trim(),
-          category: createCategory,
-          excerpt: "",
-          isPublished: createStatus === "已发布",
-        }),
+      await apiMutate<{ success: boolean }>("/api/admin/articles", "POST", {
+        title: createTitle.trim(),
+        content: createContent.trim(),
+        category: createCategory,
+        excerpt: "",
+        isPublished: createStatus === "已发布",
       });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        toast.error(data.message || "创建文章失败");
-        return;
-      }
 
       toast.success("文章创建成功");
       setCreateTitle("");
@@ -204,8 +191,8 @@ export default function AdminArticlesPageContent() {
       setCreateDialogOpen(false);
       // Refresh list
       fetchArticles();
-    } catch {
-      toast.error("网络错误，创建文章失败");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "创建文章失败");
     } finally {
       setCreating(false);
     }
@@ -226,29 +213,19 @@ export default function AdminArticlesPageContent() {
     if (!editArticle || !editTitle.trim() || !editCategory) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/articles?id=${editArticle.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          content: editContent.trim(),
-          category: editCategory,
-          isPublished: editStatus === "已发布",
-        }),
+      await apiMutate<{ success: boolean }>(`/api/admin/articles?id=${editArticle.id}`, "PUT", {
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        category: editCategory,
+        isPublished: editStatus === "已发布",
       });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        toast.error(data.message || "更新文章失败");
-        return;
-      }
 
       toast.success("文章更新成功");
       setEditDialogOpen(false);
       setEditArticle(null);
       fetchArticles();
-    } catch {
-      toast.error("网络错误，更新文章失败");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "更新文章失败");
     } finally {
       setSaving(false);
     }
@@ -258,22 +235,14 @@ export default function AdminArticlesPageContent() {
   const togglePublish = async (article: ApiArticle) => {
     setTogglingId(article.id);
     try {
-      const res = await fetch(`/api/admin/articles?id=${article.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublished: !article.isPublished }),
+      await apiMutate<{ success: boolean }>(`/api/admin/articles?id=${article.id}`, "PUT", {
+        isPublished: !article.isPublished,
       });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        toast.error(data.message || "更新状态失败");
-        return;
-      }
 
       toast.success(article.isPublished ? "文章已撤回" : "文章已发布");
       fetchArticles();
-    } catch {
-      toast.error("网络错误，更新状态失败");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "更新状态失败");
     } finally {
       setTogglingId(null);
     }
@@ -291,22 +260,14 @@ export default function AdminArticlesPageContent() {
     const id = deleteTargetArticle.id;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/admin/articles?id=${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        toast.error(data.message || "删除文章失败");
-        return;
-      }
+      await apiMutate<{ success: boolean }>(`/api/admin/articles?id=${id}`, "DELETE");
 
       toast.success("文章已删除");
       setDeleteDialogOpen(false);
       setDeleteTargetArticle(null);
       fetchArticles();
-    } catch {
-      toast.error("网络错误，删除文章失败");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除文章失败");
     } finally {
       setDeletingId(null);
     }
@@ -334,21 +295,16 @@ export default function AdminArticlesPageContent() {
     if (selectedIds.size === 0) return;
     setBatchUpdating(true);
     try {
-      const res = await fetch("/api/admin/articles", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds), isPublished }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "操作成功");
-        setSelectedIds(new Set());
-        fetchArticles();
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiMutate<{ success: boolean; message?: string }>(
+        "/api/admin/articles",
+        "PATCH",
+        { ids: Array.from(selectedIds), isPublished }
+      );
+      toast.success(data.message || "操作成功");
+      setSelectedIds(new Set());
+      fetchArticles();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setBatchUpdating(false);
     }

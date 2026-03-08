@@ -42,6 +42,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn, formatDateTime } from "@/lib/utils";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -228,18 +229,13 @@ export default function AdminCardKeysPageContent() {
           params.set("search", debouncedSearch.trim());
         }
 
-        const res = await fetch(`/api/admin/card-keys?${params.toString()}`);
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          throw new Error(data?.message || `请求失败 (${res.status})`);
-        }
-        const data = await res.json();
-        if (data.success) {
-          setCardKeys(data.cardKeys);
-          setPagination(data.pagination);
-        } else {
-          throw new Error(data.message || "获取卡密列表失败");
-        }
+        const data = await apiFetch<{
+          success: boolean;
+          cardKeys: ApiCardKey[];
+          pagination: Pagination;
+        }>(`/api/admin/card-keys?${params.toString()}`);
+        setCardKeys(data.cardKeys);
+        setPagination(data.pagination);
       } catch (err) {
         toast.error("加载卡密失败", {
           description: err instanceof Error ? err.message : "未知错误",
@@ -251,17 +247,12 @@ export default function AdminCardKeysPageContent() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const [allRes, availRes, soldRes, disRes] = await Promise.all([
-        fetch("/api/admin/card-keys?pageSize=1"),
-        fetch("/api/admin/card-keys?pageSize=1&status=AVAILABLE"),
-        fetch("/api/admin/card-keys?pageSize=1&status=SOLD"),
-        fetch("/api/admin/card-keys?pageSize=1&status=DISABLED"),
-      ]);
+      type StatsRes = { success: boolean; pagination: { total: number } };
       const [allData, availData, soldData, disData] = await Promise.all([
-        allRes.json(),
-        availRes.json(),
-        soldRes.json(),
-        disRes.json(),
+        apiFetch<StatsRes>("/api/admin/card-keys?pageSize=1"),
+        apiFetch<StatsRes>("/api/admin/card-keys?pageSize=1&status=AVAILABLE"),
+        apiFetch<StatsRes>("/api/admin/card-keys?pageSize=1&status=SOLD"),
+        apiFetch<StatsRes>("/api/admin/card-keys?pageSize=1&status=DISABLED"),
       ]);
       setStats({
         total: allData.pagination?.total ?? 0,
@@ -276,15 +267,13 @@ export default function AdminCardKeysPageContent() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/products");
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || `请求失败 (${res.status})`);
-      }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.products)) {
+      const data = await apiFetch<{
+        success: boolean;
+        products: { id: string; name: string }[];
+      }>("/api/admin/products");
+      if (Array.isArray(data.products)) {
         setProducts(
-          data.products.map((p: { id: string; name: string }) => ({
+          data.products.map((p) => ({
             id: p.id,
             name: p.name,
           }))
@@ -359,15 +348,7 @@ export default function AdminCardKeysPageContent() {
 
     setMutating(true);
     try {
-      const res = await fetch(`/api/admin/card-keys?id=${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "操作失败");
-      }
+      await apiMutate(`/api/admin/card-keys?id=${id}`, "PUT", { status: newStatus });
       toast.success(
         newStatus === "AVAILABLE" ? "卡密已启用" : "卡密已禁用"
       );
@@ -396,18 +377,15 @@ export default function AdminCardKeysPageContent() {
 
     setImportLoading(true);
     try {
-      const res = await fetch("/api/admin/card-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: importProduct,
-          keys: lines,
-        }),
+      const data = await apiMutate<{
+        success: boolean;
+        message?: string;
+        count?: number;
+        duplicates?: { batch: number; existing: number };
+      }>("/api/admin/card-keys", "POST", {
+        productId: importProduct,
+        keys: lines,
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "导入失败");
-      }
       const dupInfo = data.duplicates;
       const dupDesc = dupInfo && (dupInfo.batch > 0 || dupInfo.existing > 0)
         ? `跳过 ${dupInfo.batch > 0 ? `${dupInfo.batch} 个批内重复` : ""}${dupInfo.batch > 0 && dupInfo.existing > 0 ? "、" : ""}${dupInfo.existing > 0 ? `${dupInfo.existing} 个已存在` : ""}`
@@ -434,13 +412,7 @@ export default function AdminCardKeysPageContent() {
 
     setMutating(true);
     try {
-      const res = await fetch(`/api/admin/card-keys?id=${deleteTarget}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "删除失败");
-      }
+      await apiMutate(`/api/admin/card-keys?id=${deleteTarget}`, "DELETE");
       toast.success("卡密已删除");
       setDeleteTarget(null);
       setDeleteDialogOpen(false);
@@ -487,18 +459,14 @@ export default function AdminCardKeysPageContent() {
     if (!batchAction || selectedIds.size === 0) return;
     setMutating(true);
     try {
-      const res = await fetch("/api/admin/card-keys", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await apiMutate<{ success: boolean; message: string }>(
+        "/api/admin/card-keys",
+        "PATCH",
+        {
           action: batchAction,
           ids: Array.from(selectedIds),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "批量操作失败");
-      }
+        }
+      );
       toast.success(data.message);
       setSelectedIds(new Set());
       setBatchDialogOpen(false);
@@ -544,11 +512,10 @@ export default function AdminCardKeysPageContent() {
       if (productFilter !== "all") params.set("productId", productFilter);
       if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
 
-      const res = await fetch(`/api/admin/card-keys?${params.toString()}`);
-      const data = await res.json();
-      if (!data.success || !Array.isArray(data.cardKeys)) {
-        throw new Error(data.message || "导出失败");
-      }
+      const data = await apiFetch<{
+        success: boolean;
+        cardKeys: ApiCardKey[];
+      }>(`/api/admin/card-keys?${params.toString()}`);
 
       const rows = [
         ["商品", "卡密内容", "状态", "订单号", "添加时间", "售出时间"].join(","),
