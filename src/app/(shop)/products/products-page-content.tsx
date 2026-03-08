@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { SlidersHorizontal, Search, X, LayoutGrid, List, ShoppingCart, Star } from "lucide-react";
+import { SlidersHorizontal, Search, X, LayoutGrid, List, ShoppingCart, Star, AlertCircle, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
@@ -79,6 +79,7 @@ export default function ProductsPageContent() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -130,6 +131,7 @@ export default function ProductsPageContent() {
         );
         setTotalPages(data.pagination.totalPages);
         setTotal(data.pagination.total);
+        setError("");
 
         // If current page exceeds total pages, redirect to last valid page
         if (data.pagination.totalPages > 0 && page > data.pagination.totalPages) {
@@ -143,7 +145,7 @@ export default function ProductsPageContent() {
         }
       }
     } catch {
-      toast.error("商品加载失败，请刷新重试");
+      setError("商品加载失败，请刷新重试");
     } finally {
       setLoading(false);
     }
@@ -300,7 +302,19 @@ export default function ProductsPageContent() {
 
         {/* Product grid */}
         <div className="flex-1" aria-busy={loading}>
-          {loading ? (
+          {error && !loading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-4 rounded-full bg-[var(--destructive)]/10 p-4">
+                <AlertCircle className="h-10 w-10 text-[var(--destructive)]" />
+              </div>
+              <h3 className="mb-1 text-lg font-semibold text-[var(--foreground)]">加载失败</h3>
+              <p className="mb-4 text-sm text-[var(--muted-foreground)]">{error}</p>
+              <Button onClick={() => fetchProducts()} variant="outline" className="gap-2">
+                <RotateCcw className="h-4 w-4" />
+                重新加载
+              </Button>
+            </div>
+          ) : loading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">

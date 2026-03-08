@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Settings,
   Download,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,7 @@ export default function BalancePageContent() {
   const [logs, setLogs] = useState<BalanceLog[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchBalanceLogs = useCallback(async (isRefresh = false) => {
@@ -107,11 +109,12 @@ export default function BalancePageContent() {
       if (data.success) {
         setLogs(data.logs);
         setBalance(data.balance);
+        setError("");
       } else {
-        toast.error(data.message || "获取余额记录失败");
+        setError(data.message || "获取余额记录失败");
       }
     } catch {
-      toast.error("网络错误，请稍后重试");
+      setError("网络错误，请稍后重试");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -296,7 +299,21 @@ export default function BalancePageContent() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {error && !loading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="mb-2 h-10 w-10 text-[var(--destructive)]" />
+              <p className="text-sm font-medium">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 gap-2"
+                onClick={() => fetchBalanceLogs()}
+              >
+                <RotateCcw className="h-4 w-4" />
+                重试
+              </Button>
+            </div>
+          ) : loading ? (
             <div className="animate-pulse space-y-3 py-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center justify-between px-1">

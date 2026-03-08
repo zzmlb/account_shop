@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Inbox,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,7 @@ export default function NotificationsContent() {
   });
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [markingAll, setMarkingAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
 
@@ -92,11 +94,12 @@ export default function NotificationsContent() {
           setNotifications(data.notifications);
           setPagination(data.pagination);
           setUnreadCount(data.unreadCount);
+          setError("");
         } else {
-          toast.error("获取通知列表失败");
+          setError(data.message || "获取通知列表失败");
         }
       } catch {
-        toast.error("网络错误，获取通知列表失败");
+        setError("网络错误，获取通知列表失败");
       } finally {
         setLoading(false);
       }
@@ -232,7 +235,23 @@ export default function NotificationsContent() {
       </div>
 
       {/* Notification list */}
-      {loading ? (
+      {error && !loading ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--destructive)]/10">
+            <AlertCircle className="h-8 w-8 text-[var(--destructive)]" />
+          </div>
+          <p className="mt-4 text-sm font-medium text-[var(--foreground)]">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 gap-2"
+            onClick={() => fetchNotifications(pagination.page, activeFilter)}
+          >
+            <RotateCcw className="h-4 w-4" />
+            重试
+          </Button>
+        </div>
+      ) : loading ? (
         <div className="animate-pulse space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] p-4">

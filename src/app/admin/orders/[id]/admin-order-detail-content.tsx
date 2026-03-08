@@ -79,6 +79,7 @@ interface OrderDetail {
     reason: string;
     status: string;
     adminNote: string | null;
+    amount: number;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -106,6 +107,8 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
   const [updating, setUpdating] = useState(false);
   const [noteValue, setNoteValue] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
+  const [refundProcessing, setRefundProcessing] = useState<string | null>(null);
+  const [refundNotes, setRefundNotes] = useState<Record<string, string>>({});
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -170,6 +173,32 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
       toast.error("网络错误");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleRefundAction = async (refundId: string, action: "approve" | "reject") => {
+    setRefundProcessing(refundId);
+    try {
+      const res = await fetch("/api/admin/refunds", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: refundId,
+          action,
+          adminNote: refundNotes[refundId]?.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || (action === "approve" ? "退款已批准" : "退款已拒绝"));
+        fetchOrder();
+      } else {
+        toast.error(data.message || "操作失败");
+      }
+    } catch {
+      toast.error("网络错误");
+    } finally {
+      setRefundProcessing(null);
     }
   };
 
@@ -399,21 +428,26 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                 {order.refundRequests.map((r) => (
                   <div key={r.id} className="px-5 py-4">
                     <div className="flex items-center justify-between">
-                      <Badge
-                        variant={
-                          r.status === "APPROVED"
-                            ? "default"
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            r.status === "APPROVED"
+                              ? "default"
+                              : r.status === "REJECTED"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {r.status === "APPROVED"
+                            ? "已批准"
                             : r.status === "REJECTED"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {r.status === "APPROVED"
-                          ? "已批准"
-                          : r.status === "REJECTED"
-                          ? "已拒绝"
-                          : "待处理"}
-                      </Badge>
+                            ? "已拒绝"
+                            : "待处理"}
+                        </Badge>
+                        <span className="text-sm font-medium text-[var(--foreground)]">
+                          ¥{r.amount.toFixed(2)}
+                        </span>
+                      </div>
                       <span className="text-xs text-[var(--muted-foreground)]">
                         {formatDateTime(r.createdAt)}
                       </span>
@@ -425,6 +459,49 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                       <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                         管理员备注: {r.adminNote}
                       </p>
+                    )}
+                    {r.status === "PENDING" && (
+                      <div className="mt-3 space-y-2">
+                        <textarea
+                          className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 resize-none"
+                          rows={2}
+                          placeholder="处理备注（可选）..."
+                          value={refundNotes[r.id] || ""}
+                          onChange={(e) =>
+                            setRefundNotes((prev) => ({ ...prev, [r.id]: e.target.value }))
+                          }
+                          maxLength={500}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleRefundAction(r.id, "approve")}
+                            disabled={refundProcessing !== null}
+                            className="gap-1.5"
+                          >
+                            {refundProcessing === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            )}
+                            批准退款
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRefundAction(r.id, "reject")}
+                            disabled={refundProcessing !== null}
+                            className="gap-1.5"
+                          >
+                            {refundProcessing === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5" />
+                            )}
+                            拒绝
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
