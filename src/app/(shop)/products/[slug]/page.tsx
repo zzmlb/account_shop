@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: ProductDetailPageProps): Prom
   const { slug } = await params;
   const product = await db.product.findUnique({
     where: { slug },
-    select: { name: true, description: true, image: true },
+    select: { name: true, description: true, image: true, price: true },
   });
 
   if (!product) {
@@ -25,7 +25,10 @@ export async function generateMetadata({ params }: ProductDetailPageProps): Prom
   }
 
   const title = product.name;
-  const description = product.description?.slice(0, 160) || "数字商品详情页";
+  const priceStr = `¥${Number(product.price).toFixed(2)}`;
+  const description = product.description
+    ? `${priceStr} - ${product.description.slice(0, 140)}`
+    : `${priceStr} - 数字商品详情页`;
   const productUrl = `${SITE_URL}/products/${slug}`;
 
   return {
@@ -33,6 +36,10 @@ export async function generateMetadata({ params }: ProductDetailPageProps): Prom
     description,
     alternates: {
       canonical: productUrl,
+    },
+    other: {
+      "product:price:amount": String(Number(product.price)),
+      "product:price:currency": "CNY",
     },
     openGraph: {
       title: `${title} | ${SITE_NAME}`,

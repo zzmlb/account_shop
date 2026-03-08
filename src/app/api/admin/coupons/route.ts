@@ -246,6 +246,39 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const mode = searchParams.get("mode"); // "expired" for batch delete expired
+
+    // Batch delete expired coupons with 0 uses
+    if (mode === "expired") {
+      const now = new Date();
+      const expired = await db.coupon.findMany({
+        where: { expireAt: { lte: now }, usedCount: 0 },
+        select: { id: true, code: true },
+      });
+
+      if (expired.length === 0) {
+        return NextResponse.json({
+          success: true,
+          deleted: 0,
+          message: "没有可清理的过期优惠券",
+        });
+      }
+
+      const ids = expired.map((c) => c.id);
+      await db.userCoupon.deleteMany({ where: { couponId: { in: ids } } });
+      await db.coupon.deleteMany({ where: { id: { in: ids } } });
+
+      log.info(
+        { adminId: session.id, count: expired.length, codes: expired.map((c) => c.code) },
+        "Admin batch deleted expired coupons"
+      );
+
+      return NextResponse.json({
+        success: true,
+        deleted: expired.length,
+        message: `已清理 ${expired.length} 张过期优惠券`,
+      });
+    }
 
     if (!id) {
       return NextResponse.json(

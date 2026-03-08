@@ -8,6 +8,7 @@ import {
   Mail,
   Search as SearchIcon,
   Loader2,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,8 @@ export default function AdminSettingsPageContent() {
   const [loading, setLoading] = useState(true);
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const savedSettingsRef = useRef<string>("");
+  const [testEmailTo, setTestEmailTo] = useState("");
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   // Track unsaved changes
   const isDirty = !loading && JSON.stringify(settings) !== savedSettingsRef.current;
@@ -168,6 +171,39 @@ export default function AdminSettingsPageContent() {
       setSavingSection(null);
     }
   }, [settings, savingSection]);
+
+  // Send a test email using current SMTP settings
+  const handleTestEmail = async () => {
+    if (!testEmailTo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmailTo)) {
+      toast.error("请输入有效的收件邮箱地址");
+      return;
+    }
+    setSendingTestEmail(true);
+    try {
+      const res = await fetch("/api/admin/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: testEmailTo,
+          smtpHost: settings.smtp_server,
+          smtpPort: settings.smtp_port,
+          smtpUser: settings.smtp_username,
+          smtpPass: settings.smtp_password,
+          senderName: settings.sender_name,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "测试邮件已发送");
+      } else {
+        toast.error(data.message || "发送失败");
+      }
+    } catch {
+      toast.error("网络错误，发送失败");
+    } finally {
+      setSendingTestEmail(false);
+    }
+  };
 
   // Ctrl+S / Cmd+S keyboard shortcut to save all
   useEffect(() => {
@@ -507,7 +543,34 @@ export default function AdminSettingsPageContent() {
             </div>
           </div>
           <Separator />
-          <div className="flex justify-end">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-1 items-end gap-2">
+              <div className="flex-1 max-w-xs space-y-1.5">
+                <Label htmlFor="testEmailTo" className="text-xs text-[var(--muted-foreground)]">
+                  发送测试邮件
+                </Label>
+                <Input
+                  id="testEmailTo"
+                  type="email"
+                  value={testEmailTo}
+                  onChange={(e) => setTestEmailTo(e.target.value)}
+                  placeholder="收件邮箱地址"
+                  maxLength={254}
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleTestEmail}
+                disabled={sendingTestEmail || !testEmailTo}
+              >
+                {sendingTestEmail ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                {sendingTestEmail ? "发送中..." : "测试"}
+              </Button>
+            </div>
             <Button
               onClick={() =>
                 handleSave("email", [

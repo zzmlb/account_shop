@@ -120,10 +120,50 @@ export default function RefundsContent() {
                       {formatDate(refund.createdAt)}
                     </span>
                   </div>
-                  <Badge variant={config.variant} className="gap-1">
-                    <StatusIcon className="h-3 w-3" />
-                    {config.label}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {refund.status !== "PENDING" && refund.updatedAt !== refund.createdAt && (
+                      <span className="text-[10px] text-[var(--muted-foreground)]">
+                        处理于 {formatDate(refund.updatedAt)}
+                      </span>
+                    )}
+                    <Badge variant={config.variant} className="gap-1">
+                      <StatusIcon className="h-3 w-3" />
+                      {config.label}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Status timeline */}
+                <div className="flex items-center gap-0 px-5 py-3 border-b border-[var(--border)]">
+                  {[
+                    { key: "submitted", label: "已提交", done: true },
+                    { key: "reviewing", label: "审核中", done: refund.status !== "PENDING" || true },
+                    { key: "result", label: refund.status === "APPROVED" ? "已通过" : refund.status === "REJECTED" ? "已拒绝" : "待审核", done: refund.status !== "PENDING" },
+                  ].map((step, idx) => (
+                    <div key={step.key} className="flex flex-1 items-center">
+                      <div className="flex flex-col items-center">
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                          step.done
+                            ? refund.status === "REJECTED" && idx === 2
+                              ? "bg-[var(--destructive)] text-white"
+                              : "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                            : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+                        }`}>
+                          {step.done ? (idx === 2 && refund.status === "REJECTED" ? "!" : "✓") : idx + 1}
+                        </div>
+                        <span className={`mt-1 text-[10px] ${step.done ? "text-[var(--foreground)] font-medium" : "text-[var(--muted-foreground)]"}`}>
+                          {step.label}
+                        </span>
+                      </div>
+                      {idx < 2 && (
+                        <div className={`mx-2 h-0.5 flex-1 rounded ${
+                          step.done && (idx === 0 || refund.status !== "PENDING")
+                            ? "bg-[var(--primary)]"
+                            : "bg-[var(--muted)]"
+                        }`} />
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Body */}

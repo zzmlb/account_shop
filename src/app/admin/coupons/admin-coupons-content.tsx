@@ -13,6 +13,8 @@ import {
   Search,
   AlertTriangle,
   Shuffle,
+  Eraser,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +74,7 @@ export default function AdminCouponsContent() {
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null);
+  const [cleaningExpired, setCleaningExpired] = useState(false);
 
   const fetchCoupons = useCallback(async () => {
     try {
@@ -233,6 +236,26 @@ export default function AdminCouponsContent() {
     setFormErrors((prev) => ({ ...prev, code: "" }));
   };
 
+  const handleCleanExpired = async () => {
+    setCleaningExpired(true);
+    try {
+      const res = await fetch("/api/admin/coupons?mode=expired", {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "清理完成");
+        if (data.deleted > 0) fetchCoupons();
+      } else {
+        toast.error(data.message || "清理失败");
+      }
+    } catch {
+      toast.error("清理失败");
+    } finally {
+      setCleaningExpired(false);
+    }
+  };
+
   const isExpired = (expireAt: string) => new Date(expireAt) < new Date();
 
   // Computed stats
@@ -299,10 +322,27 @@ export default function AdminCouponsContent() {
             共 {coupons.length} 张优惠券
           </p>
         </div>
-        <Button onClick={openCreateDialog} className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          创建优惠券
-        </Button>
+        <div className="flex items-center gap-2">
+          {stats.expired > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleCleanExpired}
+              disabled={cleaningExpired}
+              className="gap-1.5 text-[var(--muted-foreground)]"
+            >
+              {cleaningExpired ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Eraser className="h-4 w-4" />
+              )}
+              {cleaningExpired ? "清理中..." : "清理过期"}
+            </Button>
+          )}
+          <Button onClick={openCreateDialog} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            创建优惠券
+          </Button>
+        </div>
       </div>
 
       {/* Stats badges */}
@@ -379,10 +419,11 @@ export default function AdminCouponsContent() {
         </div>
       ) : (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-          <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-4 border-b border-[var(--border)] bg-[var(--secondary)]/50 px-4 py-3 text-xs font-medium text-[var(--muted-foreground)]">
+          <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto_auto_auto] gap-4 border-b border-[var(--border)] bg-[var(--secondary)]/50 px-4 py-3 text-xs font-medium text-[var(--muted-foreground)]">
             <span>优惠券信息</span>
             <span className="w-20 text-center">类型</span>
-            <span className="w-24 text-center">使用情况</span>
+            <span className="w-28 text-center">使用/领取</span>
+            <span className="w-24 text-center">创建时间</span>
             <span className="w-28 text-center">有效期</span>
             <span className="w-16 text-center">状态</span>
             <span className="w-20 text-center">操作</span>
@@ -391,7 +432,7 @@ export default function AdminCouponsContent() {
           {filteredCoupons.map((coupon) => (
             <div
               key={coupon.id}
-              className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 sm:gap-4 items-center border-b last:border-b-0 border-[var(--border)] px-4 py-3 hover:bg-[var(--secondary)]/30 transition-colors"
+              className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_auto_auto_auto] gap-3 sm:gap-4 items-center border-b last:border-b-0 border-[var(--border)] px-4 py-3 hover:bg-[var(--secondary)]/30 transition-colors"
             >
               {/* Code & value */}
               <div className="flex items-center gap-3">
