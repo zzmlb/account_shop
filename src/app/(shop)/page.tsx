@@ -7,6 +7,7 @@ import FeaturedProducts from "@/components/home/featured-products";
 import NewArrivals from "@/components/home/new-arrivals";
 import TrustSection from "@/components/home/trust-section";
 import Testimonials from "@/components/home/testimonials";
+import FaqSection from "@/components/home/faq-section";
 import RecentlyViewed from "@/components/home/recently-viewed";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
@@ -137,6 +138,7 @@ export default function HomePage() {
       </Suspense>
       <RecentlyViewed />
       <Testimonials />
+      <FaqSection />
       <TrustSection />
     </>
   );
