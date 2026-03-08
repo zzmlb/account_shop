@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
@@ -12,7 +13,7 @@ interface CartItemProps {
   compact?: boolean;
 }
 
-export default function CartItem({ item, compact = false }: CartItemProps) {
+function CartItemInner({ item, compact = false }: CartItemProps) {
   const { updateQuantity, removeItem } = useCartStore();
 
   const subtotal = item.price * item.quantity;
@@ -135,3 +136,6 @@ export default function CartItem({ item, compact = false }: CartItemProps) {
     </div>
   );
 }
+
+const CartItem = memo(CartItemInner);
+export default CartItem;

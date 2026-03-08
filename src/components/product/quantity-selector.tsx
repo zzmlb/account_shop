@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,7 @@ interface QuantitySelectorProps {
   className?: string;
 }
 
-export default function QuantitySelector({
+function QuantitySelectorInner({
   value,
   onChange,
   max,
@@ -64,3 +65,6 @@ export default function QuantitySelector({
     </div>
   );
 }
+
+const QuantitySelector = memo(QuantitySelectorInner);
+export default QuantitySelector;

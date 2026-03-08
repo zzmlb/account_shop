@@ -106,6 +106,7 @@ model Product {
   @@index([categoryId])
   @@index([isActive, sortOrder])
   @@index([isActive, createdAt])
+  @@index([isActive, soldCount])
   @@index([name])
   @@map("products")
 }

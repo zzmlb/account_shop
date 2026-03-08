@@ -299,7 +299,7 @@ export default function ProductsPageContent() {
         </aside>
 
         {/* Product grid */}
-        <div className="flex-1">
+        <div className="flex-1" aria-busy={loading}>
           {loading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (

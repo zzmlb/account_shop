@@ -4,7 +4,7 @@ import { memo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Flame, Star, Eye } from "lucide-react";
+import { ShoppingCart, Flame, Star, Eye, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -70,12 +70,14 @@ function ProductCard({
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [imgError, setImgError] = useState(false);
+  const [buying, setBuying] = useState(false);
 
   const handleQuickBuy = () => {
     if (stockCount <= 0) {
       toast.error("商品暂时缺货");
       return;
     }
+    setBuying(true);
     addItem({
       id: slug,
       productId: productId || slug,
@@ -206,13 +208,18 @@ function ProductCard({
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+                disabled={buying}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleQuickBuy();
                 }}
               >
-                <ShoppingCart className="h-4 w-4" />
+                {buying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-4 w-4" />
+                )}
                 <span className="sr-only">加入购物车</span>
               </Button>
             </div>

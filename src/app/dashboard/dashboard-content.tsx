@@ -249,7 +249,7 @@ export default function DashboardPageContent() {
   /* ---- Loading state ---- */
   if (loading) {
     return (
-      <div className="space-y-8 animate-pulse">
+      <div className="space-y-8 animate-pulse" aria-busy="true" aria-label="加载中">
         {/* Welcome skeleton */}
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-6">
           <div className="h-3 w-20 rounded bg-[var(--muted)]" />
@@ -283,8 +283,13 @@ export default function DashboardPageContent() {
   if (fetchError && orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="mb-4 text-[var(--muted-foreground)]">加载数据失败，请刷新页面重试</p>
-        <Button onClick={() => window.location.reload()} variant="outline">刷新页面</Button>
+        <RotateCcw className="mb-4 h-10 w-10 text-[var(--muted-foreground)]" />
+        <p className="mb-2 text-lg font-medium text-[var(--foreground)]">数据加载失败</p>
+        <p className="mb-6 text-sm text-[var(--muted-foreground)]">网络可能不稳定，请点击重试</p>
+        <Button onClick={() => fetchData()} variant="outline" className="gap-2">
+          <RotateCcw className="h-4 w-4" />
+          重新加载
+        </Button>
       </div>
     );
   }
