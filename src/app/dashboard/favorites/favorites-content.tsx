@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Heart,
@@ -9,6 +9,7 @@ import {
   Star,
   Package,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
+import { toast } from "sonner";
 
 interface FavoriteProduct {
   id: string;
@@ -32,96 +34,135 @@ interface FavoriteProduct {
   inStock: boolean;
   image?: string;
   addedAt: string;
+  productId: string;
 }
 
-const MOCK_FAVORITES: FavoriteProduct[] = [
-  {
-    id: "1",
-    name: "ChatGPT Plus 共享账号 1个月",
-    slug: "chatgpt-plus-shared",
-    price: 19.99,
-    originalPrice: 29.99,
-    rating: 4.8,
-    salesCount: 2340,
-    category: "AI工具",
-    inStock: true,
-    addedAt: "2026-03-05",
-  },
-  {
-    id: "2",
-    name: "Netflix 高级会员月卡",
-    slug: "netflix-premium-monthly",
-    price: 15.99,
-    rating: 4.6,
-    salesCount: 1850,
-    category: "流媒体",
-    inStock: true,
-    addedAt: "2026-03-04",
-  },
-  {
-    id: "3",
-    name: "Spotify Premium 年卡",
-    slug: "spotify-premium-yearly",
-    price: 39.99,
-    originalPrice: 59.99,
-    rating: 4.9,
-    salesCount: 3120,
-    category: "流媒体",
-    inStock: true,
-    addedAt: "2026-03-03",
-  },
-  {
-    id: "4",
-    name: "NordVPN 2年套餐",
-    slug: "nordvpn-2year",
-    price: 59.99,
-    originalPrice: 89.99,
-    rating: 4.7,
-    salesCount: 980,
-    category: "VPN",
-    inStock: false,
-    addedAt: "2026-03-02",
-  },
-  {
-    id: "5",
-    name: "Steam 充值卡 100元",
-    slug: "steam-100",
-    price: 95.0,
-    rating: 4.5,
-    salesCount: 5600,
-    category: "游戏",
-    inStock: true,
-    addedAt: "2026-03-01",
-  },
-  {
-    id: "6",
-    name: "Adobe Creative Cloud 年订阅",
-    slug: "adobe-cc-yearly",
-    price: 199.99,
-    originalPrice: 399.99,
-    rating: 4.4,
-    salesCount: 720,
-    category: "设计工具",
-    inStock: true,
-    addedAt: "2026-02-28",
-  },
-];
+interface ApiFavorite {
+  id: string;
+  createdAt: string;
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    originalPrice: number | null;
+    stockCount: number;
+    soldCount: number;
+    image: string | null;
+    categoryName: string;
+  };
+}
 
+function mapApiToFavorite(fav: ApiFavorite): FavoriteProduct {
+  return {
+    id: fav.id,
+    productId: fav.product.id,
+    name: fav.product.name,
+    slug: fav.product.slug,
+    price: fav.product.price,
+    originalPrice: fav.product.originalPrice ?? undefined,
+    rating: 0,
+    salesCount: fav.product.soldCount,
+    category: fav.product.categoryName,
+    inStock: fav.product.stockCount > 0,
+    image: fav.product.image ?? undefined,
+    addedAt: fav.createdAt,
+  };
+}
 
 export default function FavoritesPageContent() {
-  const [favorites, setFavorites] = useState<FavoriteProduct[]>(MOCK_FAVORITES);
+  const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
 
-  const handleUnfavorite = (id: string) => {
-    setRemovingId(id);
-    // Simulate API delay then remove
-    setTimeout(() => {
-      setFavorites((prev) => prev.filter((item) => item.id !== id));
+  const fetchFavorites = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/favorites");
+      const data = await res.json();
+      if (data.success) {
+        setFavorites(data.favorites.map(mapApiToFavorite));
+      } else {
+        toast.error(data.message || "获取收藏列表失败");
+      }
+    } catch {
+      toast.error("网络错误，获取收藏列表失败");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  const handleUnfavorite = async (product: FavoriteProduct) => {
+    setRemovingId(product.id);
+    try {
+      const res = await fetch(
+        `/api/favorites?productId=${encodeURIComponent(product.productId)}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (data.success) {
+        // Small delay for the fade-out animation
+        setTimeout(() => {
+          setFavorites((prev) => prev.filter((item) => item.id !== product.id));
+          setRemovingId(null);
+        }, 300);
+        toast.success("已取消收藏");
+      } else {
+        toast.error(data.message || "取消收藏失败");
+        setRemovingId(null);
+      }
+    } catch {
+      toast.error("网络错误，取消收藏失败");
       setRemovingId(null);
-    }, 300);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (favorites.length === 0) return;
+    setClearingAll(true);
+    try {
+      const results = await Promise.allSettled(
+        favorites.map((fav) =>
+          fetch(
+            `/api/favorites?productId=${encodeURIComponent(fav.productId)}`,
+            { method: "DELETE" }
+          ).then((res) => res.json())
+        )
+      );
+      const failedCount = results.filter(
+        (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)
+      ).length;
+      if (failedCount === 0) {
+        setFavorites([]);
+        toast.success("已清空收藏");
+      } else if (failedCount < favorites.length) {
+        toast.warning(`部分商品取消收藏失败（${failedCount}/${favorites.length}）`);
+        await fetchFavorites();
+      } else {
+        toast.error("清空收藏失败，请稍后重试");
+      }
+    } catch {
+      toast.error("网络错误，清空收藏失败");
+    } finally {
+      setClearingAll(false);
+    }
   };
 
   const formatPrice = (price: number) => `¥${price.toFixed(2)}`;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+        <p className="text-sm text-[var(--muted-foreground)]">加载收藏列表中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,9 +183,14 @@ export default function FavoritesPageContent() {
             variant="outline"
             size="sm"
             className="gap-1.5 text-[var(--destructive)]"
-            onClick={() => setFavorites([])}
+            onClick={handleClearAll}
+            disabled={clearingAll}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            {clearingAll ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
             清空收藏
           </Button>
         )}
@@ -204,7 +250,8 @@ export default function FavoritesPageContent() {
 
                   {/* Unfavorite button */}
                   <button
-                    onClick={() => handleUnfavorite(product.id)}
+                    onClick={() => handleUnfavorite(product)}
+                    disabled={removingId !== null}
                     className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--card)]/90 text-[var(--destructive)] shadow-sm backdrop-blur-sm transition-all hover:scale-110 hover:bg-[var(--card)]"
                     aria-label="取消收藏"
                   >
@@ -257,7 +304,8 @@ export default function FavoritesPageContent() {
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
-                    onClick={() => handleUnfavorite(product.id)}
+                    onClick={() => handleUnfavorite(product)}
+                    disabled={removingId !== null}
                   >
                     <HeartOff className="h-3.5 w-3.5" />
                     取消

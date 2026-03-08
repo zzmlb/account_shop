@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Key,
   Upload,
@@ -13,12 +13,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Package,
+  Trash2,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -36,195 +40,237 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-interface MockCardKey {
-  id: string;
-  product: string;
-  content: string;
-  maskedContent: string;
-  status: "available" | "sold" | "disabled";
-  statusLabel: string;
-  statusVariant: "success" | "default" | "destructive";
-  addedAt: string;
-  soldAt: string | null;
+interface CardKeyProduct {
+  name: string;
+  slug: string;
 }
 
-const MOCK_CARD_KEYS: MockCardKey[] = [
-  {
-    id: "1",
-    product: "Gmail 全新账号",
-    content: "GMAL-8K2F-J9X3-Q7WN",
-    maskedContent: "GMAL-****-****-Q7WN",
-    status: "available",
-    statusLabel: "可用",
-    statusVariant: "success",
-    addedAt: "2026-03-07 10:00",
-    soldAt: null,
-  },
-  {
-    id: "2",
-    product: "Netflix 高级会员",
-    content: "NFLX-3P7R-M1D5-H8YC",
-    maskedContent: "NFLX-****-****-H8YC",
-    status: "sold",
-    statusLabel: "已售",
-    statusVariant: "default",
-    addedAt: "2026-03-06 14:20",
-    soldAt: "2026-03-07 09:15",
-  },
-  {
-    id: "3",
-    product: "ChatGPT Plus 共享账号",
-    content: "CGPT-5W9L-B4T2-N6KA",
-    maskedContent: "CGPT-****-****-N6KA",
-    status: "available",
-    statusLabel: "可用",
-    statusVariant: "success",
-    addedAt: "2026-03-06 08:30",
-    soldAt: null,
-  },
-  {
-    id: "4",
-    product: "NordVPN 2年套餐",
-    content: "NVPN-7E1G-Z3X8-F2RM",
-    maskedContent: "NVPN-****-****-F2RM",
-    status: "disabled",
-    statusLabel: "已禁用",
-    statusVariant: "destructive",
-    addedAt: "2026-03-05 16:45",
-    soldAt: null,
-  },
-  {
-    id: "5",
-    product: "Spotify Premium 年卡",
-    content: "SPTF-2J6V-K8Q1-W4PB",
-    maskedContent: "SPTF-****-****-W4PB",
-    status: "sold",
-    statusLabel: "已售",
-    statusVariant: "default",
-    addedAt: "2026-03-05 11:00",
-    soldAt: "2026-03-06 20:30",
-  },
-  {
-    id: "6",
-    product: "Gmail 全新账号",
-    content: "GMAL-9C4H-T6Y2-A5ND",
-    maskedContent: "GMAL-****-****-A5ND",
-    status: "available",
-    statusLabel: "可用",
-    statusVariant: "success",
-    addedAt: "2026-03-04 09:15",
-    soldAt: null,
-  },
-  {
-    id: "7",
-    product: "Steam 余额账号 $50",
-    content: "STEM-1R8U-F3L7-D9XE",
-    maskedContent: "STEM-****-****-D9XE",
-    status: "sold",
-    statusLabel: "已售",
-    statusVariant: "default",
-    addedAt: "2026-03-03 15:20",
-    soldAt: "2026-03-04 13:45",
-  },
-  {
-    id: "8",
-    product: "Adobe Creative Cloud",
-    content: "ADBE-6M2S-P9W4-G1KC",
-    maskedContent: "ADBE-****-****-G1KC",
-    status: "available",
-    statusLabel: "可用",
-    statusVariant: "success",
-    addedAt: "2026-03-02 12:00",
-    soldAt: null,
-  },
-  {
-    id: "9",
-    product: "Disney+ 年卡",
-    content: "DSNP-4Q7B-N2J6-V8TH",
-    maskedContent: "DSNP-****-****-V8TH",
-    status: "disabled",
-    statusLabel: "已禁用",
-    statusVariant: "destructive",
-    addedAt: "2026-03-01 18:30",
-    soldAt: null,
-  },
-  {
-    id: "10",
-    product: "YouTube Premium 家庭版",
-    content: "YTPB-8A3F-X5R1-L7WQ",
-    maskedContent: "YTPB-****-****-L7WQ",
-    status: "available",
-    statusLabel: "可用",
-    statusVariant: "success",
-    addedAt: "2026-02-28 10:45",
-    soldAt: null,
-  },
-];
+interface ApiCardKey {
+  id: string;
+  content: string;
+  productId: string;
+  product: CardKeyProduct;
+  status: "AVAILABLE" | "SOLD" | "DISABLED";
+  orderItemId: string | null;
+  orderNo: string | null;
+  soldAt: string | null;
+  createdAt: string;
+}
+
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const PAGE_SIZE = 50;
 
 const statusTabs = [
   { value: "all", label: "全部" },
-  { value: "available", label: "可用" },
-  { value: "sold", label: "已售" },
-  { value: "disabled", label: "已禁用" },
+  { value: "AVAILABLE", label: "可用" },
+  { value: "SOLD", label: "已售" },
+  { value: "DISABLED", label: "已禁用" },
 ];
 
-const PRODUCTS = [
-  "Gmail 全新账号",
-  "Netflix 高级会员",
-  "ChatGPT Plus 共享账号",
-  "NordVPN 2年套餐",
-  "Spotify Premium 年卡",
-  "Steam 余额账号 $50",
-  "Adobe Creative Cloud",
-  "Disney+ 年卡",
-  "YouTube Premium 家庭版",
-];
+function statusLabel(status: string): string {
+  switch (status) {
+    case "AVAILABLE":
+      return "可用";
+    case "SOLD":
+      return "已售";
+    case "DISABLED":
+      return "已禁用";
+    default:
+      return status;
+  }
+}
 
-const PAGE_SIZE = 5;
+function statusVariant(
+  status: string
+): "success" | "default" | "destructive" | "secondary" {
+  switch (status) {
+    case "AVAILABLE":
+      return "success";
+    case "SOLD":
+      return "default";
+    case "DISABLED":
+      return "destructive";
+    default:
+      return "secondary";
+  }
+}
 
+function maskContent(content: string): string {
+  const parts = content.split("-");
+  if (parts.length >= 4) {
+    return `${parts[0]}-****-****-${parts[parts.length - 1]}`;
+  }
+  if (content.length > 8) {
+    return `${content.slice(0, 4)}****${content.slice(-4)}`;
+  }
+  return "****";
+}
+
+function formatDate(iso: string): string {
+  return iso.slice(0, 16).replace("T", " ");
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function AdminCardKeysPageContent() {
+  // Data state
+  const [cardKeys, setCardKeys] = useState<ApiCardKey[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mutating, setMutating] = useState(false);
+
+  // Filter state
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [productFilter, setProductFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Reveal state
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
-  const [cardKeys, setCardKeys] = useState(MOCK_CARD_KEYS);
+
+  // Import dialog state
   const [importOpen, setImportOpen] = useState(false);
   const [importProduct, setImportProduct] = useState("");
   const [importContent, setImportContent] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
 
-  const stats = useMemo(() => {
-    const total = cardKeys.length;
-    const available = cardKeys.filter((k) => k.status === "available").length;
-    const sold = cardKeys.filter((k) => k.status === "sold").length;
-    const disabled = cardKeys.filter((k) => k.status === "disabled").length;
-    return { total, available, sold, disabled };
-  }, [cardKeys]);
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return cardKeys.filter((key) => {
-      if (activeTab !== "all" && key.status !== activeTab) return false;
-      if (
-        search &&
-        !key.product.toLowerCase().includes(search.toLowerCase()) &&
-        !key.content.toLowerCase().includes(search.toLowerCase())
-      )
-        return false;
-      return true;
-    });
-  }, [activeTab, search, cardKeys]);
+  // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const paginated = filtered.slice(
-    (safeCurrentPage - 1) * PAGE_SIZE,
-    safeCurrentPage * PAGE_SIZE
+  const fetchCardKeys = useCallback(
+    async (page?: number) => {
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page ?? currentPage));
+        params.set("pageSize", String(PAGE_SIZE));
+
+        if (activeTab !== "all") {
+          params.set("status", activeTab);
+        }
+        if (productFilter !== "all") {
+          params.set("productId", productFilter);
+        }
+        if (search.trim()) {
+          params.set("search", search.trim());
+        }
+
+        const res = await fetch(`/api/admin/card-keys?${params.toString()}`);
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.message || `请求失败 (${res.status})`);
+        }
+        const data = await res.json();
+        if (data.success) {
+          setCardKeys(data.cardKeys);
+          setPagination(data.pagination);
+        } else {
+          throw new Error(data.message || "获取卡密列表失败");
+        }
+      } catch (err) {
+        toast.error("加载卡密失败", {
+          description: err instanceof Error ? err.message : "未知错误",
+        });
+      }
+    },
+    [activeTab, productFilter, search, currentPage]
   );
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/products");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || `请求失败 (${res.status})`);
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.products)) {
+        setProducts(
+          data.products.map((p: { id: string; name: string; slug: string }) => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+          }))
+        );
+      }
+    } catch (err) {
+      toast.error("加载商品列表失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    async function init() {
+      setLoading(true);
+      await Promise.all([fetchCardKeys(1), fetchProducts()]);
+      setLoading(false);
+    }
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refetch when filters or page change (but not on initial load)
+  useEffect(() => {
+    if (!loading) {
+      fetchCardKeys();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, productFilter, search, currentPage]);
+
+  // ---------------------------------------------------------------------------
+  // Stats (computed from pagination.total and current filters)
+  // ---------------------------------------------------------------------------
+
+  const stats = {
+    total: pagination.total,
+  };
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
 
   const handleTabChange = (val: string) => {
     setActiveTab(val);
+    setCurrentPage(1);
+  };
+
+  const handleProductFilterChange = (val: string) => {
+    setProductFilter(val);
     setCurrentPage(1);
   };
 
@@ -245,60 +291,146 @@ export default function AdminCardKeysPageContent() {
     });
   };
 
-  const toggleStatus = (id: string) => {
-    setCardKeys((prev) =>
-      prev.map((k) => {
-        if (k.id !== id) return k;
-        if (k.status === "available") {
-          return {
-            ...k,
-            status: "disabled" as const,
-            statusLabel: "已禁用",
-            statusVariant: "destructive" as const,
-          };
-        }
-        if (k.status === "disabled") {
-          return {
-            ...k,
-            status: "available" as const,
-            statusLabel: "可用",
-            statusVariant: "success" as const,
-          };
-        }
-        return k;
-      })
-    );
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    if (currentStatus === "SOLD") return;
+    const newStatus = currentStatus === "AVAILABLE" ? "DISABLED" : "AVAILABLE";
+
+    setMutating(true);
+    try {
+      const res = await fetch(`/api/admin/card-keys?id=${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "操作失败");
+      }
+      toast.success(
+        newStatus === "AVAILABLE" ? "卡密已启用" : "卡密已禁用"
+      );
+      await fetchCardKeys();
+    } catch (err) {
+      toast.error("切换状态失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!importProduct || !importContent.trim()) return;
+
     const lines = importContent
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
-    const newKeys: MockCardKey[] = lines.map((line, idx) => {
-      const parts = line.split("-");
-      const masked =
-        parts.length >= 4
-          ? `${parts[0]}-****-****-${parts[parts.length - 1]}`
-          : `${line.slice(0, 4)}-****-****-${line.slice(-4)}`;
-      return {
-        id: `new-${Date.now()}-${idx}`,
-        product: importProduct,
-        content: line,
-        maskedContent: masked,
-        status: "available",
-        statusLabel: "可用",
-        statusVariant: "success",
-        addedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
-        soldAt: null,
-      };
-    });
-    setCardKeys((prev) => [...newKeys, ...prev]);
-    setImportProduct("");
-    setImportContent("");
-    setImportOpen(false);
+
+    if (lines.length === 0) {
+      toast.error("请输入至少一个卡密");
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const res = await fetch("/api/admin/card-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: importProduct,
+          keys: lines,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "导入失败");
+      }
+      toast.success(`成功导入 ${data.count} 个卡密`);
+      setImportProduct("");
+      setImportContent("");
+      setImportOpen(false);
+      setCurrentPage(1);
+      await fetchCardKeys(1);
+    } catch (err) {
+      toast.error("导入卡密失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setImportLoading(false);
+    }
   };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setMutating(true);
+    try {
+      const res = await fetch(`/api/admin/card-keys?id=${deleteTarget}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "删除失败");
+      }
+      toast.success("卡密已删除");
+      setDeleteTarget(null);
+      setDeleteDialogOpen(false);
+      await fetchCardKeys();
+    } catch (err) {
+      toast.error("删除卡密失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Render: Loading skeleton
+  // ---------------------------------------------------------------------------
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-[var(--radius-lg)]" />
+          ))}
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-10 flex-1" />
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)]">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3">
+              <Skeleton className="h-5 flex-1" />
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render: Main content
+  // ---------------------------------------------------------------------------
+
+  const importLineCount = importContent
+    .split("\n")
+    .filter((l) => l.trim()).length;
 
   return (
     <div className="space-y-6">
@@ -307,7 +439,7 @@ export default function AdminCardKeysPageContent() {
         <div>
           <h1 className="text-2xl font-bold">卡密管理</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            管理所有商品的卡密库存
+            管理所有商品的卡密库存，共 {stats.total} 条记录
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -340,9 +472,9 @@ export default function AdminCardKeysPageContent() {
                       <SelectValue placeholder="请选择商品" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PRODUCTS.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p}
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -352,19 +484,15 @@ export default function AdminCardKeysPageContent() {
                   <Label>卡密内容</Label>
                   <textarea
                     className="flex min-h-[160px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-                    placeholder={"每行一个卡密，例如：\nGMAL-8K2F-J9X3-Q7WN\nGMAL-3P7R-M1D5-H8YC"}
+                    placeholder={
+                      "每行一个卡密，例如：\nGMAL-8K2F-J9X3-Q7WN\nGMAL-3P7R-M1D5-H8YC"
+                    }
                     value={importContent}
                     onChange={(e) => setImportContent(e.target.value)}
                   />
                   {importContent.trim() && (
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      已输入{" "}
-                      {
-                        importContent
-                          .split("\n")
-                          .filter((l) => l.trim()).length
-                      }{" "}
-                      个卡密
+                      已输入 {importLineCount} 个卡密
                     </p>
                   )}
                 </div>
@@ -378,8 +506,13 @@ export default function AdminCardKeysPageContent() {
                 </Button>
                 <Button
                   onClick={handleImport}
-                  disabled={!importProduct || !importContent.trim()}
+                  disabled={
+                    !importProduct || !importContent.trim() || importLoading
+                  }
                 >
+                  {importLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   确认导入
                 </Button>
               </DialogFooter>
@@ -392,32 +525,35 @@ export default function AdminCardKeysPageContent() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           {
-            label: "总卡密数",
-            value: stats.total.toLocaleString(),
+            label: "当前筛选结果",
+            value: pagination.total.toLocaleString(),
             icon: Key,
             color: "text-[var(--foreground)]",
             bg: "bg-[var(--muted)]",
           },
           {
             label: "可用",
-            value: stats.available.toLocaleString(),
+            value: "-",
             icon: CheckCircle,
             color: "text-[var(--success)]",
             bg: "bg-[var(--success)]/10",
+            filterValue: "AVAILABLE",
           },
           {
             label: "已售",
-            value: stats.sold.toLocaleString(),
+            value: "-",
             icon: Package,
             color: "text-[var(--primary)]",
             bg: "bg-[var(--primary)]/10",
+            filterValue: "SOLD",
           },
           {
             label: "已禁用",
-            value: stats.disabled.toLocaleString(),
+            value: "-",
             icon: Ban,
             color: "text-[var(--destructive)]",
             bg: "bg-[var(--destructive)]/10",
+            filterValue: "DISABLED",
           },
         ].map((stat) => (
           <div
@@ -446,20 +582,39 @@ export default function AdminCardKeysPageContent() {
 
       {/* Filter row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList>
-            {statusTabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList>
+              {statusTabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <Select
+            value={productFilter}
+            onValueChange={handleProductFilterChange}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="全部商品" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部商品</SelectItem>
+              {products.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
           <Input
-            placeholder="搜索商品名或卡密内容..."
+            placeholder="搜索卡密内容..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             className="w-full pl-9 sm:w-72"
@@ -487,15 +642,18 @@ export default function AdminCardKeysPageContent() {
               <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
                 售出时间
               </th>
+              <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
+                订单号
+              </th>
               <th className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
                 操作
               </th>
             </tr>
           </thead>
           <tbody>
-            {paginated.length === 0 ? (
+            {cardKeys.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-16 text-center">
+                <td colSpan={7} className="py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="mb-4 rounded-full bg-[var(--muted)] p-4">
                       <Key className="h-10 w-10 text-[var(--muted-foreground)]" />
@@ -507,29 +665,40 @@ export default function AdminCardKeysPageContent() {
                 </td>
               </tr>
             ) : (
-              paginated.map((key) => (
+              cardKeys.map((key) => (
                 <tr
                   key={key.id}
                   className="border-b border-[var(--border)] last:border-b-0 transition-colors hover:bg-[var(--card-hover)]"
                 >
-                  <td className="px-4 py-3 font-medium">{key.product}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {key.product.name}
+                  </td>
                   <td className="px-4 py-3">
                     <code className="rounded-[var(--radius-sm)] bg-[var(--muted)] px-2 py-1 font-mono text-xs">
                       {revealedKeys.has(key.id)
                         ? key.content
-                        : key.maskedContent}
+                        : maskContent(key.content)}
                     </code>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={key.statusVariant}>
-                      {key.statusLabel}
+                    <Badge variant={statusVariant(key.status)}>
+                      {statusLabel(key.status)}
                     </Badge>
                   </td>
                   <td className="hidden px-4 py-3 text-[var(--muted-foreground)] md:table-cell">
-                    {key.addedAt}
+                    {formatDate(key.createdAt)}
                   </td>
                   <td className="hidden px-4 py-3 text-[var(--muted-foreground)] lg:table-cell">
-                    {key.soldAt ?? "-"}
+                    {key.soldAt ? formatDate(key.soldAt) : "-"}
+                  </td>
+                  <td className="hidden px-4 py-3 text-[var(--muted-foreground)] lg:table-cell">
+                    {key.orderNo ? (
+                      <code className="rounded-[var(--radius-sm)] bg-[var(--muted)] px-1.5 py-0.5 font-mono text-xs">
+                        {key.orderNo}
+                      </code>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
@@ -552,25 +721,41 @@ export default function AdminCardKeysPageContent() {
                           {revealedKeys.has(key.id) ? "隐藏" : "查看"}
                         </span>
                       </Button>
-                      {key.status !== "sold" && (
+                      {key.status !== "SOLD" && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleStatus(key.id)}
+                          disabled={mutating}
+                          onClick={() => toggleStatus(key.id, key.status)}
                           className={cn(
-                            key.status === "available"
+                            key.status === "AVAILABLE"
                               ? "text-[var(--destructive)] hover:text-[var(--destructive)]"
                               : "text-[var(--success)] hover:text-[var(--success)]"
                           )}
                         >
-                          {key.status === "available" ? (
+                          {key.status === "AVAILABLE" ? (
                             <Ban className="h-4 w-4" />
                           ) : (
                             <CheckCircle className="h-4 w-4" />
                           )}
                           <span className="ml-1 hidden sm:inline">
-                            {key.status === "available" ? "禁用" : "启用"}
+                            {key.status === "AVAILABLE" ? "禁用" : "启用"}
                           </span>
+                        </Button>
+                      )}
+                      {key.status !== "SOLD" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={mutating}
+                          className="text-[var(--destructive)] hover:text-[var(--destructive)]"
+                          onClick={() => {
+                            setDeleteTarget(key.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="ml-1 hidden sm:inline">删除</span>
                         </Button>
                       )}
                     </div>
@@ -583,16 +768,17 @@ export default function AdminCardKeysPageContent() {
       </div>
 
       {/* Pagination */}
-      {filtered.length > PAGE_SIZE && (
+      {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-[var(--muted-foreground)]">
-            共 {filtered.length} 条记录，第 {safeCurrentPage}/{totalPages} 页
+            共 {pagination.total} 条记录，第 {pagination.page}/
+            {pagination.totalPages} 页
           </p>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              disabled={safeCurrentPage <= 1}
+              disabled={pagination.page <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -601,9 +787,11 @@ export default function AdminCardKeysPageContent() {
             <Button
               variant="outline"
               size="sm"
-              disabled={safeCurrentPage >= totalPages}
+              disabled={pagination.page >= pagination.totalPages}
               onClick={() =>
-                setCurrentPage((p) => Math.min(totalPages, p + 1))
+                setCurrentPage((p) =>
+                  Math.min(pagination.totalPages, p + 1)
+                )
               }
             >
               下一页
@@ -612,6 +800,40 @@ export default function AdminCardKeysPageContent() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-[var(--destructive)]" />
+              确认删除
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            确定要删除该卡密吗？此操作不可撤销。
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteTarget(null);
+                setDeleteDialogOpen(false);
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={mutating}
+              onClick={confirmDelete}
+            >
+              {mutating && <Loader2 className="h-4 w-4 animate-spin" />}
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

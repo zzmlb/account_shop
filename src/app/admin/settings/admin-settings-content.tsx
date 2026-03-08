@@ -1,57 +1,149 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Globe, CreditCard, Mail, Search as SearchIcon } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Save,
+  Globe,
+  CreditCard,
+  Mail,
+  Search as SearchIcon,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
+// All settings keys managed by this page
+const SETTINGS_KEYS = [
+  "site_name",
+  "site_description",
+  "logo_url",
+  "announcement",
+  "alipay_merchant_id",
+  "wechat_merchant_id",
+  "alipay_enabled",
+  "wechat_enabled",
+  "balance_enabled",
+  "smtp_server",
+  "smtp_port",
+  "smtp_username",
+  "smtp_password",
+  "sender_name",
+  "seo_title",
+  "seo_description",
+  "seo_keywords",
+] as const;
+
+type SettingsKey = (typeof SETTINGS_KEYS)[number];
+type SettingsMap = Record<SettingsKey, string>;
+
+const DEFAULT_SETTINGS: SettingsMap = {
+  site_name: "",
+  site_description: "",
+  logo_url: "",
+  announcement: "",
+  alipay_merchant_id: "",
+  wechat_merchant_id: "",
+  alipay_enabled: "false",
+  wechat_enabled: "false",
+  balance_enabled: "false",
+  smtp_server: "",
+  smtp_port: "",
+  smtp_username: "",
+  smtp_password: "",
+  sender_name: "",
+  seo_title: "",
+  seo_description: "",
+  seo_keywords: "",
+};
 
 export default function AdminSettingsPageContent() {
-  /* Site settings */
-  const [siteName, setSiteName] = useState("PJ37 数字商城");
-  const [siteDescription, setSiteDescription] = useState(
-    "高端数字商品一站式交易平台，安全快捷，品质保障"
-  );
-  const [logoUrl, setLogoUrl] = useState("/logo.svg");
-  const [announcement, setAnnouncement] = useState(
-    "欢迎光临 PJ37 数字商城！新用户注册即送 5 元优惠券，全场商品限时特惠中。"
-  );
-
-  /* Payment settings */
-  const [alipayMerchantId, setAlipayMerchantId] = useState("2088xxxxxxxxxxxx");
-  const [wechatMerchantId, setWechatMerchantId] = useState("16xxxxxxxx");
-  const [alipayEnabled, setAlipayEnabled] = useState(true);
-  const [wechatEnabled, setWechatEnabled] = useState(true);
-  const [balanceEnabled, setBalanceEnabled] = useState(true);
-
-  /* Email settings */
-  const [smtpServer, setSmtpServer] = useState("smtp.example.com");
-  const [smtpPort, setSmtpPort] = useState("465");
-  const [smtpUsername, setSmtpUsername] = useState("noreply@example.com");
-  const [smtpPassword, setSmtpPassword] = useState("••••••••");
-  const [senderName, setSenderName] = useState("PJ37 数字商城");
-
-  /* SEO settings */
-  const [seoTitle, setSeoTitle] = useState("PJ37 数字商城 - 高端数字商品交易平台");
-  const [seoDescription, setSeoDescription] = useState(
-    "PJ37 数字商城提供 Gmail、Netflix、ChatGPT、VPN 等优质数字商品，自动发货，安全可靠。"
-  );
-  const [seoKeywords, setSeoKeywords] = useState(
-    "数字商品,Gmail账号,Netflix会员,ChatGPT,VPN,自动发货"
-  );
-
+  const [settings, setSettings] = useState<SettingsMap>({ ...DEFAULT_SETTINGS });
+  const [loading, setLoading] = useState(true);
   const [savingSection, setSavingSection] = useState<string | null>(null);
 
-  const handleSave = (section: string) => {
-    setSavingSection(section);
-    setTimeout(() => {
-      setSavingSection(null);
-    }, 1000);
+  // Fetch settings from API on mount
+  const fetchSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/settings");
+      const data = await res.json();
+      if (data.success && data.settings) {
+        const merged = { ...DEFAULT_SETTINGS };
+        for (const key of SETTINGS_KEYS) {
+          if (data.settings[key] !== undefined) {
+            merged[key] = data.settings[key];
+          }
+        }
+        setSettings(merged);
+      } else {
+        toast.error(data.message || "获取设置失败");
+      }
+    } catch {
+      toast.error("网络错误，无法加载设置");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  // Helper to update a single setting in local state
+  const updateSetting = (key: SettingsKey, value: string) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  // Save a subset of settings keys to the API
+  const handleSave = async (section: string, keys: SettingsKey[]) => {
+    setSavingSection(section);
+    try {
+      const payload: Record<string, string> = {};
+      for (const key of keys) {
+        payload[key] = settings[key];
+      }
+
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: payload }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "设置已保存");
+      } else {
+        toast.error(data.message || "保存失败");
+      }
+    } catch {
+      toast.error("网络错误，保存失败");
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+          <p className="text-sm text-[var(--muted-foreground)]">加载设置中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -82,8 +174,8 @@ export default function AdminSettingsPageContent() {
               <Label htmlFor="siteName">站点名称</Label>
               <Input
                 id="siteName"
-                value={siteName}
-                onChange={(e) => setSiteName(e.target.value)}
+                value={settings.site_name}
+                onChange={(e) => updateSetting("site_name", e.target.value)}
                 placeholder="请输入站点名称"
               />
             </div>
@@ -91,9 +183,9 @@ export default function AdminSettingsPageContent() {
               <Label htmlFor="logoUrl">Logo URL</Label>
               <Input
                 id="logoUrl"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="请输入 Logo 图片地址"
+                value={settings.logo_url}
+                onChange={(e) => updateSetting("logo_url", e.target.value)}
+                placeholder="https://example.com/logo.png"
               />
             </div>
           </div>
@@ -101,8 +193,10 @@ export default function AdminSettingsPageContent() {
             <Label htmlFor="siteDescription">站点描述</Label>
             <Input
               id="siteDescription"
-              value={siteDescription}
-              onChange={(e) => setSiteDescription(e.target.value)}
+              value={settings.site_description}
+              onChange={(e) =>
+                updateSetting("site_description", e.target.value)
+              }
               placeholder="请输入站点描述"
             />
           </div>
@@ -111,18 +205,31 @@ export default function AdminSettingsPageContent() {
             <textarea
               id="announcement"
               className="flex min-h-[100px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
+              value={settings.announcement}
+              onChange={(e) =>
+                updateSetting("announcement", e.target.value)
+              }
               placeholder="请输入公告内容"
             />
           </div>
           <Separator />
           <div className="flex justify-end">
             <Button
-              onClick={() => handleSave("site")}
+              onClick={() =>
+                handleSave("site", [
+                  "site_name",
+                  "site_description",
+                  "logo_url",
+                  "announcement",
+                ])
+              }
               disabled={savingSection === "site"}
             >
-              <Save className="mr-2 h-4 w-4" />
+              {savingSection === "site" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
               {savingSection === "site" ? "保存中..." : "保存设置"}
             </Button>
           </div>
@@ -145,55 +252,82 @@ export default function AdminSettingsPageContent() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="alipayId">支付宝商户号</Label>
+              <Label htmlFor="alipayMerchantId">支付宝商户 ID</Label>
               <Input
-                id="alipayId"
-                value={alipayMerchantId}
-                onChange={(e) => setAlipayMerchantId(e.target.value)}
-                placeholder="请输入支付宝商户号"
+                id="alipayMerchantId"
+                value={settings.alipay_merchant_id}
+                onChange={(e) =>
+                  updateSetting("alipay_merchant_id", e.target.value)
+                }
+                placeholder="请输入支付宝商户 ID"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="wechatId">微信商户号</Label>
+              <Label htmlFor="wechatMerchantId">微信商户 ID</Label>
               <Input
-                id="wechatId"
-                value={wechatMerchantId}
-                onChange={(e) => setWechatMerchantId(e.target.value)}
-                placeholder="请输入微信商户号"
+                id="wechatMerchantId"
+                value={settings.wechat_merchant_id}
+                onChange={(e) =>
+                  updateSetting("wechat_merchant_id", e.target.value)
+                }
+                placeholder="请输入微信商户 ID"
               />
             </div>
           </div>
-          <Separator />
           <div className="space-y-3">
             <Label className="text-base">支付通道启用</Label>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
                 <Checkbox
                   id="alipayEnabled"
-                  checked={alipayEnabled}
-                  onCheckedChange={(v) => setAlipayEnabled(!!v)}
+                  checked={settings.alipay_enabled === "true"}
+                  onCheckedChange={(v) =>
+                    updateSetting(
+                      "alipay_enabled",
+                      v ? "true" : "false"
+                    )
+                  }
                 />
-                <Label htmlFor="alipayEnabled" className="cursor-pointer font-normal">
+                <Label
+                  htmlFor="alipayEnabled"
+                  className="cursor-pointer font-normal"
+                >
                   支付宝
                 </Label>
               </div>
               <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
                 <Checkbox
                   id="wechatEnabled"
-                  checked={wechatEnabled}
-                  onCheckedChange={(v) => setWechatEnabled(!!v)}
+                  checked={settings.wechat_enabled === "true"}
+                  onCheckedChange={(v) =>
+                    updateSetting(
+                      "wechat_enabled",
+                      v ? "true" : "false"
+                    )
+                  }
                 />
-                <Label htmlFor="wechatEnabled" className="cursor-pointer font-normal">
+                <Label
+                  htmlFor="wechatEnabled"
+                  className="cursor-pointer font-normal"
+                >
                   微信支付
                 </Label>
               </div>
               <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
                 <Checkbox
                   id="balanceEnabled"
-                  checked={balanceEnabled}
-                  onCheckedChange={(v) => setBalanceEnabled(!!v)}
+                  checked={settings.balance_enabled === "true"}
+                  onCheckedChange={(v) =>
+                    updateSetting(
+                      "balance_enabled",
+                      v ? "true" : "false"
+                    )
+                  }
                 />
-                <Label htmlFor="balanceEnabled" className="cursor-pointer font-normal">
+                <Label
+                  htmlFor="balanceEnabled"
+                  className="cursor-pointer font-normal"
+                >
                   余额支付
                 </Label>
               </div>
@@ -202,10 +336,22 @@ export default function AdminSettingsPageContent() {
           <Separator />
           <div className="flex justify-end">
             <Button
-              onClick={() => handleSave("payment")}
+              onClick={() =>
+                handleSave("payment", [
+                  "alipay_merchant_id",
+                  "wechat_merchant_id",
+                  "alipay_enabled",
+                  "wechat_enabled",
+                  "balance_enabled",
+                ])
+              }
               disabled={savingSection === "payment"}
             >
-              <Save className="mr-2 h-4 w-4" />
+              {savingSection === "payment" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
               {savingSection === "payment" ? "保存中..." : "保存设置"}
             </Button>
           </div>
@@ -231,8 +377,8 @@ export default function AdminSettingsPageContent() {
               <Label htmlFor="smtpServer">SMTP 服务器</Label>
               <Input
                 id="smtpServer"
-                value={smtpServer}
-                onChange={(e) => setSmtpServer(e.target.value)}
+                value={settings.smtp_server}
+                onChange={(e) => updateSetting("smtp_server", e.target.value)}
                 placeholder="smtp.example.com"
               />
             </div>
@@ -240,8 +386,8 @@ export default function AdminSettingsPageContent() {
               <Label htmlFor="smtpPort">端口</Label>
               <Input
                 id="smtpPort"
-                value={smtpPort}
-                onChange={(e) => setSmtpPort(e.target.value)}
+                value={settings.smtp_port}
+                onChange={(e) => updateSetting("smtp_port", e.target.value)}
                 placeholder="465"
               />
             </div>
@@ -251,8 +397,8 @@ export default function AdminSettingsPageContent() {
               <Label htmlFor="smtpUsername">用户名</Label>
               <Input
                 id="smtpUsername"
-                value={smtpUsername}
-                onChange={(e) => setSmtpUsername(e.target.value)}
+                value={settings.smtp_username}
+                onChange={(e) => updateSetting("smtp_username", e.target.value)}
                 placeholder="noreply@example.com"
               />
             </div>
@@ -261,28 +407,42 @@ export default function AdminSettingsPageContent() {
               <Input
                 id="smtpPassword"
                 type="password"
-                value={smtpPassword}
-                onChange={(e) => setSmtpPassword(e.target.value)}
+                value={settings.smtp_password}
+                onChange={(e) => updateSetting("smtp_password", e.target.value)}
                 placeholder="SMTP 密码"
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="senderName">发件人名称</Label>
-            <Input
-              id="senderName"
-              value={senderName}
-              onChange={(e) => setSenderName(e.target.value)}
-              placeholder="PJ37 数字商城"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="senderName">发件人名称</Label>
+              <Input
+                id="senderName"
+                value={settings.sender_name}
+                onChange={(e) => updateSetting("sender_name", e.target.value)}
+                placeholder="站点通知"
+              />
+            </div>
           </div>
           <Separator />
           <div className="flex justify-end">
             <Button
-              onClick={() => handleSave("email")}
+              onClick={() =>
+                handleSave("email", [
+                  "smtp_server",
+                  "smtp_port",
+                  "smtp_username",
+                  "smtp_password",
+                  "sender_name",
+                ])
+              }
               disabled={savingSection === "email"}
             >
-              <Save className="mr-2 h-4 w-4" />
+              {savingSection === "email" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
               {savingSection === "email" ? "保存中..." : "保存设置"}
             </Button>
           </div>
@@ -309,8 +469,8 @@ export default function AdminSettingsPageContent() {
             <Label htmlFor="seoTitle">首页标题</Label>
             <Input
               id="seoTitle"
-              value={seoTitle}
-              onChange={(e) => setSeoTitle(e.target.value)}
+              value={settings.seo_title}
+              onChange={(e) => updateSetting("seo_title", e.target.value)}
               placeholder="首页 Title 标签"
             />
           </div>
@@ -319,8 +479,10 @@ export default function AdminSettingsPageContent() {
             <textarea
               id="seoDescription"
               className="flex min-h-[80px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-              value={seoDescription}
-              onChange={(e) => setSeoDescription(e.target.value)}
+              value={settings.seo_description}
+              onChange={(e) =>
+                updateSetting("seo_description", e.target.value)
+              }
               placeholder="首页 Meta Description"
             />
           </div>
@@ -328,8 +490,8 @@ export default function AdminSettingsPageContent() {
             <Label htmlFor="seoKeywords">首页关键词</Label>
             <Input
               id="seoKeywords"
-              value={seoKeywords}
-              onChange={(e) => setSeoKeywords(e.target.value)}
+              value={settings.seo_keywords}
+              onChange={(e) => updateSetting("seo_keywords", e.target.value)}
               placeholder="关键词1,关键词2,关键词3"
             />
             <p className="text-xs text-[var(--muted-foreground)]">
@@ -339,10 +501,20 @@ export default function AdminSettingsPageContent() {
           <Separator />
           <div className="flex justify-end">
             <Button
-              onClick={() => handleSave("seo")}
+              onClick={() =>
+                handleSave("seo", [
+                  "seo_title",
+                  "seo_description",
+                  "seo_keywords",
+                ])
+              }
               disabled={savingSection === "seo"}
             >
-              <Save className="mr-2 h-4 w-4" />
+              {savingSection === "seo" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
               {savingSection === "seo" ? "保存中..." : "保存设置"}
             </Button>
           </div>

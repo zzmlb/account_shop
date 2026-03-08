@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
+import { toast } from "sonner";
 
 type CouponStatus = "available" | "used" | "expired";
 
@@ -26,102 +27,50 @@ interface Coupon {
   applicableCategories?: string[];
 }
 
-const MOCK_COUPONS: Coupon[] = [
-  // Available
-  {
-    id: "c1",
-    code: "NEW2026",
-    type: "fixed",
-    discount: 10,
-    minSpend: 50,
-    name: "新人专享优惠",
-    description: "全场商品满50减10",
-    validFrom: "2026-03-01",
-    validTo: "2026-04-01",
-    status: "available",
-  },
-  {
-    id: "c2",
-    code: "VIP15OFF",
-    type: "percent",
-    discount: 15,
-    minSpend: 100,
-    maxDiscount: 30,
-    name: "VIP专属折扣",
-    description: "全场商品满100享85折，最高减30元",
-    validFrom: "2026-03-01",
-    validTo: "2026-03-31",
-    status: "available",
-  },
-  {
-    id: "c3",
-    code: "STREAM5",
-    type: "fixed",
-    discount: 5,
-    minSpend: 20,
-    name: "流媒体专区券",
-    description: "流媒体分类商品满20减5",
-    validFrom: "2026-03-05",
-    validTo: "2026-03-20",
-    status: "available",
-    applicableCategories: ["流媒体"],
-  },
-  // Used
-  {
-    id: "c4",
-    code: "SPRING20",
-    type: "fixed",
-    discount: 20,
-    minSpend: 80,
-    name: "春季大促",
-    description: "全场商品满80减20",
-    validFrom: "2026-02-01",
-    validTo: "2026-03-15",
-    status: "used",
-    usedAt: "2026-02-15",
-  },
-  {
-    id: "c5",
-    code: "GAME10",
-    type: "percent",
-    discount: 10,
-    minSpend: 50,
-    maxDiscount: 15,
-    name: "游戏分区券",
-    description: "游戏分类商品满50享9折",
-    validFrom: "2026-01-15",
-    validTo: "2026-02-28",
-    status: "used",
-    usedAt: "2026-02-01",
-    applicableCategories: ["游戏"],
-  },
-  // Expired
-  {
-    id: "c6",
-    code: "NY2026",
-    type: "fixed",
-    discount: 15,
-    minSpend: 60,
-    name: "新年特惠",
-    description: "全场商品满60减15",
-    validFrom: "2026-01-01",
-    validTo: "2026-01-31",
-    status: "expired",
-  },
-  {
-    id: "c7",
-    code: "FLASH8",
-    type: "percent",
-    discount: 8,
-    minSpend: 30,
-    maxDiscount: 10,
-    name: "限时闪促",
-    description: "全场满30享92折",
-    validFrom: "2026-02-01",
-    validTo: "2026-02-14",
-    status: "expired",
-  },
-];
+interface ApiCoupon {
+  id: string;
+  couponId: string;
+  name: string;
+  code: string;
+  type: string;
+  value: number;
+  minAmount: number | null;
+  startDate: string;
+  endDate: string;
+  isUsed: boolean;
+  usedAt: string | null;
+}
+
+function deriveStatus(apiCoupon: ApiCoupon): CouponStatus {
+  if (apiCoupon.isUsed) return "used";
+  if (new Date(apiCoupon.endDate) < new Date()) return "expired";
+  return "available";
+}
+
+function buildDescription(type: string, value: number, minAmount: number | null): string {
+  const minText = minAmount ? `满${minAmount}` : "无门槛";
+  if (type === "fixed") {
+    return `${minText}减${value}元`;
+  }
+  return `${minText}享${100 - value}折`;
+}
+
+function mapApiToCoupon(apiCoupon: ApiCoupon): Coupon {
+  const status = deriveStatus(apiCoupon);
+  return {
+    id: apiCoupon.id,
+    code: apiCoupon.code,
+    type: apiCoupon.type === "percent" ? "percent" : "fixed",
+    discount: apiCoupon.value,
+    minSpend: apiCoupon.minAmount ?? 0,
+    name: apiCoupon.name,
+    description: buildDescription(apiCoupon.type, apiCoupon.value, apiCoupon.minAmount),
+    validFrom: apiCoupon.startDate.split("T")[0],
+    validTo: apiCoupon.endDate.split("T")[0],
+    status,
+    usedAt: apiCoupon.usedAt ? apiCoupon.usedAt.split("T")[0] : undefined,
+  };
+}
 
 const TAB_CONFIG = [
   { value: "available", label: "可使用", icon: Ticket },
@@ -321,7 +270,30 @@ function CouponCard({
 
 
 export default function CouponsPageContent() {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const fetchCoupons = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/coupons");
+      const data = await res.json();
+      if (data.success) {
+        setCoupons(data.coupons.map(mapApiToCoupon));
+      } else {
+        toast.error(data.message || "获取优惠券列表失败");
+      }
+    } catch {
+      toast.error("网络错误，获取优惠券列表失败");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCoupons();
+  }, [fetchCoupons]);
 
   const handleCopyCode = async (id: string, code: string) => {
     try {
@@ -340,9 +312,19 @@ export default function CouponsPageContent() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const availableCoupons = MOCK_COUPONS.filter((c) => c.status === "available");
-  const usedCoupons = MOCK_COUPONS.filter((c) => c.status === "used");
-  const expiredCoupons = MOCK_COUPONS.filter((c) => c.status === "expired");
+  const now = new Date();
+  const availableCoupons = coupons.filter((c) => !c.usedAt && new Date(c.validTo) >= now);
+  const usedCoupons = coupons.filter((c) => !!c.usedAt);
+  const expiredCoupons = coupons.filter((c) => !c.usedAt && new Date(c.validTo) < now);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+        <p className="text-sm text-[var(--muted-foreground)]">加载优惠券中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

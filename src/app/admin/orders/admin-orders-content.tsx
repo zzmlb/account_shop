@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Package,
   Loader2,
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,7 +31,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type OrderStatus = "PENDING" | "PAID" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+type OrderStatus =
+  | "PENDING"
+  | "PAID"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "REFUNDED"
+  | "EXPIRED";
 
 interface OrderItem {
   id: string;
@@ -94,6 +101,7 @@ const statusConfig: Record<
   DELIVERED: { label: "已完成", variant: "success" },
   CANCELLED: { label: "已取消", variant: "secondary" },
   REFUNDED: { label: "已退款", variant: "destructive" },
+  EXPIRED: { label: "已过期", variant: "secondary" },
 };
 
 const statusTabs = [
@@ -103,6 +111,7 @@ const statusTabs = [
   { value: "DELIVERED", label: "已完成" },
   { value: "CANCELLED", label: "已取消" },
   { value: "REFUNDED", label: "已退款" },
+  { value: "EXPIRED", label: "已过期" },
 ];
 
 const paymentMethodMap: Record<string, string> = {
@@ -144,13 +153,13 @@ export default function AdminOrdersPageContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
-    pageSize: 10,
+    pageSize: 20,
     total: 0,
     totalPages: 1,
   });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const pageSize = 10;
+  const pageSize = 20;
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchOrders = useCallback(
@@ -208,9 +217,14 @@ export default function AdminOrdersPageContent() {
 
   const handleUpdateStatus = async (
     orderId: string,
-    newStatus: "REFUNDED" | "CANCELLED"
+    newStatus: "DELIVERED" | "REFUNDED" | "CANCELLED"
   ) => {
-    const actionLabel = newStatus === "REFUNDED" ? "退款" : "取消";
+    const actionLabels: Record<string, string> = {
+      DELIVERED: "发货",
+      REFUNDED: "退款",
+      CANCELLED: "取消",
+    };
+    const actionLabel = actionLabels[newStatus] || newStatus;
     setActionLoading(orderId);
     try {
       const res = await fetch(`/api/admin/orders?id=${orderId}`, {
@@ -431,6 +445,20 @@ export default function AdminOrdersPageContent() {
                                 <Eye className="h-4 w-4" />
                                 查看详情
                               </DropdownMenuItem>
+                              {order.status === "PAID" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="gap-2 cursor-pointer"
+                                    onClick={() =>
+                                      handleUpdateStatus(order.id, "DELIVERED")
+                                    }
+                                  >
+                                    <Truck className="h-4 w-4" />
+                                    手动发货
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               {(order.status === "PAID" ||
                                 order.status === "DELIVERED") && (
                                 <>
