@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/server/db";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, SITE_DESCRIPTION } from "@/lib/constants";
 import CategoryPageContent from "./category-page-content";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +18,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "分类不存在" };
   }
 
+  const description =
+    category.description ||
+    `浏览 ${category.name} 分类下的所有数字商品 — ${SITE_DESCRIPTION}`;
+  const url = `${SITE_URL}/category/${slug}`;
+
   return {
     title: `${category.name} - ${SITE_NAME}`,
-    description:
-      category.description ||
-      `浏览 ${category.name} 分类下的所有数字商品`,
+    description,
+    openGraph: {
+      title: `${category.name} - ${SITE_NAME}`,
+      description,
+      url,
+      siteName: SITE_NAME,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: `${category.name} - ${SITE_NAME}`,
+      description,
+    },
+    alternates: { canonical: url },
   };
 }
 

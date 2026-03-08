@@ -18,6 +18,9 @@ import {
   Pencil,
   X,
   Trash2,
+  Globe,
+  Monitor,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -80,6 +83,18 @@ export default function DashboardSettingsPageContent() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  /* ---- Login history ---- */
+  interface LoginLogEntry {
+    id: string;
+    success: boolean;
+    ip: string | null;
+    userAgent: string | null;
+    reason: string | null;
+    createdAt: string;
+  }
+  const [loginHistory, setLoginHistory] = useState<LoginLogEntry[]>([]);
+  const [loginHistoryLoading, setLoginHistoryLoading] = useState(true);
+
   /* ---- Delete account state ---- */
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -123,6 +138,17 @@ export default function DashboardSettingsPageContent() {
     } catch {
       // ignore parse errors
     }
+  }, []);
+
+  /* ---- Fetch login history ---- */
+  useEffect(() => {
+    fetch("/api/auth/login-history")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setLoginHistory(data.logs);
+      })
+      .catch(() => {})
+      .finally(() => setLoginHistoryLoading(false));
   }, []);
 
   /* ---- Handlers ---- */
@@ -721,6 +747,85 @@ export default function DashboardSettingsPageContent() {
           </Card>
         </div>
       </div>
+
+      {/* Login History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Shield className="h-5 w-5 text-[var(--primary)]" />
+            登录记录
+          </CardTitle>
+          <CardDescription>
+            最近20条登录活动，如发现异常请立即修改密码
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loginHistoryLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
+            </div>
+          ) : loginHistory.length === 0 ? (
+            <p className="text-sm text-[var(--muted-foreground)]">暂无登录记录</p>
+          ) : (
+            <div className="space-y-2">
+              {loginHistory.slice(0, 10).map((entry) => {
+                const d = new Date(entry.createdAt);
+                const timeStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                const browser = entry.userAgent
+                  ? entry.userAgent.includes("Chrome") && !entry.userAgent.includes("Edg")
+                    ? "Chrome"
+                    : entry.userAgent.includes("Edg")
+                      ? "Edge"
+                      : entry.userAgent.includes("Firefox")
+                        ? "Firefox"
+                        : entry.userAgent.includes("Safari")
+                          ? "Safari"
+                          : "其他"
+                  : "-";
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      {entry.success ? (
+                        <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-[var(--destructive)]" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className={entry.success ? "text-[var(--foreground)]" : "text-[var(--destructive)]"}>
+                            {entry.success ? "登录成功" : "登录失败"}
+                          </span>
+                          {entry.reason && (
+                            <span className="text-xs text-[var(--muted-foreground)]">
+                              ({entry.reason})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+                          <span className="flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            {entry.ip || "-"}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Monitor className="h-3 w-3" />
+                            {browser}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      {timeStr}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Danger Zone */}
       <Card className="border-[var(--destructive)]/30">
