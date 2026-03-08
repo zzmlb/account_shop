@@ -281,10 +281,36 @@ export default function AdminLayout({
               </SheetContent>
             </Sheet>
 
-            {/* Page title for desktop */}
-            <h1 className="hidden text-lg font-semibold text-[var(--foreground)] lg:block">
-              {SITE_NAME} 管理后台
-            </h1>
+            {/* Breadcrumbs for desktop */}
+            <nav aria-label="面包屑" className="hidden items-center gap-1.5 text-sm lg:flex">
+              <Link
+                href="/admin"
+                className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              >
+                管理后台
+              </Link>
+              {pathname !== "/admin" && (() => {
+                const segments = (pathname ?? "").replace("/admin", "").split("/").filter(Boolean);
+                const current = sidebarLinks.find((l) => isActive(l.href) && l.href !== "/admin");
+                if (!current && segments.length === 0) return null;
+                return (
+                  <>
+                    <ChevronRight className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                    <span className="font-medium text-[var(--foreground)]">
+                      {current?.label ?? segments[segments.length - 1]}
+                    </span>
+                    {segments.length > 1 && current && (
+                      <>
+                        <ChevronRight className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                        <span className="font-medium text-[var(--foreground)]">
+                          详情
+                        </span>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </nav>
 
             {/* Mobile logo */}
             <span className="text-sm font-bold bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent lg:hidden">

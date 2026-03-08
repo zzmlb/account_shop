@@ -13,6 +13,9 @@ import {
   HelpCircle,
   Zap,
   Loader2,
+  Bell,
+  RotateCcw,
+  Megaphone,
 } from "lucide-react";
 import {
   AreaChart,
@@ -115,15 +118,26 @@ export default function DashboardPageContent() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [couponCount, setCouponCount] = useState(0);
+  const [notifications, setNotifications] = useState<{
+    id: string;
+    type: string;
+    title: string;
+    content: string;
+    href: string | null;
+    isRead: boolean;
+    createdAt: string;
+  }[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ordersRes, couponsRes] = await Promise.all([
+        const [ordersRes, couponsRes, notifsRes] = await Promise.all([
           fetch("/api/orders").then((r) => r.json()),
           fetch("/api/coupons").then((r) => r.json()).catch(() => ({ success: false })),
+          fetch("/api/notifications?pageSize=5").then((r) => r.json()).catch(() => ({ success: false })),
         ]);
         if (ordersRes.success && Array.isArray(ordersRes.orders)) {
           setOrders(ordersRes.orders);
@@ -136,6 +150,10 @@ export default function DashboardPageContent() {
               !c.isUsed && new Date(c.endDate) > new Date()
           );
           setCouponCount(unused.length);
+        }
+        if (notifsRes.success && Array.isArray(notifsRes.notifications)) {
+          setNotifications(notifsRes.notifications);
+          setUnreadCount(notifsRes.unreadCount ?? 0);
         }
       } catch {
         setFetchError(true);
@@ -400,7 +418,7 @@ export default function DashboardPageContent() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions (1 col) */}
+        {/* Quick Actions + Notifications (1 col) */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
             快捷操作
@@ -428,6 +446,59 @@ export default function DashboardPageContent() {
               </Link>
             );
           })}
+
+          {/* Recent Notifications */}
+          {notifications.length > 0 && (
+            <>
+              <h3 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider flex items-center gap-2">
+                <Bell className="h-3.5 w-3.5" />
+                最新通知
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--primary-foreground)]">
+                    {unreadCount}
+                  </span>
+                )}
+              </h3>
+              <div className="space-y-2">
+                {notifications.slice(0, 3).map((n) => {
+                  const iconMap: Record<string, typeof Package> = {
+                    ORDER: Package,
+                    REFUND: RotateCcw,
+                    BALANCE: Wallet,
+                    SYSTEM: Megaphone,
+                    COUPON: Ticket,
+                  };
+                  const NIcon = iconMap[n.type] || Bell;
+                  return (
+                    <Link
+                      key={n.id}
+                      href={n.href || "/dashboard/notifications"}
+                      className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3 transition-colors hover:bg-[var(--card-hover)]"
+                    >
+                      <NIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {n.title}
+                          {!n.isRead && (
+                            <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--primary)]" />
+                          )}
+                        </p>
+                        <p className="truncate text-xs text-[var(--muted-foreground)]">
+                          {n.content}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              <Button variant="ghost" size="sm" asChild className="w-full">
+                <Link href="/dashboard/notifications" className="gap-1">
+                  查看全部通知
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

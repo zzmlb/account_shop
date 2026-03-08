@@ -10,6 +10,8 @@ import {
   Zap,
   ShieldCheck,
   Lock,
+  Clock,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -287,6 +289,24 @@ export default function ProductDetailContent({
                 </span>
               </div>
             ))}
+          </div>
+
+          {/* Delivery estimate */}
+          <div className="mt-4 rounded-[var(--radius-md)] border border-green-500/20 bg-green-500/5 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-[var(--foreground)]">
+                预计交付时间
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 pl-6">
+              <CheckCircle className="h-3 w-3 text-green-500" />
+              <span className="text-xs text-[var(--muted-foreground)]">
+                {product.stockCount > 0
+                  ? "付款后即时自动发货，秒级到账"
+                  : "补货后将尽快处理发货"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

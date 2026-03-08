@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import {
   Search,
   Download,
   MoreHorizontal,
   Eye,
+  ExternalLink,
   RotateCcw,
   XCircle,
   ChevronLeft,
@@ -603,7 +605,13 @@ export default function AdminOrdersPageContent() {
                                 onClick={() => setDetailOrder(order)}
                               >
                                 <Eye className="h-4 w-4" />
-                                查看详情
+                                快速查看
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+                                <Link href={`/admin/orders/${order.id}`}>
+                                  <ExternalLink className="h-4 w-4" />
+                                  订单详情页
+                                </Link>
                               </DropdownMenuItem>
                               {order.status === "PAID" && (
                                 <>
