@@ -142,6 +142,8 @@ export default function OrdersPageContent() {
 
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -173,6 +175,8 @@ export default function OrdersPageContent() {
 
   /* Filter + search */
   const filtered = useMemo(() => {
+    const fromTs = dateFrom ? new Date(dateFrom).getTime() : 0;
+    const toTs = dateTo ? new Date(dateTo + "T23:59:59").getTime() : Infinity;
     return orders.filter((order) => {
       if (activeTab !== "all" && order.status !== activeTab) return false;
       if (search) {
@@ -183,9 +187,13 @@ export default function OrdersPageContent() {
         );
         if (!matchOrderNo && !matchProduct) return false;
       }
+      if (fromTs || toTs < Infinity) {
+        const orderTs = new Date(order.createdAt).getTime();
+        if (orderTs < fromTs || orderTs > toTs) return false;
+      }
       return true;
     });
-  }, [orders, activeTab, search]);
+  }, [orders, activeTab, search, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -201,6 +209,11 @@ export default function OrdersPageContent() {
   };
   const handleSearch = (val: string) => {
     setSearch(val);
+    setCurrentPage(1);
+  };
+  const handleDateChange = (from: string, to: string) => {
+    setDateFrom(from);
+    setDateTo(to);
     setCurrentPage(1);
   };
 
@@ -242,14 +255,6 @@ export default function OrdersPageContent() {
     return counts;
   }, [orders]);
 
-  /* Date range display */
-  const dateRange = useMemo(() => {
-    if (orders.length === 0) return null;
-    const dates = orders.map((o) => new Date(o.createdAt).getTime());
-    const earliest = new Date(Math.min(...dates)).toISOString().slice(0, 10);
-    const latest = new Date(Math.max(...dates)).toISOString().slice(0, 10);
-    return `${earliest} ~ ${latest}`;
-  }, [orders]);
 
   return (
     <div className="space-y-6">
@@ -292,15 +297,34 @@ export default function OrdersPageContent() {
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-3">
-          {/* Date range hint */}
-          {dateRange && (
-            <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted-foreground)]">
-              <Calendar className="h-3.5 w-3.5 shrink-0" />
-              <span className="hidden sm:inline">{dateRange}</span>
-              <span className="sm:hidden">{dateRange.split(" ~ ")[1]}</span>
-            </div>
-          )}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Date range filter */}
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]" />
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => handleDateChange(e.target.value, dateTo)}
+              className="h-8 w-[130px] text-xs"
+              placeholder="开始日期"
+            />
+            <span className="text-xs text-[var(--muted-foreground)]">~</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => handleDateChange(dateFrom, e.target.value)}
+              className="h-8 w-[130px] text-xs"
+              placeholder="结束日期"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => handleDateChange("", "")}
+                className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              >
+                清除
+              </button>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
             <Input
@@ -365,6 +389,8 @@ export default function OrdersPageContent() {
                     onClick={() => {
                       setActiveTab("all");
                       setSearch("");
+                      setDateFrom("");
+                      setDateTo("");
                       setCurrentPage(1);
                     }}
                   >

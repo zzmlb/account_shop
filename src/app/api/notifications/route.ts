@@ -103,6 +103,12 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Array.isArray(ids) && ids.length > 0) {
+      if (ids.length > 200) {
+        return NextResponse.json(
+          { success: false, message: "单次最多标记200条通知" },
+          { status: 400 }
+        );
+      }
       await db.notification.updateMany({
         where: {
           id: { in: ids },

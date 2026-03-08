@@ -34,6 +34,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (password.length > 50) {
+      return NextResponse.json(
+        { success: false, message: "密码最多50个字符" },
+        { status: 400 }
+      );
+    }
+
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      return NextResponse.json(
+        { success: false, message: "密码需包含至少一个字母和一个数字" },
+        { status: 400 }
+      );
+    }
+
     // Find the token
     const resetRecord = await db.passwordReset.findUnique({
       where: { token },

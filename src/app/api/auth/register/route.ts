@@ -17,7 +17,9 @@ const registerBodySchema = z.object({
   password: z
     .string()
     .min(6, "密码至少6个字符")
-    .max(50, "密码最多50个字符"),
+    .max(50, "密码最多50个字符")
+    .regex(/[A-Za-z]/, "密码需包含至少一个字母")
+    .regex(/[0-9]/, "密码需包含至少一个数字"),
 });
 
 export async function POST(request: NextRequest) {
