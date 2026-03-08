@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
     const status = searchParams.get("status");
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.slice(0, 200);
     const rawPage = parseInt(searchParams.get("page") || "1", 10);
     const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
     const rawSize = parseInt(searchParams.get("pageSize") || "50", 10);

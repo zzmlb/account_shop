@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20));
-    const search = searchParams.get("search") || "";
+    const search = (searchParams.get("search") || "").slice(0, 200);
     const rating = searchParams.get("rating");
     const visible = searchParams.get("visible");
 

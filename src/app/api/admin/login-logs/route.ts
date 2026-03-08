@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.slice(0, 200);
     const status = searchParams.get("status"); // "success" | "failed"
     const rawPage = parseInt(searchParams.get("page") || "1", 10);
     const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
     const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
 
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.slice(0, 200);
 
     const where: Record<string, unknown> = {};
     if (status && ["PENDING", "REPLIED", "CLOSED"].includes(status)) {

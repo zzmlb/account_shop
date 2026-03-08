@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.slice(0, 200);
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
     const rawPage = parseInt(searchParams.get("page") || "1", 10);
