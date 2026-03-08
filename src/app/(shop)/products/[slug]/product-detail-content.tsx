@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ChevronRight,
   ShoppingCart,
@@ -25,6 +26,7 @@ interface Product {
   slug: string;
   price: number;
   originalPrice?: number;
+  image?: string;
   stockCount: number;
   soldCount: number;
   categoryName: string;
@@ -38,6 +40,7 @@ interface RelatedProduct {
   slug: string;
   price: number;
   originalPrice?: number;
+  image?: string;
   stockCount: number;
   soldCount: number;
   categoryName: string;
@@ -112,18 +115,29 @@ export default function ProductDetailContent({
 
       {/* Product main section */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Left: Image placeholder */}
+        {/* Left: Product image */}
         <div className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)]">
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
-            <div className="text-center">
-              <div className="text-7xl font-bold text-[var(--primary)]/20">
-                {product.name.charAt(0)}
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              priority
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
+              <div className="text-center">
+                <div className="text-7xl font-bold text-[var(--primary)]/20">
+                  {product.name.charAt(0)}
+                </div>
+                <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                  {product.categoryName}
+                </p>
               </div>
-              <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                {product.categoryName}
-              </p>
             </div>
-          </div>
+          )}
           {product.originalPrice && product.originalPrice > product.price && (
             <div className="absolute right-4 top-4 rounded-[var(--radius-sm)] bg-[var(--destructive)] px-2 py-1 text-sm font-bold text-[var(--destructive-foreground)]">
               -

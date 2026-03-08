@@ -4,5 +4,15 @@ node_modules
 .gitignore
 .env
 .env.local
-*.md
+.env.*.local
 .claude
+*.md
+!README.md
+docker-compose*.yml
+Dockerfile
+.vscode
+.idea
+coverage
+.nyc_output
+*.log
+npm-debug.log*
