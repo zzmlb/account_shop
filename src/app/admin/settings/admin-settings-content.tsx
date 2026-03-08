@@ -133,6 +133,45 @@ export default function AdminSettingsPageContent() {
     }
   };
 
+  // Save all settings at once (for Ctrl+S shortcut)
+  const handleSaveAll = useCallback(async () => {
+    if (savingSection) return;
+    setSavingSection("all");
+    try {
+      const payload: Record<string, string> = {};
+      for (const key of SETTINGS_KEYS) {
+        payload[key] = settings[key];
+      }
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: payload }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("全部设置已保存");
+      } else {
+        toast.error(data.message || "保存失败");
+      }
+    } catch {
+      toast.error("网络错误，保存失败");
+    } finally {
+      setSavingSection(null);
+    }
+  }, [settings, savingSection]);
+
+  // Ctrl+S / Cmd+S keyboard shortcut to save all
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSaveAll();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSaveAll]);
+
   // Loading state
   if (loading) {
     return (
@@ -148,11 +187,16 @@ export default function AdminSettingsPageContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">系统设置</h1>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          管理站点配置、支付、邮件和 SEO 设置
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">系统设置</h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            管理站点配置、支付、邮件和 SEO 设置
+          </p>
+        </div>
+        <kbd className="hidden text-[10px] text-[var(--muted-foreground)] sm:inline-flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-0.5">
+          Ctrl+S 保存全部
+        </kbd>
       </div>
 
       {/* Site settings */}

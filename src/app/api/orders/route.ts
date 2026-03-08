@@ -132,6 +132,15 @@ export async function POST(request: NextRequest) {
     }
     const { items, paymentMethod, email, couponCode } = parsed.data;
 
+    // Reject duplicate productIds in the same order
+    const uniqueProductIds = new Set(items.map((i) => i.productId));
+    if (uniqueProductIds.size !== items.length) {
+      return NextResponse.json(
+        { success: false, message: "订单中存在重复商品，请合并数量" },
+        { status: 400 }
+      );
+    }
+
     // Batch-fetch all products in one query (by id and slug for compatibility)
     const productIds = items.map((i) => i.productId);
     const [byId, bySlug] = await Promise.all([
@@ -197,7 +206,7 @@ export async function POST(request: NextRequest) {
           if (coupon.type === "FIXED") {
             discount = Math.min(couponValue, totalAmount);
           } else {
-            discount = Math.round((totalAmount * couponValue) / 100 * 100) / 100;
+            discount = Math.round(totalAmount * couponValue) / 100;
             discount = Math.min(discount, totalAmount);
           }
           couponId = coupon.id;

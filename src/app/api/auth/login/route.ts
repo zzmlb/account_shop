@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
     const { username, password } = parsed.data;
     const rememberMe = body.rememberMe === true;
 
-    // Find user in database
+    // Find user in database (email is case-insensitive)
     const user = await db.user.findFirst({
       where: {
-        OR: [{ username }, { email: username }],
+        OR: [{ username }, { email: username.toLowerCase() }],
       },
     });
 

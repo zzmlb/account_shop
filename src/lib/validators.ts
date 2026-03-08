@@ -160,10 +160,11 @@ export const createOrderSchema = z.object({
     .array(
       z.object({
         productId: z.string().min(1, "商品ID不能为空"),
-        quantity: z.number().int().min(1, "数量至少为1"),
+        quantity: z.number().int().min(1, "数量至少为1").max(99, "单商品数量不能超过99"),
       })
     )
-    .min(1, "订单商品不能为空"),
+    .min(1, "订单商品不能为空")
+    .max(50, "单笔订单商品种类不能超过50"),
   paymentMethod: z.string().optional(),
   email: z.string().email("邮箱格式不正确").optional().or(z.literal("")),
   couponCode: z.string().max(50).optional(),

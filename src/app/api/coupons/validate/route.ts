@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       discount = Math.min(couponValue, amount);
     } else {
       // PERCENTAGE discount: amount * value / 100
-      discount = Math.round((amount * couponValue) / 100 * 100) / 100;
+      discount = Math.round(amount * couponValue) / 100;
       // Ensure discount does not exceed the order amount
       discount = Math.min(discount, amount);
     }

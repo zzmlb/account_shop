@@ -94,6 +94,7 @@ export default function DashboardSettingsPageContent() {
   }
   const [loginHistory, setLoginHistory] = useState<LoginLogEntry[]>([]);
   const [loginHistoryLoading, setLoginHistoryLoading] = useState(true);
+  const [loginHistoryError, setLoginHistoryError] = useState(false);
 
   /* ---- Delete account state ---- */
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -146,8 +147,9 @@ export default function DashboardSettingsPageContent() {
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setLoginHistory(data.logs);
+        else setLoginHistoryError(true);
       })
-      .catch(() => {})
+      .catch(() => setLoginHistoryError(true))
       .finally(() => setLoginHistoryLoading(false));
   }, []);
 
@@ -531,6 +533,7 @@ export default function DashboardSettingsPageContent() {
                     <button
                       type="button"
                       onClick={() => setShowCurrentPw(!showCurrentPw)}
+                      aria-label={showCurrentPw ? "隐藏密码" : "显示密码"}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     >
                       {showCurrentPw ? (
@@ -558,6 +561,7 @@ export default function DashboardSettingsPageContent() {
                     <button
                       type="button"
                       onClick={() => setShowNewPw(!showNewPw)}
+                      aria-label={showNewPw ? "隐藏密码" : "显示密码"}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     >
                       {showNewPw ? (
@@ -611,6 +615,7 @@ export default function DashboardSettingsPageContent() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPw(!showConfirmPw)}
+                      aria-label={showConfirmPw ? "隐藏密码" : "显示密码"}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     >
                       {showConfirmPw ? (
@@ -763,6 +768,11 @@ export default function DashboardSettingsPageContent() {
           {loginHistoryLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
+            </div>
+          ) : loginHistoryError ? (
+            <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--destructive)]/10 px-3 py-2 text-sm text-[var(--destructive)]">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              加载登录记录失败，请刷新页面重试
             </div>
           ) : loginHistory.length === 0 ? (
             <p className="text-sm text-[var(--muted-foreground)]">暂无登录记录</p>

@@ -45,11 +45,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { username, email, password } = parsed.data;
+    const { username, password } = parsed.data;
+    const email = parsed.data.email.toLowerCase().trim();
 
     // Check if username already exists
     const existingUsername = await db.user.findUnique({
-      where: { username },
+      where: { username: username.trim() },
     });
     if (existingUsername) {
       return NextResponse.json(
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email already exists
+    // Check if email already exists (case-insensitive)
     const existingEmail = await db.user.findUnique({
       where: { email },
     });
