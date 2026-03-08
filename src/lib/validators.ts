@@ -166,9 +166,11 @@ export const createOrderSchema = z.object({
     )
     .min(1, "订单商品不能为空")
     .max(50, "单笔订单商品种类不能超过50"),
-  paymentMethod: z.string().optional(),
+  paymentMethod: z.enum(["balance", "alipay", "wechat", "usdt"], {
+    errorMap: () => ({ message: "不支持的支付方式" }),
+  }).optional(),
   email: z.union([z.string().email("邮箱格式不正确"), z.literal("")]).optional(),
-  couponCode: z.string().max(50).optional(),
+  couponCode: z.string().max(50).regex(/^[A-Za-z0-9_-]*$/, "优惠码格式不正确").optional(),
 });
 
 /* ------------------------------------------------------------------ */

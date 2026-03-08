@@ -32,6 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
+import { apiFetch } from "@/lib/api-fetch";
 
 /* ---- Types ---- */
 interface OrderItem {
@@ -154,11 +155,12 @@ export default function DashboardPageContent() {
   const fetchData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      const [ordersRes, couponsRes, notifsRes, loginRes] = await Promise.all([
-        fetch("/api/orders").then((r) => r.json()),
-        fetch("/api/coupons").then((r) => r.json()).catch(() => ({ success: false })),
-        fetch("/api/notifications?pageSize=5").then((r) => r.json()).catch(() => ({ success: false })),
-        fetch("/api/auth/login-history?limit=1").then((r) => r.json()).catch(() => ({ success: false })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [ordersRes, couponsRes, notifsRes, loginRes]: any[] = await Promise.all([
+        apiFetch("/api/orders"),
+        apiFetch("/api/coupons").catch(() => ({ success: false })),
+        apiFetch("/api/notifications?pageSize=5").catch(() => ({ success: false })),
+        apiFetch("/api/auth/login-history?limit=1").catch(() => ({ success: false })),
       ]);
       if (ordersRes.success && Array.isArray(ordersRes.orders)) {
         setOrders(ordersRes.orders);

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingBag, Clock } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface ActivityItem {
   id: string;
@@ -19,10 +20,9 @@ export default function LiveActivity() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/activity", { signal: controller.signal })
-      .then((r) => r.json())
+    apiFetch<{ success: boolean; activity?: ActivityItem[] }>("/api/activity", { signal: controller.signal })
       .then((data) => {
-        if (data.success && data.activity?.length > 0) {
+        if (data.success && data.activity?.length && data.activity.length > 0) {
           setItems(data.activity);
         }
       })

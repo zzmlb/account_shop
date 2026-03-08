@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface NotificationState {
   unreadCount: number;
@@ -26,8 +27,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     set({ lastFetched: now });
 
-    fetch("/api/notifications/unread-count")
-      .then((r) => r.json())
+    apiFetch<{ count: number }>("/api/notifications/unread-count")
       .then((d) => {
         set({ unreadCount: d.count ?? 0 });
       })

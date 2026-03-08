@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface FavoritesState {
   /** Set of product IDs the user has favorited */
@@ -26,16 +27,9 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     if (get().loading || get().loaded) return;
     set({ loading: true });
     try {
-      const res = await fetch("/api/favorites");
-      const data = await res.json();
-      if (data.success && Array.isArray(data.favorites)) {
-        const ids = new Set<string>(
-          data.favorites.map((f: { product: { id: string } }) => f.product.id)
-        );
-        set({ ids, loaded: true, loading: false });
-      } else {
-        set({ loading: false });
-      }
+      const data = await apiFetch<{ favorites: { product: { id: string } }[] }>("/api/favorites");
+      const ids = new Set<string>(data.favorites.map((f) => f.product.id));
+      set({ ids, loaded: true, loading: false });
     } catch {
       set({ loading: false });
     }
@@ -45,16 +39,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     const prev = new Set(get().ids);
     set({ ids: new Set([...prev, productId]) });
     try {
-      const res = await fetch("/api/favorites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        set({ ids: prev });
-        return false;
-      }
+      await apiMutate("/api/favorites", "POST", { productId });
       return true;
     } catch {
       set({ ids: prev });
@@ -68,15 +53,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     next.delete(productId);
     set({ ids: next });
     try {
-      const res = await fetch(
-        `/api/favorites?productId=${encodeURIComponent(productId)}`,
-        { method: "DELETE" }
-      );
-      const data = await res.json();
-      if (!data.success) {
-        set({ ids: prev });
-        return false;
-      }
+      await apiFetch(`/api/favorites?productId=${encodeURIComponent(productId)}`, { method: "DELETE" });
       return true;
     } catch {
       set({ ids: prev });

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { useFavoritesStore } from "@/stores/favorites-store";
 import { useCartStore } from "@/stores/cart-store";
 
@@ -41,15 +42,9 @@ export const useAuthStore = create<AuthStore>()(
       register: async (data) => {
         set({ isLoading: true });
         try {
-          const res = await fetch("/api/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-          });
-
-          const result = await res.json();
+          await apiMutate("/api/auth/register", "POST", data);
           set({ isLoading: false });
-          return result.success;
+          return true;
         } catch {
           set({ isLoading: false });
           return false;
@@ -68,18 +63,15 @@ export const useAuthStore = create<AuthStore>()(
       checkAuth: async () => {
         set({ isLoading: true });
         try {
-          const res = await fetch("/api/auth/me");
-          if (res.ok) {
-            const data = await res.json();
-            if (data.user) {
-              set({ user: data.user, isLoading: false });
-              return;
-            }
+          const data = await apiFetch<{ user: AuthUser }>("/api/auth/me");
+          if (data.user) {
+            set({ user: data.user, isLoading: false });
+            return;
           }
           // Session invalid - clear stale persisted user data
           set({ user: null, isLoading: false });
         } catch {
-          // Network error - keep existing user data to avoid logout on transient failures
+          // Network error or 401 - keep existing user data to avoid logout on transient failures
           set({ isLoading: false });
         }
       },

@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface SearchResult {
   id: string;
@@ -103,8 +104,7 @@ export default function CommandMenu() {
       }
     }
     // Fetch trending product names for hot searches
-    fetch("/api/stats")
-      .then((r) => r.json())
+    apiFetch<{ trending?: string[] }>("/api/stats")
       .then((data) => {
         if (data.trending && data.trending.length > 0) {
           setHotSearches(data.trending);
@@ -152,17 +152,16 @@ export default function CommandMenu() {
     try {
       // Fetch products, articles, and categories (cached) in parallel
       const [productsRes, articlesRes, categories] = await Promise.all([
-        fetch(`/api/products?search=${encodeURIComponent(q)}&pageSize=6`, {
+        apiFetch<{ products: ApiProduct[] }>(`/api/products?search=${encodeURIComponent(q)}&pageSize=6`, {
           signal: controller.signal,
-        }).then((res) => res.json()),
-        fetch(`/api/articles?search=${encodeURIComponent(q)}&pageSize=5`, {
+        }),
+        apiFetch<{ success: boolean; articles: { id: string; title: string; slug: string; category: string }[] }>(`/api/articles?search=${encodeURIComponent(q)}&pageSize=5`, {
           signal: controller.signal,
-        }).then((res) => res.json()).catch(() => ({ success: false, articles: [] })),
+        }).catch(() => ({ success: false, articles: [] })),
         categoriesCacheRef.current
           ? Promise.resolve(categoriesCacheRef.current)
-          : fetch("/api/categories", { signal: controller.signal })
-              .then((res) => res.json())
-              .then((data: { categories: ApiCategory[] }) => {
+          : apiFetch<{ categories: ApiCategory[] }>("/api/categories", { signal: controller.signal })
+              .then((data) => {
                 categoriesCacheRef.current = data.categories;
                 return data.categories;
               }),

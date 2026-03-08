@@ -34,6 +34,13 @@ export async function POST(
       );
     }
     const { paymentMethod } = body;
+    const validMethods = ["balance", "alipay", "wechat", "usdt"];
+    if (paymentMethod && !validMethods.includes(paymentMethod)) {
+      return NextResponse.json(
+        { success: false, message: "不支持的支付方式" },
+        { status: 400 }
+      );
+    }
 
     // Pre-checks outside transaction (read-only)
     const order = await db.order.findUnique({

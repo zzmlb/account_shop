@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { apiFetch } from "@/lib/api-fetch";
 import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/constants";
 
 interface SiteSettings {
@@ -25,10 +26,8 @@ export const useSiteSettingsStore = create<SiteSettingsStore>((set, get) => ({
   load: async () => {
     if (get().loaded) return;
     try {
-      const res = await fetch("/api/settings");
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && data.settings) {
+      const data = await apiFetch<{ settings: Record<string, string> }>("/api/settings");
+      if (data.settings) {
         set({
           siteName: data.settings.site_name || SITE_NAME,
           siteDescription: data.settings.site_description || SITE_DESCRIPTION,

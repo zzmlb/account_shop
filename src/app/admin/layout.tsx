@@ -27,6 +27,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-fetch";
 import { useAuthStore } from "@/stores/auth-store";
 import { SITE_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -92,8 +93,7 @@ export default function AdminLayout({
   useEffect(() => {
     if (!user) return;
     const fetchNotifications = () => {
-      fetch("/api/admin/notifications")
-        .then((r) => r.json())
+      apiFetch<{ success: boolean; notifications: Notification[]; count: number }>("/api/admin/notifications")
         .then((data) => {
           if (data.success) {
             setNotifications(data.notifications || []);

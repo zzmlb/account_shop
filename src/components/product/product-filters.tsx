@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-fetch";
 
 const PRICE_MAX = 500; // Slider max value
 
@@ -41,8 +42,7 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/categories", { signal: controller.signal })
-      .then((r) => r.json())
+    apiFetch<{ success: boolean; categories: Category[] }>("/api/categories", { signal: controller.signal })
       .then((data) => {
         if (data.success) setCategories(data.categories);
       })

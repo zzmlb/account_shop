@@ -212,6 +212,48 @@ describe("createOrderSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts valid payment methods", () => {
+    for (const method of ["balance", "alipay", "wechat", "usdt"]) {
+      const result = createOrderSchema.safeParse({
+        items: [{ productId: "abc", quantity: 1 }],
+        paymentMethod: method,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it("rejects invalid payment method", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      paymentMethod: "paypal",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts couponCode with alphanumeric and hyphen/underscore", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      couponCode: "SAVE-10_OFF",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects couponCode with special characters", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      couponCode: "CODE@INJECT",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects couponCode with spaces", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      couponCode: "CODE WITH SPACE",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("accepts couponCode up to 50 chars", () => {
     const result = createOrderSchema.safeParse({
       items: [{ productId: "abc", quantity: 1 }],

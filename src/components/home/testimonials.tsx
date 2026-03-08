@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Star, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Testimonial {
   username: string;
@@ -55,10 +56,9 @@ export default function Testimonials() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/reviews/featured", { signal: controller.signal })
-      .then((r) => r.json())
+    apiFetch<{ success: boolean; reviews?: Testimonial[] }>("/api/reviews/featured", { signal: controller.signal })
       .then((data) => {
-        if (data.success && data.reviews?.length >= 3) {
+        if (data.success && data.reviews?.length && data.reviews.length >= 3) {
           setTestimonials(data.reviews);
         }
       })
