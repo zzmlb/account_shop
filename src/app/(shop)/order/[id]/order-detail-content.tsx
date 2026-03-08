@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Package,
@@ -34,6 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
+import { useCartStore } from "@/stores/cart-store";
 
 interface OrderItem {
   name: string;
@@ -146,6 +148,8 @@ function useCountdown(expireAt: string | undefined, status: string | undefined) 
 }
 
 export default function OrderDetailContent({ id }: { id: string }) {
+  const router = useRouter();
+  const addItem = useCartStore((s) => s.addItem);
   const [order, setOrder] = useState<OrderData | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -882,6 +886,28 @@ export default function OrderDetailContent({ id }: { id: string }) {
 
       {/* Actions */}
       <div className="mt-8 flex flex-wrap gap-3">
+        {(order.status === "EXPIRED" || order.status === "CANCELLED") && (
+          <Button
+            onClick={() => {
+              for (const item of order.items) {
+                addItem({
+                  id: item.slug,
+                  productId: item.slug, // will be re-validated at checkout
+                  name: item.name,
+                  slug: item.slug,
+                  price: item.price,
+                  quantity: item.quantity,
+                  maxStock: 999,
+                });
+              }
+              toast.success("商品已加入购物车");
+              router.push("/checkout");
+            }}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            重新下单
+          </Button>
+        )}
         <Button asChild variant="outline">
           <Link href="/products">继续购物</Link>
         </Button>

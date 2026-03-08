@@ -136,9 +136,11 @@ export default function ResetPasswordContent() {
           />
         </div>
 
-        {error && (
-          <p className="text-sm text-[var(--destructive)]">{error}</p>
-        )}
+        <div aria-live="assertive" aria-atomic="true">
+          {error && (
+            <p role="alert" className="text-sm text-[var(--destructive)]">{error}</p>
+          )}
+        </div>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? (

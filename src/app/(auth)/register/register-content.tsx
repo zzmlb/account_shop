@@ -159,7 +159,7 @@ export default function RegisterContent() {
             {...register("username")}
           />
           {errors.username && (
-            <p className="text-xs text-[var(--destructive)]">
+            <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.username.message}
             </p>
           )}
@@ -180,7 +180,7 @@ export default function RegisterContent() {
             {...register("email")}
           />
           {errors.email && (
-            <p className="text-xs text-[var(--destructive)]">
+            <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.email.message}
             </p>
           )}
@@ -216,7 +216,7 @@ export default function RegisterContent() {
             </button>
           </div>
           {errors.password && (
-            <p className="text-xs text-[var(--destructive)]">
+            <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.password.message}
             </p>
           )}
@@ -267,6 +267,7 @@ export default function RegisterContent() {
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
               tabIndex={-1}
+              aria-label={showConfirmPassword ? "隐藏确认密码" : "显示确认密码"}
             >
               {showConfirmPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -276,7 +277,7 @@ export default function RegisterContent() {
             </button>
           </div>
           {errors.confirmPassword && (
-            <p className="text-xs text-[var(--destructive)]">
+            <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.confirmPassword.message}
             </p>
           )}

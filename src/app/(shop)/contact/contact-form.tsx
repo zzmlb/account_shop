@@ -150,11 +150,13 @@ export default function ContactForm() {
         />
       </div>
 
-      {error && (
-        <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 px-4 py-2 text-sm text-[var(--destructive)]">
-          {error}
-        </div>
-      )}
+      <div aria-live="assertive" aria-atomic="true">
+        {error && (
+          <div role="alert" className="mt-4 rounded-[var(--radius-md)] border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 px-4 py-2 text-sm text-[var(--destructive)]">
+            {error}
+          </div>
+        )}
+      </div>
 
       <Button
         type="submit"

@@ -36,6 +36,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "article",
       siteName: SITE_NAME,
     },
+    twitter: {
+      card: "summary",
+      title: article.title,
+      description: excerpt,
+    },
     alternates: { canonical: articleUrl },
   };
 }

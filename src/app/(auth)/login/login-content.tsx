@@ -93,7 +93,7 @@ export default function LoginContent() {
             {...register("username")}
           />
           {errors.username && (
-            <p className="text-xs text-[var(--destructive)]">
+            <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.username.message}
             </p>
           )}
@@ -137,7 +137,7 @@ export default function LoginContent() {
             </button>
           </div>
           {errors.password && (
-            <p className="text-xs text-[var(--destructive)]">
+            <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.password.message}
             </p>
           )}

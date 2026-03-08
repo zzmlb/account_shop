@@ -94,7 +94,7 @@ function ProductCard({
   };
 
   return (
-    <Link href={`/products/${slug}`} className={cn("group block", className)}>
+    <Link href={`/products/${slug}`} className={cn("group block", className)} aria-label={`${name} - ¥${price}`}>
       <motion.div
         whileHover={{ y: -4 }}
         whileTap={{ scale: 0.98 }}

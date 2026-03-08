@@ -98,7 +98,7 @@ export default function CheckoutContent() {
     }
   }, [user, email]);
 
-  // Validate cart prices and stock against server on mount
+  // Validate cart prices and stock against server on mount and periodically
   useEffect(() => {
     if (!mounted || items.length === 0 || priceChecked) return;
 
@@ -143,6 +143,15 @@ export default function CheckoutContent() {
     }
     validateCart();
   }, [mounted, items, priceChecked, removeItem, updateQuantity]);
+
+  // Periodic stock re-validation while on checkout page (every 2 minutes)
+  useEffect(() => {
+    if (!mounted || items.length === 0) return;
+    const interval = setInterval(() => {
+      setPriceChecked(false); // triggers re-validation
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [mounted, items.length]);
 
   // Wait for hydration before checking cart
   if (!mounted) {
