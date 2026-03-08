@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
+import { sendContactReply } from "@/server/services/email";
 
 const log = createLogger("admin/messages");
 
@@ -102,15 +103,33 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, message: "无效状态" }, { status: 400 });
     }
 
+    const existing = await db.contactMessage.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ success: false, message: "留言不存在" }, { status: 404 });
+    }
+
+    const sanitizedNote = adminNote ? stripHtml(adminNote) : null;
+
     await db.contactMessage.update({
       where: { id },
       data: {
         status,
-        adminNote: adminNote ? stripHtml(adminNote) : null,
+        adminNote: sanitizedNote,
       },
     });
 
     log.info({ messageId: id, status, adminId: session.id }, "留言状态已更新");
+
+    // Send email reply when status changes to REPLIED and there's an admin note
+    if (status === "REPLIED" && sanitizedNote && existing.email) {
+      sendContactReply({
+        to: existing.email,
+        name: existing.name,
+        subject: existing.subject,
+        originalMessage: existing.message.slice(0, 500),
+        reply: sanitizedNote,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true, message: "状态已更新" });
   } catch (error) {

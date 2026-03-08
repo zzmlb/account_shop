@@ -492,6 +492,67 @@ function passwordChangedHtml(data: PasswordChangedEmailData): string {
 </html>`;
 }
 
+// ==================== Contact Message Reply ====================
+interface ContactReplyEmailData {
+  to: string;
+  name: string;
+  subject: string;
+  originalMessage: string;
+  reply: string;
+}
+
+function contactReplyHtml(data: ContactReplyEmailData): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#6c5ce7,#a855f7);padding:30px;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">${SITE_NAME}</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;">留言回复</p>
+      </div>
+      <div style="padding:30px;">
+        <p style="color:#333;font-size:16px;margin:0 0 20px;">您好 ${data.name}，</p>
+        <p style="color:#666;font-size:14px;margin:0 0 20px;">感谢您的留言，我们已回复您的问题：</p>
+        <div style="background:#f0f7ff;border-left:4px solid #6c5ce7;border-radius:0 8px 8px 0;padding:14px;margin-bottom:20px;">
+          <p style="margin:0 0 4px;color:#666;font-size:12px;">您的留言：</p>
+          <p style="margin:0;color:#333;font-size:14px;">${data.originalMessage}</p>
+        </div>
+        <div style="background:#f0fff4;border-left:4px solid #1db954;border-radius:0 8px 8px 0;padding:14px;margin-bottom:20px;">
+          <p style="margin:0 0 4px;color:#666;font-size:12px;">我们的回复：</p>
+          <p style="margin:0;color:#333;font-size:14px;">${data.reply}</p>
+        </div>
+        <p style="color:#999;font-size:13px;">如有更多问题，欢迎随时联系我们。</p>
+        <div style="text-align:center;margin-top:30px;">
+          <a href="${SITE_URL}/contact" style="display:inline-block;background:#6c5ce7;color:#fff;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:600;">联系我们</a>
+        </div>
+      </div>
+      <div style="padding:20px 30px;background:#f8f9fa;text-align:center;">
+        <p style="margin:0;color:#999;font-size:12px;">此邮件由 ${SITE_NAME} 自动发送。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendContactReply(data: ContactReplyEmailData): Promise<boolean> {
+  try {
+    const sent = await sendEmail(
+      data.to,
+      `回复: ${data.subject} | ${SITE_NAME}`,
+      contactReplyHtml(data),
+    );
+    if (sent) log.info({ to: data.to, subject: data.subject }, "Contact reply email sent");
+    return sent;
+  } catch (error) {
+    log.error({ err: error }, "Failed to send contact reply email");
+    return false;
+  }
+}
+
 export async function sendPasswordChanged(data: PasswordChangedEmailData): Promise<boolean> {
   try {
     const sent = await sendEmail(
