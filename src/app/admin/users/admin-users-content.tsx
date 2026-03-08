@@ -91,6 +91,7 @@ export default function AdminUsersPageContent() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
+  const [detailUser, setDetailUser] = useState<ApiUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
@@ -371,7 +372,10 @@ export default function AdminUsersPageContent() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2 cursor-pointer">
+                              <DropdownMenuItem
+                                className="gap-2 cursor-pointer"
+                                onClick={() => setDetailUser(user)}
+                              >
                                 <Eye className="h-4 w-4" />
                                 查看详情
                               </DropdownMenuItem>
@@ -546,6 +550,90 @@ export default function AdminUsersPageContent() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Detail Dialog */}
+      <Dialog open={!!detailUser} onOpenChange={(open) => !open && setDetailUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>用户详情</DialogTitle>
+            <DialogDescription>
+              查看用户的详细信息
+            </DialogDescription>
+          </DialogHeader>
+          {detailUser && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-[var(--muted-foreground)]">用户名</p>
+                  <p className="font-medium text-[var(--foreground)]">{detailUser.username}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">角色</p>
+                  <Badge variant={roleConfig[detailUser.role].variant as "default" | "secondary" | "destructive" | "outline"} className={roleConfig[detailUser.role].className}>
+                    {roleConfig[detailUser.role].label}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">邮箱</p>
+                  <p className="font-medium text-[var(--foreground)] break-all">{detailUser.email}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">状态</p>
+                  <Badge variant={detailUser.status === "ACTIVE" ? "outline" : "destructive"}>
+                    {detailUser.status === "ACTIVE" ? "正常" : "已封禁"}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">余额</p>
+                  <p className="font-semibold text-[var(--primary)]">¥{Number(detailUser.balance).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">订单数</p>
+                  <p className="font-medium text-[var(--foreground)]">{detailUser.orderCount}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">注册时间</p>
+                  <p className="font-medium text-[var(--foreground)]">{new Date(detailUser.createdAt).toLocaleDateString("zh-CN")}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">用户ID</p>
+                  <p className="font-mono text-xs text-[var(--muted-foreground)] break-all">{detailUser.id}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDetailUser(null);
+                    openBalanceDialog(detailUser);
+                  }}
+                  className="gap-1.5"
+                >
+                  <Wallet className="h-3.5 w-3.5" />
+                  调整余额
+                </Button>
+                <Button
+                  variant={detailUser.status === "ACTIVE" ? "destructive" : "default"}
+                  size="sm"
+                  onClick={() => {
+                    setDetailUser(null);
+                    handleToggleBan(detailUser);
+                  }}
+                  className="gap-1.5"
+                >
+                  {detailUser.status === "ACTIVE" ? (
+                    <><Ban className="h-3.5 w-3.5" />封禁</>
+                  ) : (
+                    <><ShieldCheck className="h-3.5 w-3.5" />解封</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

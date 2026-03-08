@@ -95,20 +95,22 @@ export async function POST(request: NextRequest) {
     }
     const { items, paymentMethod, email, couponCode } = parsed.data;
 
-    // Calculate total from DB prices (never trust frontend prices)
+    // Batch-fetch all products in one query (by id and slug for compatibility)
+    const productIds = items.map((i) => i.productId);
+    const [byId, bySlug] = await Promise.all([
+      db.product.findMany({ where: { id: { in: productIds } } }),
+      db.product.findMany({ where: { slug: { in: productIds } } }),
+    ]);
+    const productMap = new Map<string, typeof byId[0]>();
+    for (const p of byId) productMap.set(p.id, p);
+    for (const p of bySlug) { if (!productMap.has(p.slug)) productMap.set(p.slug, p); }
+
+    // Validate all products and calculate total
     let totalAmount = 0;
     const productDetails = [];
 
     for (const item of items) {
-      // Look up by id first, fall back to slug for client compatibility
-      let product = await db.product.findUnique({
-        where: { id: item.productId },
-      });
-      if (!product) {
-        product = await db.product.findUnique({
-          where: { slug: item.productId },
-        });
-      }
+      const product = productMap.get(item.productId);
 
       if (!product || !product.isActive) {
         return NextResponse.json(

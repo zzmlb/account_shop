@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -27,7 +28,7 @@ interface ProductCardProps {
   className?: string;
 }
 
-export default function ProductCard({
+function ProductCard({
   productId,
   name,
   slug,
@@ -162,3 +163,5 @@ export default function ProductCard({
     </Link>
   );
 }
+
+export default memo(ProductCard);

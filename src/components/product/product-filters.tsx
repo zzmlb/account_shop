@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
@@ -66,10 +66,30 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
   };
 
   const selectedCategory = searchParams?.get("category") ?? "";
-  const minPrice = searchParams?.get("minPrice") ?? "";
-  const maxPrice = searchParams?.get("maxPrice") ?? "";
+  const urlMinPrice = searchParams?.get("minPrice") ?? "";
+  const urlMaxPrice = searchParams?.get("maxPrice") ?? "";
   const inStock = searchParams?.get("inStock") === "true";
   const sort = searchParams?.get("sort") ?? "default";
+
+  // Local price state + debounce for smooth typing
+  const [localMinPrice, setLocalMinPrice] = useState(urlMinPrice);
+  const [localMaxPrice, setLocalMaxPrice] = useState(urlMaxPrice);
+  const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local state when URL changes externally
+  useEffect(() => { setLocalMinPrice(urlMinPrice); }, [urlMinPrice]);
+  useEffect(() => { setLocalMaxPrice(urlMaxPrice); }, [urlMaxPrice]);
+
+  const debouncedPriceUpdate = useCallback(
+    (key: "minPrice" | "maxPrice", value: string) => {
+      if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
+      priceTimerRef.current = setTimeout(() => {
+        updateFilter({ [key]: value || null });
+      }, 500);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [updateFilter]
+  );
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -169,24 +189,22 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
           <Input
             type="number"
             placeholder="最低价"
-            value={minPrice}
-            onChange={(e) =>
-              updateFilter({
-                minPrice: e.target.value || null,
-              })
-            }
+            value={localMinPrice}
+            onChange={(e) => {
+              setLocalMinPrice(e.target.value);
+              debouncedPriceUpdate("minPrice", e.target.value);
+            }}
             className="h-9"
           />
           <span className="text-[var(--muted-foreground)]">-</span>
           <Input
             type="number"
             placeholder="最高价"
-            value={maxPrice}
-            onChange={(e) =>
-              updateFilter({
-                maxPrice: e.target.value || null,
-              })
-            }
+            value={localMaxPrice}
+            onChange={(e) => {
+              setLocalMaxPrice(e.target.value);
+              debouncedPriceUpdate("maxPrice", e.target.value);
+            }}
             className="h-9"
           />
         </div>
