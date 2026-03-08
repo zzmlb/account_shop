@@ -363,12 +363,13 @@ export default function OrdersPageContent() {
               const variant = STATUS_VARIANT[order.status] ?? "default";
               const payment = formatPayment(order.paymentMethod);
               const date = formatDate(order.createdAt);
+              const hasCardKeys = order.status === "DELIVERED" && order.items.some((i) => i.cardKeys.length > 0);
+              const isExpanded = expandedOrders.has(order.id);
 
               return (
-                <Link
+                <div
                   key={order.id}
-                  href={`/order/${order.orderNo}`}
-                  className="block rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-colors hover:bg-[var(--card-hover)]"
+                  className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-colors"
                 >
                   {/* Header row */}
                   <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
@@ -397,17 +398,78 @@ export default function OrdersPageContent() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-4">
+                    <div className="flex shrink-0 items-center gap-3">
                       <span className="text-lg font-bold">
                         ¥{order.payAmount.toFixed(2)}
                       </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--muted)]">
+                      {hasCardKeys && (
+                        <button
+                          onClick={() => toggleOrderExpand(order.id)}
+                          className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-3 py-1.5 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/10"
+                        >
+                          <Key className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">卡密</span>
+                          {isExpanded ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                      <Link
+                        href={`/order/${order.orderNo}`}
+                        className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"
+                      >
                         <Eye className="h-3.5 w-3.5" />
-                        查看详情
-                      </span>
+                        <span className="hidden sm:inline">详情</span>
+                      </Link>
                     </div>
                   </div>
-                </Link>
+
+                  {/* Card keys expandable section */}
+                  {hasCardKeys && isExpanded && (
+                    <div className="border-t border-[var(--border)] bg-[var(--muted)]/30 px-5 py-4">
+                      <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
+                        <Key className="h-3.5 w-3.5" />
+                        卡密信息
+                      </div>
+                      <div className="space-y-3">
+                        {order.items
+                          .filter((item) => item.cardKeys.length > 0)
+                          .map((item, idx) => (
+                            <div key={idx}>
+                              <p className="mb-1.5 text-xs font-medium text-[var(--foreground)]">
+                                {item.productName} x{item.quantity}
+                              </p>
+                              <div className="space-y-1.5">
+                                {item.cardKeys.map((key, ki) => (
+                                  <div
+                                    key={ki}
+                                    className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-3 py-2"
+                                  >
+                                    <code className="min-w-0 flex-1 truncate text-xs">
+                                      {key}
+                                    </code>
+                                    <button
+                                      onClick={() => handleCopyKey(key)}
+                                      className="shrink-0 rounded-[var(--radius-sm)] p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                                      title="复制"
+                                    >
+                                      {copiedKey === key ? (
+                                        <Check className="h-3.5 w-3.5 text-green-500" />
+                                      ) : (
+                                        <Copy className="h-3.5 w-3.5" />
+                                      )}
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })
           )}
