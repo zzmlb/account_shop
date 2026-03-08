@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { sendCardKeyDelivery } from "@/server/services/email";
+import { decryptCardKey } from "@/lib/crypto";
 
 const log = createLogger("admin/orders");
 
@@ -306,7 +308,125 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // Normal status update (non-refund)
+    // Handle manual delivery: auto-allocate card keys for PAID orders
+    if (newStatus === "DELIVERED" && existing.status === "PAID") {
+      const orderWithItems = await db.order.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: { product: true },
+          },
+        },
+      });
+
+      if (!orderWithItems) {
+        return NextResponse.json(
+          { success: false, message: "订单不存在" },
+          { status: 404 }
+        );
+      }
+
+      // Use transaction for card key allocation
+      const result = await db.$transaction(async (tx) => {
+        let allKeysAllocated = true;
+        const allocatedKeys: string[] = [];
+
+        for (const item of orderWithItems.items) {
+          // Check if item already has card keys
+          const existingKeys = await tx.cardKey.count({
+            where: { orderId: item.id, status: "SOLD" },
+          });
+          if (existingKeys >= item.quantity) continue;
+
+          const needed = item.quantity - existingKeys;
+          const keys = await tx.cardKey.findMany({
+            where: {
+              productId: item.productId,
+              status: "AVAILABLE",
+            },
+            take: needed,
+          });
+
+          if (keys.length < needed) {
+            allKeysAllocated = false;
+            continue;
+          }
+
+          for (const key of keys) {
+            await tx.cardKey.update({
+              where: { id: key.id },
+              data: {
+                status: "SOLD",
+                orderId: item.id,
+                soldAt: new Date(),
+              },
+            });
+            allocatedKeys.push(key.content);
+          }
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockCount: { decrement: needed },
+              soldCount: { increment: needed },
+            },
+          });
+        }
+
+        const updatedOrder = await tx.order.update({
+          where: { id },
+          data: { status: allKeysAllocated ? "DELIVERED" : "PAID" },
+          include: {
+            user: { select: { id: true, username: true, email: true } },
+            items: {
+              include: {
+                product: { select: { id: true, name: true, slug: true } },
+              },
+            },
+          },
+        });
+
+        return { updatedOrder, allKeysAllocated, allocatedKeys };
+      });
+
+      // Send card key delivery email
+      if (result.allKeysAllocated && orderWithItems.email) {
+        const keysByProduct: Record<string, { productName: string; cardKeys: string[] }> = {};
+        for (const item of orderWithItems.items) {
+          const itemKeys = await db.cardKey.findMany({
+            where: { orderId: item.id, status: "SOLD" },
+            select: { content: true },
+          });
+          keysByProduct[item.productId] = {
+            productName: item.product.name,
+            cardKeys: itemKeys.map((k) => decryptCardKey(k.content)),
+          };
+        }
+        sendCardKeyDelivery({
+          to: orderWithItems.email,
+          orderNo: orderWithItems.orderNo,
+          items: Object.values(keysByProduct),
+        }).catch((err) => {
+          log.error({ err, orderNo: orderWithItems.orderNo }, "Failed to send delivery email");
+        });
+      }
+
+      if (result.allKeysAllocated) {
+        log.info({ orderNo: existing.orderNo, keys: result.allocatedKeys.length }, "Admin manual delivery completed");
+        return NextResponse.json({
+          success: true,
+          message: `已发货，分配了 ${result.allocatedKeys.length} 个卡密`,
+          order: formatOrder(result.updatedOrder),
+        });
+      } else {
+        return NextResponse.json({
+          success: false,
+          message: "卡密库存不足，无法完成发货",
+        }, { status: 400 });
+      }
+    }
+
+    // Normal status update
     const updated = await db.order.update({
       where: { id },
       data: { status: newStatus },

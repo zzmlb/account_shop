@@ -173,6 +173,11 @@ export default function AdminOrdersPageContent() {
   });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    orderId: string;
+    orderNo: string;
+    status: "DELIVERED" | "REFUNDED" | "CANCELLED";
+  } | null>(null);
   const pageSize = 20;
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -540,7 +545,7 @@ export default function AdminOrdersPageContent() {
                                   <DropdownMenuItem
                                     className="gap-2 cursor-pointer"
                                     onClick={() =>
-                                      handleUpdateStatus(order.id, "DELIVERED")
+                                      setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "DELIVERED" })
                                     }
                                   >
                                     <Truck className="h-4 w-4" />
@@ -555,7 +560,7 @@ export default function AdminOrdersPageContent() {
                                   <DropdownMenuItem
                                     className="gap-2 cursor-pointer text-[var(--destructive)]"
                                     onClick={() =>
-                                      handleUpdateStatus(order.id, "REFUNDED")
+                                      setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "REFUNDED" })
                                     }
                                   >
                                     <RotateCcw className="h-4 w-4" />
@@ -570,7 +575,7 @@ export default function AdminOrdersPageContent() {
                                   <DropdownMenuItem
                                     className="gap-2 cursor-pointer text-[var(--destructive)]"
                                     onClick={() =>
-                                      handleUpdateStatus(order.id, "CANCELLED")
+                                      setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "CANCELLED" })
                                     }
                                   >
                                     <XCircle className="h-4 w-4" />
@@ -828,7 +833,7 @@ export default function AdminOrdersPageContent() {
                       size="sm"
                       className="gap-1.5"
                       onClick={() => {
-                        handleUpdateStatus(detailOrder.id, "DELIVERED");
+                        setConfirmAction({ orderId: detailOrder.id, orderNo: detailOrder.orderNo, status: "DELIVERED" });
                         setDetailOrder(null);
                       }}
                     >
@@ -842,7 +847,7 @@ export default function AdminOrdersPageContent() {
                       variant="destructive"
                       className="gap-1.5"
                       onClick={() => {
-                        handleUpdateStatus(detailOrder.id, "REFUNDED");
+                        setConfirmAction({ orderId: detailOrder.id, orderNo: detailOrder.orderNo, status: "REFUNDED" });
                         setDetailOrder(null);
                       }}
                     >
@@ -856,7 +861,7 @@ export default function AdminOrdersPageContent() {
                       variant="outline"
                       className="gap-1.5 text-[var(--destructive)]"
                       onClick={() => {
-                        handleUpdateStatus(detailOrder.id, "CANCELLED");
+                        setConfirmAction({ orderId: detailOrder.id, orderNo: detailOrder.orderNo, status: "CANCELLED" });
                         setDetailOrder(null);
                       }}
                     >
@@ -868,6 +873,45 @@ export default function AdminOrdersPageContent() {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation dialog for order status changes */}
+      <Dialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction?.status === "DELIVERED" && "确认发货"}
+              {confirmAction?.status === "REFUNDED" && "确认退款"}
+              {confirmAction?.status === "CANCELLED" && "确认取消"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction?.status === "DELIVERED" &&
+                `确定要将订单 ${confirmAction.orderNo} 标记为已发货吗？系统将自动分配卡密。`}
+              {confirmAction?.status === "REFUNDED" &&
+                `确定要对订单 ${confirmAction.orderNo} 进行退款吗？退款后余额将返还给用户。`}
+              {confirmAction?.status === "CANCELLED" &&
+                `确定要取消订单 ${confirmAction.orderNo} 吗？取消后库存将被释放。`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>
+              返回
+            </Button>
+            <Button
+              variant={confirmAction?.status === "DELIVERED" ? "default" : "destructive"}
+              onClick={() => {
+                if (confirmAction) {
+                  handleUpdateStatus(confirmAction.orderId, confirmAction.status);
+                  setConfirmAction(null);
+                }
+              }}
+            >
+              {confirmAction?.status === "DELIVERED" && "确认发货"}
+              {confirmAction?.status === "REFUNDED" && "确认退款"}
+              {confirmAction?.status === "CANCELLED" && "确认取消"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
