@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import ProductsPageContent from "./products-page-content";
-import { SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "全部商品 - PJ37 数字商品交易平台",
@@ -54,9 +54,28 @@ function ProductsLoadingFallback() {
 }
 
 export default function ProductsPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `全部商品 - ${SITE_NAME}`,
+    description: "浏览全部数字商品，包括邮箱账号、社交媒体、流媒体会员、游戏账号等",
+    url: `${SITE_URL}/products`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  };
+
   return (
-    <Suspense fallback={<ProductsLoadingFallback />}>
-      <ProductsPageContent />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Suspense fallback={<ProductsLoadingFallback />}>
+        <ProductsPageContent />
+      </Suspense>
+    </>
   );
 }

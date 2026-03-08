@@ -201,44 +201,57 @@ export async function GET(request: NextRequest) {
     });
     const totalRevenue = Number(totalRevenueResult._sum.payAmount ?? 0);
 
-    // ---------- Sales Chart (configurable period) ----------
+    // ---------- Sales Chart (configurable period, single query) ----------
 
     const periodParam = searchParams.get("period");
     const chartPeriod = [7, 14, 30].includes(Number(periodParam)) ? Number(periodParam) : 7;
 
-    // Build array of days for the period
-    const chartDays = Array.from({ length: chartPeriod }, (_, i) => {
-      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (chartPeriod - 1 - i));
-      const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (chartPeriod - 1 - i) + 1);
-      return { dayStart, dayEnd };
-    });
+    const chartStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - chartPeriod + 1);
 
-    const chartResults = await Promise.all(
-      chartDays.map(({ dayStart, dayEnd }) =>
-        Promise.all([
-          db.order.aggregate({
-            _sum: { payAmount: true },
-            where: {
-              status: { in: ["PAID", "DELIVERED"] },
-              createdAt: { gte: dayStart, lt: dayEnd },
-            },
-          }),
-          db.order.count({
-            where: { createdAt: { gte: dayStart, lt: dayEnd } },
-          }),
-        ])
-      )
+    const chartRaw = await db.$queryRaw<Array<{ day: Date; revenue: unknown; orders: bigint }>>`
+      SELECT
+        DATE("createdAt") as day,
+        COALESCE(SUM(CASE WHEN status IN ('PAID', 'DELIVERED') THEN "payAmount" ELSE 0 END), 0) as revenue,
+        COUNT(*) as orders
+      FROM orders
+      WHERE "createdAt" >= ${chartStart}
+      GROUP BY DATE("createdAt")
+      ORDER BY day ASC
+    `;
+
+    const chartMap = new Map(
+      chartRaw.map((r) => {
+        const d = new Date(r.day);
+        const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+        return [key, { amount: Number(r.revenue), orders: Number(r.orders) }];
+      })
     );
 
-    const salesChart = chartDays.map(({ dayStart }, idx) => {
-      const mm = String(dayStart.getMonth() + 1).padStart(2, "0");
-      const dd = String(dayStart.getDate()).padStart(2, "0");
-      return {
-        date: `${mm}/${dd}`,
-        amount: Number(chartResults[idx][0]._sum.payAmount ?? 0),
-        orders: chartResults[idx][1],
-      };
+    const salesChart = Array.from({ length: chartPeriod }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (chartPeriod - 1 - i));
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const key = `${mm}/${dd}`;
+      const data = chartMap.get(key);
+      return { date: key, amount: data?.amount ?? 0, orders: data?.orders ?? 0 };
     });
+
+    // ---------- Revenue by Payment Method ----------
+
+    const paymentMethodStats = await db.order.groupBy({
+      by: ["paymentMethod"],
+      where: { status: { in: ["PAID", "DELIVERED"] } },
+      _sum: { payAmount: true },
+      _count: { id: true },
+    });
+
+    const revenueByMethod = paymentMethodStats
+      .filter((m) => m.paymentMethod)
+      .map((m) => ({
+        method: m.paymentMethod,
+        revenue: Number(m._sum.payAmount ?? 0),
+        count: m._count.id,
+      }));
 
     // ---------- Recent Login Activity (last 10) ----------
 

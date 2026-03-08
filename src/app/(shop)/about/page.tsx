@@ -1,12 +1,24 @@
 import type { Metadata } from "next";
 import { Shield, Zap, Headphones, Award, Users, Globe } from "lucide-react";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
   title: "关于我们",
   description: `了解 ${SITE_NAME} — 专注数字商品的安全交易平台`,
+  openGraph: {
+    title: `关于我们 - ${SITE_NAME}`,
+    description: `了解 ${SITE_NAME} — 专注数字商品的安全交易平台`,
+    url: `${SITE_URL}/about`,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: `关于我们 - ${SITE_NAME}`,
+    description: `了解 ${SITE_NAME} — 专注数字商品的安全交易平台`,
+  },
+  alternates: { canonical: `${SITE_URL}/about` },
 };
 
 const features = [

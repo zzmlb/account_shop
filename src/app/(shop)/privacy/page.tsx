@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
   title: "隐私政策",
   description: `${SITE_NAME} 隐私政策 — 了解我们如何保护您的数据`,
+  openGraph: {
+    title: `隐私政策 - ${SITE_NAME}`,
+    description: `${SITE_NAME} 隐私政策 — 了解我们如何保护您的数据`,
+    url: `${SITE_URL}/privacy`,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: `隐私政策 - ${SITE_NAME}`,
+    description: `${SITE_NAME} 隐私政策 — 了解我们如何保护您的数据`,
+  },
+  alternates: { canonical: `${SITE_URL}/privacy` },
 };
 
 export default function PrivacyPage() {
