@@ -86,7 +86,10 @@ export default function ProductDetailContent({
   const currentImage = (!mainImgError && allImages[selectedImageIdx]) || null;
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const cartItems = useCartStore((s) => s.items);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem);
+  const inCartItem = cartItems.find((i) => i.productId === product.id);
+  const inCartQty = inCartItem?.quantity ?? 0;
 
   const handleImageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -355,6 +358,22 @@ export default function ProductDetailContent({
               加入购物车
             </Button>
           </div>
+
+          {/* Already in cart indicator */}
+          {inCartQty > 0 && (
+            <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-2">
+              <CheckCircle className="h-4 w-4 text-[var(--primary)]" />
+              <span className="text-sm text-[var(--foreground)]">
+                已在购物车中 ({inCartQty} 件)
+              </span>
+              <Link
+                href="/checkout"
+                className="ml-auto text-sm font-medium text-[var(--primary)] hover:underline"
+              >
+                去结算
+              </Link>
+            </div>
+          )}
 
           {/* Trust badges */}
           <div className="grid grid-cols-3 gap-3">

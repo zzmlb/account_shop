@@ -19,14 +19,13 @@ const CRON_SECRET = process.env.CRON_SECRET;
  *     -H "Authorization: Bearer YOUR_CRON_SECRET"
  */
 export async function POST(request: NextRequest) {
-  if (CRON_SECRET) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  // Verify cron secret (required)
+  const auth = request.headers.get("authorization");
+  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   try {

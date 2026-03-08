@@ -440,23 +440,38 @@ export default function CheckoutContent() {
 
             {/* Balance indicator */}
             {paymentMethod === "balance" && user && (
-              <div className="mt-3 flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]/50 px-4 py-2.5">
-                <span className="text-sm text-[var(--muted-foreground)]">
-                  当前余额
-                </span>
-                <span className={cn(
-                  "text-sm font-semibold",
-                  user.balance >= getTotal()
-                    ? "text-[var(--success)]"
-                    : "text-[var(--destructive)]"
-                )}>
-                  {formatPrice(user.balance)}
-                  {user.balance < getTotal() && (
-                    <span className="ml-2 text-xs font-normal">
-                      (还需充值 {formatPrice(getTotal() - user.balance)})
+              <div className={cn(
+                "mt-3 rounded-[var(--radius-md)] border px-4 py-2.5",
+                user.balance >= getTotal()
+                  ? "border-[var(--border)] bg-[var(--muted)]/50"
+                  : "border-[var(--destructive)]/30 bg-[var(--destructive)]/5"
+              )}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted-foreground)]">
+                    当前余额
+                  </span>
+                  <span className={cn(
+                    "text-sm font-semibold",
+                    user.balance >= getTotal()
+                      ? "text-[var(--success)]"
+                      : "text-[var(--destructive)]"
+                  )}>
+                    {formatPrice(user.balance)}
+                  </span>
+                </div>
+                {user.balance < getTotal() && (
+                  <div className="mt-1.5 flex items-center justify-between text-xs">
+                    <span className="text-[var(--destructive)]">
+                      余额不足，还需 {formatPrice(getTotal() - user.balance)}
                     </span>
-                  )}
-                </span>
+                    <Link
+                      href="/dashboard/balance"
+                      className="font-medium text-[var(--primary)] hover:underline"
+                    >
+                      去充值
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
           </div>

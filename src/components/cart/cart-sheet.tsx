@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, ArrowRight } from "lucide-react";
+import { ShoppingBag, ArrowRight, Zap, Shield } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -109,6 +109,25 @@ export default function CartSheet() {
                     {formatPrice(total)}
                   </span>
                 </div>
+              </div>
+
+              {/* Low stock warning */}
+              {items.some((i) => i.maxStock > 0 && i.maxStock <= 3) && (
+                <p className="mb-3 text-xs text-[var(--warning)]">
+                  部分商品库存紧张，建议尽快下单
+                </p>
+              )}
+
+              {/* Delivery info badges */}
+              <div className="mb-3 flex items-center justify-center gap-3 text-[10px] text-[var(--muted-foreground)]">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3 text-[var(--primary)]" />
+                  自动发货
+                </span>
+                <span className="flex items-center gap-1">
+                  <Shield className="h-3 w-3 text-[var(--success)]" />
+                  售后保障
+                </span>
               </div>
 
               {/* Checkout button */}
