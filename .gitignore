@@ -39,3 +39,4 @@ local.config.*
 *.local
 docker-compose.override.yml
 .github/
+tsconfig.tsbuildinfo

@@ -52,12 +52,16 @@ export function timeAgo(iso: string): string {
   return formatDate(iso);
 }
 
+/**
+ * Generate a URL-friendly slug from text.
+ * Supports Chinese characters (CJK Unified Ideographs).
+ */
 export function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]+/g, "")
-    .replace(/--+/g, "-")
-    .replace(/^-+/, "")
-    .replace(/-+$/, "");
+    .trim()
+    .replace(/[\s]+/g, "-")
+    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
