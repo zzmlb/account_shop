@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Coupon {
   id: string;
@@ -55,6 +56,7 @@ export default function AdminCouponsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expired" | "inactive">("all");
 
   // Create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -236,12 +238,28 @@ export default function AdminCouponsContent() {
     return { active, expired, expiringSoon };
   }, [coupons]);
 
-  // Filtered coupons
+  // Filtered coupons (by status tab + search query)
   const filteredCoupons = useMemo(() => {
-    if (!searchQuery.trim()) return coupons;
-    const q = searchQuery.trim().toUpperCase();
-    return coupons.filter((c) => c.code.toUpperCase().includes(q));
-  }, [coupons, searchQuery]);
+    const now = new Date();
+    let result = coupons;
+
+    // Status filter
+    if (statusFilter === "active") {
+      result = result.filter((c) => c.isActive && new Date(c.expireAt) > now);
+    } else if (statusFilter === "expired") {
+      result = result.filter((c) => new Date(c.expireAt) <= now);
+    } else if (statusFilter === "inactive") {
+      result = result.filter((c) => !c.isActive && new Date(c.expireAt) > now);
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toUpperCase();
+      result = result.filter((c) => c.code.toUpperCase().includes(q));
+    }
+
+    return result;
+  }, [coupons, searchQuery, statusFilter]);
 
   if (isLoading) {
     return (
@@ -293,6 +311,35 @@ export default function AdminCouponsContent() {
         <Badge variant="outline" className="gap-1.5 px-3 py-1.5">
           已过期 {stats.expired}
         </Badge>
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex gap-1 rounded-[var(--radius-md)] bg-[var(--muted)] p-1">
+        {([
+          { key: "all" as const, label: "全部", count: coupons.length },
+          { key: "active" as const, label: "有效", count: stats.active },
+          { key: "expired" as const, label: "已过期", count: stats.expired },
+          { key: "inactive" as const, label: "已停用", count: coupons.filter((c) => !c.isActive && new Date(c.expireAt) > new Date()).length },
+        ]).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setStatusFilter(tab.key)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors",
+              statusFilter === tab.key
+                ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            )}
+          >
+            {tab.label}
+            <span className={cn(
+              "text-xs",
+              statusFilter === tab.key ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
+            )}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* Search */}

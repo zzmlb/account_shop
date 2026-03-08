@@ -158,6 +158,7 @@ export default function AdminOrdersPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -177,7 +178,7 @@ export default function AdminOrdersPageContent() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchOrders = useCallback(
-    async (page: number, status: string, search: string, from?: string, to?: string) => {
+    async (page: number, status: string, search: string, from?: string, to?: string, payment?: string) => {
       setLoading(true);
       try {
         const params = new URLSearchParams();
@@ -191,6 +192,7 @@ export default function AdminOrdersPageContent() {
         }
         if (from) params.set("dateFrom", from);
         if (to) params.set("dateTo", to);
+        if (payment) params.set("paymentMethod", payment);
 
         const res = await fetch(`/api/admin/orders?${params.toString()}`);
         const data = await res.json();
@@ -212,19 +214,19 @@ export default function AdminOrdersPageContent() {
   );
 
   useEffect(() => {
-    fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo);
-  }, [currentPage, activeTab, searchQuery, dateFrom, dateTo, fetchOrders]);
+    fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
+  }, [currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter, fetchOrders]);
 
   // Refresh data when tab becomes visible
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo);
+        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [fetchOrders, currentPage, activeTab, searchQuery, dateFrom, dateTo]);
+  }, [fetchOrders, currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -267,7 +269,7 @@ export default function AdminOrdersPageContent() {
       }
 
       toast.success(data.message || `${actionLabel}成功`);
-      fetchOrders(currentPage, activeTab, searchQuery);
+      fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
     } catch {
       toast.error(`网络错误，${actionLabel}操作失败`);
     } finally {
@@ -466,6 +468,26 @@ export default function AdminOrdersPageContent() {
             </div>
           )}
         </div>
+        {/* Payment method filter */}
+        <select
+          value={paymentFilter}
+          onChange={(e) => {
+            setPaymentFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className={`h-9 rounded-[var(--radius-md)] border px-3 text-sm transition-colors bg-transparent ${
+            paymentFilter
+              ? "border-[var(--primary)]/50 text-[var(--primary)]"
+              : "border-[var(--border)] text-[var(--muted-foreground)]"
+          }`}
+          aria-label="支付方式筛选"
+        >
+          <option value="">全部支付方式</option>
+          <option value="balance">余额</option>
+          <option value="alipay">支付宝</option>
+          <option value="wechat">微信</option>
+          <option value="usdt">USDT</option>
+        </select>
       </div>
 
       {/* Orders Table - Desktop */}

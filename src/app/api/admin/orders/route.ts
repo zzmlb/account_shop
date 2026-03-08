@@ -83,6 +83,11 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    const paymentMethod = searchParams.get("paymentMethod");
+    if (paymentMethod && ["balance", "alipay", "wechat", "usdt"].includes(paymentMethod)) {
+      where.paymentMethod = paymentMethod;
+    }
+
     if (dateFrom || dateTo) {
       const createdAt: Record<string, Date> = {};
       if (dateFrom) createdAt.gte = new Date(dateFrom);

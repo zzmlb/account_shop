@@ -301,14 +301,20 @@ export async function PUT(request: NextRequest) {
         message: `退款已批准，¥${Number(refund.amount).toFixed(2)} 已退还至用户余额`,
       });
     } else {
-      // Reject
-      await db.refundRequest.update({
-        where: { id },
+      // Reject (atomic: only update if still PENDING to prevent race with approve)
+      const rejected = await db.refundRequest.updateMany({
+        where: { id, status: "PENDING" },
         data: {
           status: "REJECTED",
           adminNote: adminNote ? stripHtml(adminNote) : null,
         },
       });
+      if (rejected.count === 0) {
+        return NextResponse.json(
+          { success: false, message: "该退款申请已处理" },
+          { status: 400 }
+        );
+      }
 
       log.info(
         {

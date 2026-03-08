@@ -55,6 +55,19 @@ export function decryptCardKey(ciphertext: string): string {
 }
 
 /**
+ * Safe version of decryptCardKey that returns a fallback on failure
+ * instead of throwing, preventing a single corrupted key from
+ * crashing the entire API response.
+ */
+export function safeDecryptCardKey(ciphertext: string): string {
+  try {
+    return decryptCardKey(ciphertext);
+  } catch {
+    return "[解密失败]";
+  }
+}
+
+/**
  * Check if a string appears to be encrypted (has the iv:data:tag format).
  */
 export function isEncrypted(value: string): boolean {

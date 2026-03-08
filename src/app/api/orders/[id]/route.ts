@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
-import { decryptCardKey } from "@/lib/crypto";
+import { safeDecryptCardKey } from "@/lib/crypto";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("orders/detail");
@@ -88,7 +88,7 @@ export async function GET(
       })),
       cardKeys: includeCardKeys
         ? order.items.flatMap((item) =>
-            item.cardKeys.map((k) => decryptCardKey(k.content))
+            item.cardKeys.map((k) => safeDecryptCardKey(k.content))
           )
         : [],
     };

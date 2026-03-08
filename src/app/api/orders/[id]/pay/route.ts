@@ -5,7 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { sendOrderConfirmation, sendCardKeyDelivery } from "@/server/services/email";
 import { createNotification, notifyAdminsStockShortage } from "@/server/services/notification";
 import { paymentLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
-import { decryptCardKey } from "@/lib/crypto";
+import { safeDecryptCardKey } from "@/lib/crypto";
 
 const log = createLogger("orders/pay");
 
@@ -235,7 +235,7 @@ export async function POST(
           const itemKeys = allKeys.filter((k) => k.orderId === item.id);
           keysByProduct[item.productId] = {
             productName: item.product.name,
-            cardKeys: itemKeys.map((k) => decryptCardKey(k.content)),
+            cardKeys: itemKeys.map((k) => safeDecryptCardKey(k.content)),
           };
         }
         sendCardKeyDelivery({
@@ -280,7 +280,7 @@ export async function POST(
           orderNo: result.updatedOrder.orderNo,
           status: result.updatedOrder.status,
         },
-        cardKeys: result.allocatedKeys.map(decryptCardKey),
+        cardKeys: result.allocatedKeys.map(safeDecryptCardKey),
       });
     } else {
       log.warn({ orderNo: order.orderNo }, "Payment completed but insufficient card keys for delivery");

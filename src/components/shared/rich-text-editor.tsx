@@ -5,6 +5,10 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import ImageExt from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
 import {
   Bold,
   Italic,
@@ -20,6 +24,9 @@ import {
   Heading2,
   Code,
   Minus,
+  Table2,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCallback } from "react";
@@ -50,6 +57,17 @@ export default function RichTextEditor({
         HTMLAttributes: { class: "rounded-[var(--radius-md)] max-w-full" },
       }),
       Placeholder.configure({ placeholder }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: { class: "border-collapse border border-[var(--border)]" },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: { class: "border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-left font-semibold" },
+      }),
+      TableCell.configure({
+        HTMLAttributes: { class: "border border-[var(--border)] px-3 py-2" },
+      }),
     ],
     content,
     onUpdate: ({ editor: e }) => {
@@ -213,6 +231,43 @@ export default function RichTextEditor({
         <ToolbarButton onClick={addImage} title="插入图片">
           <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+              .run()
+          }
+          title="插入表格"
+        >
+          <Table2 className="h-4 w-4" />
+        </ToolbarButton>
+        {editor.isActive("table") && (
+          <>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+              title="右侧添加列"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+              title="下方添加行"
+            >
+              <Plus className="h-3.5 w-3.5 rotate-90" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().deleteTable().run()}
+              title="删除表格"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </>
+        )}
 
         <Divider />
 
