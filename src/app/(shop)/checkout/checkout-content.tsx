@@ -15,6 +15,8 @@ import {
   Zap,
   Clock,
   Lock,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -451,11 +453,16 @@ export default function CheckoutContent() {
                     当前余额
                   </span>
                   <span className={cn(
-                    "text-sm font-semibold",
+                    "flex items-center gap-1 text-sm font-semibold",
                     user.balance >= getTotal()
                       ? "text-[var(--success)]"
                       : "text-[var(--destructive)]"
                   )}>
+                    {user.balance >= getTotal() ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    )}
                     {formatPrice(user.balance)}
                   </span>
                 </div>

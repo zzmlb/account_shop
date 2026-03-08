@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Clock,
   TrendingUp,
-  Loader2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -229,13 +229,25 @@ export default function CommandMenu() {
         <div className="flex items-center border-b border-[var(--border)] px-4">
           <Search className="mr-2 h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
           <Input
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="搜索商品、分类、文章..."
             className="h-12 border-0 bg-transparent px-0 text-base shadow-none outline-none focus-visible:ring-0"
+            aria-label="全局搜索"
             autoFocus
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="ml-1 shrink-0 rounded-md p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+              aria-label="清除搜索"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
           <kbd className="ml-2 shrink-0 rounded-md border border-[var(--border)] bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
             ESC
           </kbd>
@@ -249,6 +261,16 @@ export default function CommandMenu() {
                   <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
                     <Clock className="h-3 w-3" />
                     最近搜索
+                    <button
+                      onClick={() => {
+                        setRecentSearches([]);
+                        localStorage.removeItem("recent-searches");
+                      }}
+                      className="ml-auto flex items-center gap-1 text-[10px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                      清除
+                    </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {recentSearches.map((s) => (
@@ -290,9 +312,19 @@ export default function CommandMenu() {
               </div>
             </div>
           ) : loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-[var(--muted-foreground)]" />
-              <span className="ml-2 text-sm text-[var(--muted-foreground)]">搜索中...</span>
+            <div className="space-y-1 animate-pulse">
+              <div className="mb-1 px-2">
+                <div className="h-3 w-10 rounded bg-[var(--muted)]" />
+              </div>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                  <div className="h-4 w-4 shrink-0 rounded bg-[var(--muted)]" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3.5 w-3/5 rounded bg-[var(--muted)]" />
+                  </div>
+                  <div className="h-3 w-10 rounded bg-[var(--muted)]" />
+                </div>
+              ))}
             </div>
           ) : results.length === 0 ? (
             <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">

@@ -209,6 +209,7 @@ export default function CartSummary({
           size="lg"
           onClick={onSubmit}
           disabled={isSubmitting || items.length === 0}
+          aria-busy={isSubmitting}
         >
           {isSubmitting ? (
             <>

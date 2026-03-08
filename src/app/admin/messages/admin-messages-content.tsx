@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Inbox,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +53,7 @@ const statusConfig = {
 export default function AdminMessagesContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     pageSize: 20,
@@ -76,11 +79,12 @@ export default function AdminMessagesContent() {
         if (data.success) {
           setMessages(data.messages);
           setPagination(data.pagination);
+          setError("");
         } else {
-          toast.error(data.message || "获取留言列表失败");
+          setError(data.message || "获取留言列表失败");
         }
       } catch {
-        toast.error("网络错误，获取留言列表失败");
+        setError("网络错误，获取留言列表失败");
       } finally {
         setLoading(false);
       }
@@ -162,7 +166,21 @@ export default function AdminMessagesContent() {
       </div>
 
       {/* Messages list */}
-      {loading ? (
+      {error && !loading ? (
+        <div className="flex flex-col items-center justify-center py-16">
+          <AlertCircle className="h-12 w-12 text-[var(--destructive)]" />
+          <p className="mt-4 text-sm font-medium text-[var(--foreground)]">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 gap-2"
+            onClick={() => fetchMessages(pagination.page, activeTab)}
+          >
+            <RotateCcw className="h-4 w-4" />
+            重试
+          </Button>
+        </div>
+      ) : loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 space-y-2">

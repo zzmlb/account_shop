@@ -194,6 +194,7 @@ function ProductCard({
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+                  title="快速预览"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -208,6 +209,7 @@ function ProductCard({
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+                title="加入购物车"
                 disabled={buying}
                 onClick={(e) => {
                   e.preventDefault();

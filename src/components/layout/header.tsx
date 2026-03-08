@@ -208,11 +208,11 @@ export default function Header() {
             <Link
               href="/dashboard/notifications"
               className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
-              aria-label="通知"
+              aria-label={`通知${unreadNotifications > 0 ? ` (${unreadNotifications}条未读)` : ""}`}
             >
               <Bell className="h-5 w-5" />
               {unreadNotifications > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-[var(--primary-foreground)]">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-[var(--primary-foreground)]" aria-hidden="true">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
                 </span>
               )}
