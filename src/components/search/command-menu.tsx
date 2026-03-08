@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Clock,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,21 +24,18 @@ interface SearchResult {
   description?: string;
 }
 
-const MOCK_PRODUCTS: SearchResult[] = [
-  { id: "1", title: "Gmail 全新账号", type: "product", href: "/products/gmail-new", description: "¥12.00" },
-  { id: "2", title: "Outlook 企业邮箱", type: "product", href: "/products/outlook-enterprise", description: "¥25.00" },
-  { id: "3", title: "Netflix 高级会员", type: "product", href: "/products/netflix-premium", description: "¥35.00" },
-  { id: "4", title: "Spotify 个人账号", type: "product", href: "/products/spotify-personal", description: "¥18.00" },
-  { id: "5", title: "ChatGPT Plus 账号", type: "product", href: "/products/chatgpt-plus", description: "¥45.00" },
-  { id: "6", title: "Steam 游戏账号", type: "product", href: "/products/steam-account", description: "¥30.00" },
-];
+interface ApiProduct {
+  name: string;
+  slug: string;
+  price: number;
+  categoryName: string;
+}
 
-const MOCK_CATEGORIES: SearchResult[] = [
-  { id: "c1", title: "Gmail 邮箱", type: "category", href: "/products?category=gmail" },
-  { id: "c2", title: "Outlook 邮箱", type: "category", href: "/products?category=outlook" },
-  { id: "c3", title: "社交媒体", type: "category", href: "/products?category=social-media" },
-  { id: "c4", title: "流媒体账号", type: "category", href: "/products?category=streaming" },
-];
+interface ApiCategory {
+  name: string;
+  slug: string;
+  productCount: number;
+}
 
 const HOT_SEARCHES = ["Gmail", "Netflix", "ChatGPT", "Spotify", "Steam"];
 
@@ -59,6 +57,9 @@ export default function CommandMenu() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const categoriesCacheRef = useRef<ApiCategory[] | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -83,17 +84,75 @@ export default function CommandMenu() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const search = useCallback((q: string) => {
+  const search = useCallback(async (q: string) => {
     if (!q.trim()) {
       setResults([]);
+      setLoading(false);
       return;
     }
-    const lower = q.toLowerCase();
-    const matched = [...MOCK_PRODUCTS, ...MOCK_CATEGORIES].filter((item) =>
-      item.title.toLowerCase().includes(lower)
-    );
-    setResults(matched);
-    setSelectedIndex(0);
+
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+
+    try {
+      // Fetch products from API and categories (cached after first load)
+      const [productsRes, categories] = await Promise.all([
+        fetch(`/api/products?search=${encodeURIComponent(q)}&pageSize=6`, {
+          signal: controller.signal,
+        }).then((res) => res.json()),
+        categoriesCacheRef.current
+          ? Promise.resolve(categoriesCacheRef.current)
+          : fetch("/api/categories", { signal: controller.signal })
+              .then((res) => res.json())
+              .then((data: { categories: ApiCategory[] }) => {
+                categoriesCacheRef.current = data.categories;
+                return data.categories;
+              }),
+      ]);
+
+      // If this request was aborted, don't update state
+      if (controller.signal.aborted) return;
+
+      const lower = q.toLowerCase();
+
+      // Map API products to SearchResult format
+      const productResults: SearchResult[] = (
+        productsRes.products as ApiProduct[]
+      ).map((p) => ({
+        id: p.slug,
+        title: p.name,
+        type: "product" as const,
+        href: `/products/${p.slug}`,
+        description: `¥${p.price.toFixed(2)}`,
+      }));
+
+      // Filter categories client-side by query
+      const categoryResults: SearchResult[] = categories
+        .filter((c: ApiCategory) => c.name.toLowerCase().includes(lower))
+        .map((c: ApiCategory) => ({
+          id: c.slug,
+          title: c.name,
+          type: "category" as const,
+          href: `/products?category=${c.slug}`,
+        }));
+
+      setResults([...productResults, ...categoryResults]);
+      setSelectedIndex(0);
+    } catch (err) {
+      // Ignore abort errors; show empty results for other errors
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setResults([]);
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -187,6 +246,11 @@ export default function CommandMenu() {
                   ))}
                 </div>
               </div>
+            </div>
+          ) : loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-[var(--muted-foreground)]" />
+              <span className="ml-2 text-sm text-[var(--muted-foreground)]">搜索中...</span>
             </div>
           ) : results.length === 0 ? (
             <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">

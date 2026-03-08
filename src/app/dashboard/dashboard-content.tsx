@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Package,
@@ -11,95 +12,66 @@ import {
   TrendingUp,
   HelpCircle,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 
-/* ---- Mock data ---- */
-const stats = [
-  {
-    label: "总订单数",
-    value: "12",
-    icon: Package,
-    href: "/dashboard/orders",
-    color: "text-[var(--primary)]",
-    bg: "bg-[var(--primary)]/10",
-    border: "border-[var(--primary)]/20",
-  },
-  {
-    label: "账户余额",
-    value: "¥128.00",
-    icon: Wallet,
-    href: "/dashboard/balance",
-    color: "text-[var(--success)]",
-    bg: "bg-[var(--success)]/10",
-    border: "border-[var(--success)]/20",
-  },
-  {
-    label: "待处理订单",
-    value: "2",
-    icon: Clock,
-    href: "/dashboard/orders?status=pending",
-    color: "text-[var(--warning)]",
-    bg: "bg-[var(--warning)]/10",
-    border: "border-[var(--warning)]/20",
-  },
-  {
-    label: "优惠券",
-    value: "3",
-    icon: Ticket,
-    href: "/dashboard/coupons",
-    color: "text-[var(--accent)]",
-    bg: "bg-[var(--accent)]/10",
-    border: "border-[var(--accent)]/20",
-  },
-];
+/* ---- Types ---- */
+interface OrderItem {
+  product: { name: string; slug: string };
+  quantity: number;
+  unitPrice: string;
+}
 
-const recentOrders = [
-  {
-    id: "ORD-20260307-A1B2",
-    product: "Gmail 全新账号 x2",
-    amount: "¥11.98",
-    status: "已完成",
-    statusVariant: "success" as const,
-    date: "2026-03-07",
-  },
-  {
-    id: "ORD-20260306-C3D4",
-    product: "Netflix 高级会员 1 个月",
-    amount: "¥15.99",
-    status: "待支付",
-    statusVariant: "default" as const,
-    date: "2026-03-06",
-  },
-  {
-    id: "ORD-20260305-E5F6",
-    product: "ChatGPT Plus 共享账号",
-    amount: "¥19.99",
-    status: "已完成",
-    statusVariant: "success" as const,
-    date: "2026-03-05",
-  },
-  {
-    id: "ORD-20260304-G7H8",
-    product: "NordVPN 2 年套餐",
-    amount: "¥59.99",
-    status: "已退款",
-    statusVariant: "secondary" as const,
-    date: "2026-03-04",
-  },
-  {
-    id: "ORD-20260303-I9J0",
-    product: "Spotify Premium 年卡",
-    amount: "¥39.99",
-    status: "已完成",
-    statusVariant: "success" as const,
-    date: "2026-03-03",
-  },
-];
+interface Order {
+  id: string;
+  orderNo: string;
+  status: string;
+  totalAmount: string;
+  createdAt: string;
+  email: string;
+  items: OrderItem[];
+}
 
+/* ---- Status mapping ---- */
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "待支付",
+  PAID: "已支付",
+  DELIVERED: "已完成",
+  CANCELLED: "已取消",
+  REFUNDED: "已退款",
+};
+
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline" | "success"> = {
+  PENDING: "default",
+  PAID: "outline",
+  DELIVERED: "success",
+  CANCELLED: "secondary",
+  REFUNDED: "secondary",
+};
+
+/* ---- Helpers ---- */
+function formatCurrency(value: number | string): string {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  return `¥${num.toFixed(2)}`;
+}
+
+function formatDate(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+function buildProductSummary(items: OrderItem[]): string {
+  if (items.length === 0) return "未知商品";
+  const first = items[0];
+  const label = `${first.product.name}${first.quantity > 1 ? ` x${first.quantity}` : ""}`;
+  if (items.length > 1) return `${label} 等${items.length}件`;
+  return label;
+}
+
+/* ---- Static data ---- */
 const quickActions = [
   {
     label: "充值余额",
@@ -130,6 +102,81 @@ const quickActions = [
 
 export default function DashboardPageContent() {
   const { user } = useAuthStore();
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      try {
+        const res = await fetch("/api/orders");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.orders)) {
+          setOrders(data.orders);
+        }
+      } catch {
+        // silently fail — stats will show 0
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchOrders();
+  }, []);
+
+  /* ---- Computed stats ---- */
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
+  const balance = user?.balance ?? 0;
+
+  const stats = [
+    {
+      label: "总订单数",
+      value: String(totalOrders),
+      icon: Package,
+      href: "/dashboard/orders",
+      color: "text-[var(--primary)]",
+      bg: "bg-[var(--primary)]/10",
+      border: "border-[var(--primary)]/20",
+    },
+    {
+      label: "账户余额",
+      value: formatCurrency(balance),
+      icon: Wallet,
+      href: "/dashboard/balance",
+      color: "text-[var(--success)]",
+      bg: "bg-[var(--success)]/10",
+      border: "border-[var(--success)]/20",
+    },
+    {
+      label: "待处理订单",
+      value: String(pendingOrders),
+      icon: Clock,
+      href: "/dashboard/orders?status=pending",
+      color: "text-[var(--warning)]",
+      bg: "bg-[var(--warning)]/10",
+      border: "border-[var(--warning)]/20",
+    },
+    {
+      label: "优惠券",
+      value: "0",
+      icon: Ticket,
+      href: "/dashboard/coupons",
+      color: "text-[var(--accent)]",
+      bg: "bg-[var(--accent)]/10",
+      border: "border-[var(--accent)]/20",
+    },
+  ];
+
+  const recentOrders = orders.slice(0, 5);
+
+  /* ---- Loading state ---- */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -194,33 +241,45 @@ export default function DashboardPageContent() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentOrders.map((order) => (
-                <Link
-                  key={order.id}
-                  href={`/order/${order.id}`}
-                  className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] p-4 transition-colors hover:bg-[var(--card-hover)]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)]/10">
-                      <ShoppingBag className="h-4 w-4 text-[var(--primary)]" />
+              {recentOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-[var(--muted-foreground)]">
+                  <ShoppingBag className="mb-3 h-10 w-10 opacity-40" />
+                  <p className="text-sm">暂无订单</p>
+                  <Button variant="ghost" size="sm" asChild className="mt-2">
+                    <Link href="/">去逛逛</Link>
+                  </Button>
+                </div>
+              ) : (
+                recentOrders.map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/order/${order.orderNo}`}
+                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] p-4 transition-colors hover:bg-[var(--card-hover)]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)]/10">
+                        <ShoppingBag className="h-4 w-4 text-[var(--primary)]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {buildProductSummary(order.items)}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          {order.orderNo} &middot; {formatDate(order.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {order.product}
-                      </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        {order.id} &middot; {order.date}
-                      </p>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="text-sm font-semibold">
+                        {formatCurrency(order.totalAmount)}
+                      </span>
+                      <Badge variant={STATUS_VARIANT[order.status] ?? "default"}>
+                        {STATUS_LABEL[order.status] ?? order.status}
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-sm font-semibold">
-                      {order.amount}
-                    </span>
-                    <Badge variant={order.statusVariant}>{order.status}</Badge>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

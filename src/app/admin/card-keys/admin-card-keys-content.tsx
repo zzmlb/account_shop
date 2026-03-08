@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-type CardKeyStatus = "all" | "available" | "sold" | "disabled";
 
 interface MockCardKey {
   id: string;

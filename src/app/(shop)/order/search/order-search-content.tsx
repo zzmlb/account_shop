@@ -18,29 +18,37 @@ import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 
-
-
 interface SearchResult {
   orderId: string;
   status: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ name: string; slug: string; quantity: number; price: number }>;
   cardKeys: string[];
   createdAt: string;
   total: number;
 }
 
-function generateMockKeys(count: number): string[] {
-  return Array.from({ length: count }, () => {
-    const segments = Array.from({ length: 4 }, () =>
-      Math.random().toString(36).substring(2, 6).toUpperCase()
-    );
-    return segments.join("-");
-  });
-}
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "待支付",
+  PAID: "已支付",
+  DELIVERED: "已发货",
+  CANCELLED: "已取消",
+  REFUNDED: "已退款",
+};
+
+const STATUS_VARIANTS: Record<string, "default" | "success" | "destructive" | "outline" | "secondary"> = {
+  PENDING: "outline",
+  PAID: "default",
+  DELIVERED: "success",
+  CANCELLED: "destructive",
+  REFUNDED: "secondary",
+};
 
 function maskKey(key: string): string {
   const parts = key.split("-");
-  if (parts.length <= 1) return "****-****-****-****";
+  if (parts.length <= 1) {
+    if (key.length <= 4) return "****";
+    return key.substring(0, 4) + "*".repeat(key.length - 4);
+  }
   return parts[0] + "-" + parts.slice(1).map(() => "****").join("-");
 }
 
@@ -63,43 +71,28 @@ export default function OrderSearchPageContent() {
     setResult(null);
     setRevealedKeys(new Set());
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const res = await fetch(`/api/orders/${orderNo.trim()}`);
+      const data = await res.json();
 
-    // Try to load from sessionStorage first
-    const stored = sessionStorage.getItem(`order-${orderNo.trim()}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      const totalItems = parsed.items.reduce(
-        (sum: number, item: { quantity: number }) => sum + item.quantity,
-        0
-      );
-      setResult({
-        orderId: parsed.id,
-        status: "DELIVERED",
-        items: parsed.items,
-        cardKeys: generateMockKeys(totalItems),
-        createdAt: parsed.createdAt,
-        total: parsed.total,
-      });
-    } else if (orderNo.trim().startsWith("ORD-")) {
-      // Generate mock result for any ORD- prefixed order number
-      setResult({
-        orderId: orderNo.trim(),
-        status: "DELIVERED",
-        items: [
-          { name: "Steam 充值卡 100元", quantity: 1, price: 95.0 },
-          { name: "Netflix 高级会员月卡", quantity: 1, price: 45.0 },
-        ],
-        cardKeys: generateMockKeys(2),
-        createdAt: new Date().toISOString(),
-        total: 140.0,
-      });
-    } else {
-      setSearchError("未找到该订单，请检查订单号是否正确");
+      if (data.success && data.order) {
+        const order = data.order;
+        setResult({
+          orderId: order.orderNo,
+          status: order.status,
+          items: order.items,
+          cardKeys: order.cardKeys || [],
+          createdAt: order.createdAt,
+          total: order.totalAmount,
+        });
+      } else {
+        setSearchError(data.message || "未找到该订单，请检查订单号是否正确");
+      }
+    } catch {
+      setSearchError("查询失败，请稍后重试");
+    } finally {
+      setIsSearching(false);
     }
-
-    setIsSearching(false);
   };
 
   const toggleKeyReveal = (index: number) => {
@@ -211,8 +204,8 @@ export default function OrderSearchPageContent() {
                 <Package className="h-5 w-5 text-[var(--primary)]" />
                 订单信息
               </h2>
-              <Badge variant="success" className="text-xs">
-                {result.status === "DELIVERED" ? "已发货" : result.status}
+              <Badge variant={STATUS_VARIANTS[result.status] || "default"} className="text-xs">
+                {STATUS_LABELS[result.status] || result.status}
               </Badge>
             </div>
             <div className="space-y-2 text-sm">
@@ -252,79 +245,91 @@ export default function OrderSearchPageContent() {
           </div>
 
           {/* Card keys */}
-          <div className="rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--foreground)]">
-                <KeyRound className="h-5 w-5 text-[var(--primary)]" />
-                卡密信息
-              </h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (revealedKeys.size === result.cardKeys.length) {
-                    setRevealedKeys(new Set());
-                  } else {
-                    setRevealedKeys(
-                      new Set(result.cardKeys.map((_, i) => i))
-                    );
-                  }
-                }}
-                className="gap-1.5"
-              >
-                {revealedKeys.size === result.cardKeys.length ? (
-                  <>
-                    <EyeOff className="h-3.5 w-3.5" />
-                    全部隐藏
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-3.5 w-3.5" />
-                    全部显示
-                  </>
-                )}
-              </Button>
-            </div>
+          {result.cardKeys.length > 0 ? (
+            <div className="rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--foreground)]">
+                  <KeyRound className="h-5 w-5 text-[var(--primary)]" />
+                  卡密信息 ({result.cardKeys.length} 个)
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (revealedKeys.size === result.cardKeys.length) {
+                      setRevealedKeys(new Set());
+                    } else {
+                      setRevealedKeys(
+                        new Set(result.cardKeys.map((_, i) => i))
+                      );
+                    }
+                  }}
+                  className="gap-1.5"
+                >
+                  {revealedKeys.size === result.cardKeys.length ? (
+                    <>
+                      <EyeOff className="h-3.5 w-3.5" />
+                      全部隐藏
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-3.5 w-3.5" />
+                      全部显示
+                    </>
+                  )}
+                </Button>
+              </div>
 
-            <div className="space-y-2">
-              {result.cardKeys.map((key, index) => {
-                const isRevealed = revealedKeys.has(index);
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-4 py-3"
-                  >
-                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-xs font-bold text-[var(--primary)]">
-                      {index + 1}
-                    </span>
-                    <code className="flex-1 font-mono text-sm tracking-wider text-[var(--foreground)]">
-                      {isRevealed ? key : maskKey(key)}
-                    </code>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleKeyReveal(index)}
-                        className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                        aria-label={isRevealed ? "隐藏" : "显示"}
-                      >
-                        {isRevealed ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <CopyButton text={key} variant="ghost" size="sm" />
+              <div className="space-y-2">
+                {result.cardKeys.map((key, index) => {
+                  const isRevealed = revealedKeys.has(index);
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-4 py-3"
+                    >
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-xs font-bold text-[var(--primary)]">
+                        {index + 1}
+                      </span>
+                      <code className="flex-1 font-mono text-sm tracking-wider text-[var(--foreground)]">
+                        {isRevealed ? key : maskKey(key)}
+                      </code>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleKeyReveal(index)}
+                          className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                          aria-label={isRevealed ? "隐藏" : "显示"}
+                        >
+                          {isRevealed ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <CopyButton text={key} variant="ghost" size="sm" />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            <p className="mt-4 text-xs text-[var(--muted-foreground)]">
-              请妥善保管卡密信息，避免截图或分享给他人。如有问题请联系客服。
-            </p>
-          </div>
+              <p className="mt-4 text-xs text-[var(--muted-foreground)]">
+                请妥善保管卡密信息，避免截图或分享给他人。如有问题请联系客服。
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6 text-center">
+              <p className="text-sm text-[var(--muted-foreground)]">
+                {result.status === "PENDING"
+                  ? "订单尚未支付，支付完成后即可查看卡密"
+                  : result.status === "CANCELLED"
+                    ? "订单已取消"
+                    : "暂无卡密信息"}
+              </p>
+            </div>
+          )}
 
           {/* Link to full order detail */}
           <div className="text-center">

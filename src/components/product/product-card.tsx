@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -35,10 +36,11 @@ export default function ProductCard({
         {/* Image area */}
         <div className="relative aspect-[4/3] overflow-hidden">
           {image ? (
-            <img
+            <Image
               src={image}
               alt={name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">

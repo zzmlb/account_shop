@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  const onSubmit = async (data: ForgotPasswordInput) => {
+  const onSubmit = async (_data: ForgotPasswordInput) => {
     try {
       // Mock: simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1500));

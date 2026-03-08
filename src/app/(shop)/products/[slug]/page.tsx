@@ -1,21 +1,49 @@
+import type { Metadata } from "next";
 import ProductDetailContent from "./product-detail-content";
 import { db } from "@/server/db";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: ProductDetailPageProps) {
+export async function generateMetadata({ params }: ProductDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await db.product.findUnique({
     where: { slug },
-    select: { name: true, description: true },
+    select: { name: true, description: true, image: true },
   });
+
+  if (!product) {
+    return {
+      title: "商品未找到",
+      description: "该商品可能已下架或链接无效",
+    };
+  }
+
+  const title = product.name;
+  const description = product.description?.slice(0, 160) || "数字商品详情页";
+  const productUrl = `${SITE_URL}/products/${slug}`;
+
   return {
-    title: product
-      ? `${product.name} - PJ37 数字商品交易平台`
-      : "商品未找到 - PJ37",
-    description: product?.description ?? "数字商品详情页",
+    title,
+    description,
+    openGraph: {
+      title: `${title} | ${SITE_NAME}`,
+      description,
+      url: productUrl,
+      siteName: SITE_NAME,
+      type: "website",
+      ...(product.image && {
+        images: [{ url: product.image, width: 800, height: 600, alt: title }],
+      }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | ${SITE_NAME}`,
+      description,
+      ...(product.image && { images: [product.image] }),
+    },
   };
 }
 
