@@ -1,5 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { formatPrice, formatDateTime, formatDateTimeFull, formatDate, slugify } from "../utils";
+import { cn, formatPrice, formatDateTime, formatDateTimeFull, formatDate, slugify } from "../utils";
+
+describe("cn", () => {
+  it("merges class names", () => {
+    expect(cn("foo", "bar")).toBe("foo bar");
+  });
+
+  it("handles conditional classes", () => {
+    expect(cn("base", false && "hidden", "visible")).toBe("base visible");
+  });
+
+  it("merges tailwind conflicts correctly", () => {
+    expect(cn("px-2 py-1", "px-4")).toBe("py-1 px-4");
+  });
+
+  it("handles empty input", () => {
+    expect(cn()).toBe("");
+  });
+});
 
 describe("formatPrice", () => {
   it("formats number to yen with 2 decimals", () => {
