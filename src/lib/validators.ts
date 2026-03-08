@@ -66,6 +66,7 @@ export const createProductSchema = z.object({
   image: z.string().min(1, "图片地址不能为空").nullable().optional(),
   images: z.array(z.string().min(1)).max(8).optional(),
   isActive: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
   deliveryType: z.enum(["AUTO", "MANUAL"]).optional(),
   afterSaleHours: z.number().int().min(0).optional(),
 });

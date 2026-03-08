@@ -91,6 +91,7 @@ interface Product {
   description: string;
   tags: string[];
   afterSaleHours: number | null;
+  sortOrder: number;
 }
 
 interface Category {
@@ -122,6 +123,7 @@ function mapApiProduct(p: ApiProduct): Product {
     description: p.description,
     tags: p.tags,
     afterSaleHours: p.afterSaleHours,
+    sortOrder: p.sortOrder,
   };
 }
 
@@ -169,6 +171,7 @@ export default function AdminProductsPageContent() {
   const [formStatus, setFormStatus] = useState<"上架" | "下架">("上架");
   const [formTags, setFormTags] = useState("");
   const [formAfterSaleHours, setFormAfterSaleHours] = useState("");
+  const [formSortOrder, setFormSortOrder] = useState("");
 
   // ---------------------------------------------------------------------------
   // Data fetching
@@ -541,6 +544,7 @@ export default function AdminProductsPageContent() {
 
     const parsedTags = formTags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
     const parsedAfterSale = formAfterSaleHours ? parseInt(formAfterSaleHours, 10) : null;
+    const parsedSortOrder = formSortOrder ? parseInt(formSortOrder, 10) : 0;
 
     setMutating(true);
     try {
@@ -557,6 +561,7 @@ export default function AdminProductsPageContent() {
           isActive: formStatus === "上架",
           tags: parsedTags,
           afterSaleHours: parsedAfterSale,
+          sortOrder: parsedSortOrder,
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
         if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
@@ -587,6 +592,7 @@ export default function AdminProductsPageContent() {
           isActive: formStatus === "上架",
           tags: parsedTags,
           afterSaleHours: parsedAfterSale,
+          sortOrder: parsedSortOrder,
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
         if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
@@ -677,6 +683,7 @@ export default function AdminProductsPageContent() {
     setFormStatus("上架");
     setFormTags("");
     setFormAfterSaleHours("");
+    setFormSortOrder("");
     setEditingProduct(null);
   }
 
@@ -698,6 +705,7 @@ export default function AdminProductsPageContent() {
     setFormStatus(product.status);
     setFormTags(product.tags.join(", "));
     setFormAfterSaleHours(product.afterSaleHours != null ? String(product.afterSaleHours) : "");
+    setFormSortOrder(product.sortOrder ? String(product.sortOrder) : "0");
     setDialogOpen(true);
   }
 
@@ -947,6 +955,25 @@ export default function AdminProductsPageContent() {
                     placeholder="如 24、48、72"
                     value={formAfterSaleHours}
                     onChange={(e) => setFormAfterSaleHours(e.target.value)}
+                  />
+                </div>
+
+                {/* 排序权重 */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-sortorder">
+                    排序权重{" "}
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      (数值越小越靠前，默认0)
+                    </span>
+                  </Label>
+                  <Input
+                    id="product-sortorder"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={formSortOrder}
+                    onChange={(e) => setFormSortOrder(e.target.value)}
                   />
                 </div>
 

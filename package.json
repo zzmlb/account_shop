@@ -11,7 +11,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -75,12 +77,14 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^9.16.0",
     "eslint-config-next": "^15.1.0",
     "postcss": "^8.4.49",
     "prisma": "^6.2.0",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
   }
 }

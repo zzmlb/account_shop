@@ -239,6 +239,7 @@ export async function POST(request: NextRequest) {
       image,
       images,
       isActive,
+      sortOrder,
       deliveryType,
       afterSaleHours,
     } = parsed.data;
@@ -289,6 +290,7 @@ export async function POST(request: NextRequest) {
         image: image ?? undefined,
         images,
         isActive: isActive ?? true,
+        sortOrder: sortOrder ?? 0,
         deliveryType: deliveryType ?? undefined,
         afterSaleHours: afterSaleHours ?? undefined,
       },
