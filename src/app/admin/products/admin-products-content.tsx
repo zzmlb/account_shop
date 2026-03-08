@@ -172,6 +172,7 @@ export default function AdminProductsPageContent() {
   const [formTags, setFormTags] = useState("");
   const [formAfterSaleHours, setFormAfterSaleHours] = useState("");
   const [formSortOrder, setFormSortOrder] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // ---------------------------------------------------------------------------
   // Data fetching
@@ -519,7 +520,13 @@ export default function AdminProductsPageContent() {
   }
 
   async function handleSaveProduct() {
-    if (!formName.trim() || !formCategoryId || !formPrice) return;
+    const errors: Record<string, string> = {};
+
+    if (!formName.trim()) errors.name = "请输入商品名称";
+    if (!formCategoryId) errors.category = "请选择分类";
+    if (!formPrice) {
+      errors.price = "请输入价格";
+    }
 
     const priceVal = parseFloat(formPrice);
     const originalPriceVal = formOriginalPrice
@@ -527,20 +534,23 @@ export default function AdminProductsPageContent() {
       : undefined;
     const stockVal = formStockCount ? parseInt(formStockCount, 10) : 0;
 
-    if (isNaN(priceVal) || priceVal < 0) {
-      toast.error("请输入有效的价格");
-      return;
+    if (formPrice && (isNaN(priceVal) || priceVal < 0)) {
+      errors.price = "请输入有效的价格";
     }
 
     if (isNaN(stockVal) || stockVal < 0) {
-      toast.error("请输入有效的库存数量");
-      return;
+      errors.stock = "请输入有效的库存数量";
     }
 
     if (originalPriceVal !== undefined && !isNaN(originalPriceVal) && originalPriceVal < priceVal) {
-      toast.error("原价不能低于现价");
+      errors.originalPrice = "原价不能低于现价";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
+    setFormErrors({});
 
     const parsedTags = formTags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
     const parsedAfterSale = formAfterSaleHours ? parseInt(formAfterSaleHours, 10) : null;
@@ -685,6 +695,7 @@ export default function AdminProductsPageContent() {
     setFormAfterSaleHours("");
     setFormSortOrder("");
     setEditingProduct(null);
+    setFormErrors({});
   }
 
   function openEditDialog(product: Product) {
@@ -828,8 +839,12 @@ export default function AdminProductsPageContent() {
                     id="product-name"
                     placeholder="输入商品名称"
                     value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    onChange={(e) => { setFormName(e.target.value); setFormErrors((p) => ({ ...p, name: "" })); }}
+                    className={formErrors.name ? "border-[var(--destructive)]" : ""}
+                    aria-invalid={!!formErrors.name}
+                    aria-describedby={formErrors.name ? "product-name-error" : undefined}
                   />
+                  {formErrors.name && <p id="product-name-error" className="text-xs text-[var(--destructive)]">{formErrors.name}</p>}
                 </div>
 
                 {/* Slug */}
@@ -853,9 +868,13 @@ export default function AdminProductsPageContent() {
                   <Label>分类</Label>
                   <Select
                     value={formCategoryId}
-                    onValueChange={setFormCategoryId}
+                    onValueChange={(v) => { setFormCategoryId(v); setFormErrors((p) => ({ ...p, category: "" })); }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger
+                      className={formErrors.category ? "border-[var(--destructive)]" : ""}
+                      aria-invalid={!!formErrors.category}
+                      aria-label="选择商品分类"
+                    >
                       <SelectValue placeholder="选择分类" />
                     </SelectTrigger>
                     <SelectContent>
@@ -866,6 +885,7 @@ export default function AdminProductsPageContent() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.category && <p className="text-xs text-[var(--destructive)]">{formErrors.category}</p>}
                 </div>
 
                 {/* 价格 + 原价 */}
@@ -879,8 +899,12 @@ export default function AdminProductsPageContent() {
                       step="0.01"
                       placeholder="0.00"
                       value={formPrice}
-                      onChange={(e) => setFormPrice(e.target.value)}
+                      onChange={(e) => { setFormPrice(e.target.value); setFormErrors((p) => ({ ...p, price: "" })); }}
+                      className={formErrors.price ? "border-[var(--destructive)]" : ""}
+                      aria-invalid={!!formErrors.price}
+                      aria-describedby={formErrors.price ? "product-price-error" : undefined}
                     />
+                    {formErrors.price && <p id="product-price-error" className="text-xs text-[var(--destructive)]">{formErrors.price}</p>}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="product-original-price">原价 (¥)</Label>
@@ -891,8 +915,12 @@ export default function AdminProductsPageContent() {
                       step="0.01"
                       placeholder="0.00"
                       value={formOriginalPrice}
-                      onChange={(e) => setFormOriginalPrice(e.target.value)}
+                      onChange={(e) => { setFormOriginalPrice(e.target.value); setFormErrors((p) => ({ ...p, originalPrice: "" })); }}
+                      className={formErrors.originalPrice ? "border-[var(--destructive)]" : ""}
+                      aria-invalid={!!formErrors.originalPrice}
+                      aria-describedby={formErrors.originalPrice ? "product-oprice-error" : undefined}
                     />
+                    {formErrors.originalPrice && <p id="product-oprice-error" className="text-xs text-[var(--destructive)]">{formErrors.originalPrice}</p>}
                   </div>
                 </div>
 
@@ -906,8 +934,12 @@ export default function AdminProductsPageContent() {
                     step="1"
                     placeholder="0"
                     value={formStockCount}
-                    onChange={(e) => setFormStockCount(e.target.value)}
+                    onChange={(e) => { setFormStockCount(e.target.value); setFormErrors((p) => ({ ...p, stock: "" })); }}
+                    className={formErrors.stock ? "border-[var(--destructive)]" : ""}
+                    aria-invalid={!!formErrors.stock}
+                    aria-describedby={formErrors.stock ? "product-stock-error" : undefined}
                   />
+                  {formErrors.stock && <p id="product-stock-error" className="text-xs text-[var(--destructive)]">{formErrors.stock}</p>}
                 </div>
 
                 {/* 描述 */}
