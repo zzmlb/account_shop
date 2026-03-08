@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiFetch, apiMutate } from "@/lib/api-fetch";
+import { apiFetch, apiMutate, ApiError } from "@/lib/api-fetch";
 import { useFavoritesStore } from "@/stores/favorites-store";
 import { useCartStore } from "@/stores/cart-store";
 
@@ -70,9 +70,14 @@ export const useAuthStore = create<AuthStore>()(
           }
           // Session invalid - clear stale persisted user data
           set({ user: null, isLoading: false });
-        } catch {
-          // Network error or 401 - keep existing user data to avoid logout on transient failures
-          set({ isLoading: false });
+        } catch (err) {
+          if (err instanceof ApiError) {
+            // Server responded with error (401, etc.) - session invalid
+            set({ user: null, isLoading: false });
+          } else {
+            // Network error - keep existing user data to avoid logout on transient failures
+            set({ isLoading: false });
+          }
         }
       },
 
