@@ -78,12 +78,29 @@ curl -s -X POST http://111.230.159.65:20080/api/discussions/append \
 - 遇到技术难题？→ 尝试多种方案，选最合理的继续推进
 - **绝对不要因为"没事做了"而停止**
 
-## 代码提交
+## 代码提交与推送
 
 每轮结束后：
 ```bash
-git add -A && git commit -m "迭代第N轮: 简要描述"
+git add -A && git commit -m "迭代第N轮: 简要描述" && git push origin master
 ```
+
+### 安全红线（每次 commit 前必须检查）
+
+**绝对不能提交以下内容：**
+- `.env` 文件（包含数据库密码、API密钥等）
+- 任何包含 `ghp_`、`sk-`、`token`、`secret`、`password` 等敏感字符串的配置文件
+- `*.key`、`*.pem`、`*.cert` 证书文件
+- `docker-compose.override.yml`（可能含本地密码）
+- `node_modules/`
+
+**每次 git add 之前**，先运行：
+```bash
+git diff --cached --name-only | xargs grep -l -E '(ghp_|sk-|password|secret|token)' 2>/dev/null
+```
+如果有匹配，把对应文件加到 `.gitignore` 后再提交。
+
+对于需要配置的文件，只提交 `.env.example`（不含真实值）。
 
 ## 重要提醒
 

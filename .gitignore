@@ -1,0 +1,36 @@
+# 环境变量和密钥
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker 本地数据
+postgres_data/
+redis_data/
+
+# 日志
+*.log
+logs/
+
+# 本地配置
+local.config.*
+*.local
+docker-compose.override.yml
