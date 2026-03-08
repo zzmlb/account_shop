@@ -3,35 +3,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Key,
-  Upload,
   Download,
   Search,
-  Eye,
-  EyeOff,
   Ban,
   CheckCircle,
   Package,
   Trash2,
-  Loader2,
-  AlertTriangle,
-  FileUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -39,10 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
+import { CardKeysTable } from "./card-keys-table";
+import { ImportCardKeysDialog } from "./import-card-keys-dialog";
+import { DeleteCardKeyDialog, BatchActionDialog } from "./card-keys-dialogs";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,7 +50,7 @@ interface ApiCardKey {
   createdAt: string;
 }
 
-interface Pagination {
+interface PaginationData {
   page: number;
   pageSize: number;
   total: number;
@@ -114,32 +99,6 @@ function statusLabel(status: string): string {
   }
 }
 
-function statusVariant(
-  status: string
-): "success" | "default" | "destructive" | "secondary" {
-  switch (status) {
-    case "AVAILABLE":
-      return "success";
-    case "SOLD":
-      return "default";
-    case "DISABLED":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-}
-
-function maskContent(content: string): string {
-  const parts = content.split("-");
-  if (parts.length >= 4) {
-    return `${parts[0]}-****-****-${parts[parts.length - 1]}`;
-  }
-  if (content.length > 8) {
-    return `${content.slice(0, 4)}****${content.slice(-4)}`;
-  }
-  return "****";
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -147,7 +106,7 @@ function maskContent(content: string): string {
 export default function AdminCardKeysPageContent() {
   // Data state
   const [cardKeys, setCardKeys] = useState<ApiCardKey[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
     pageSize: PAGE_SIZE,
     total: 0,
@@ -187,9 +146,6 @@ export default function AdminCardKeysPageContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchAction, setBatchAction] = useState<string | null>(null);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
-
-  // File upload ref
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Track whether initial load is done
   const initialized = useRef(false);
@@ -232,7 +188,7 @@ export default function AdminCardKeysPageContent() {
         const data = await apiFetch<{
           success: boolean;
           cardKeys: ApiCardKey[];
-          pagination: Pagination;
+          pagination: PaginationData;
         }>(`/api/admin/card-keys?${params.toString()}`);
         setCardKeys(data.cardKeys);
         setPagination(data.pagination);
@@ -596,10 +552,6 @@ export default function AdminCardKeysPageContent() {
   // Render: Main content
   // ---------------------------------------------------------------------------
 
-  const importLineCount = importContent
-    .split("\n")
-    .filter((l) => l.trim()).length;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -615,98 +567,18 @@ export default function AdminCardKeysPageContent() {
             <Download className="mr-2 h-4 w-4" />
             导出
           </Button>
-          <Dialog open={importOpen} onOpenChange={setImportOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Upload className="mr-2 h-4 w-4" />
-                导入卡密
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>批量导入卡密</DialogTitle>
-                <DialogDescription>
-                  每行粘贴一个卡密，选择对应的商品后导入
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div className="space-y-2">
-                  <Label>选择商品</Label>
-                  <Select
-                    value={importProduct}
-                    onValueChange={setImportProduct}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="请选择商品" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>卡密内容</Label>
-                    <div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".txt,.csv,.text"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <FileUp className="mr-1 h-3.5 w-3.5" />
-                        从文件导入
-                      </Button>
-                    </div>
-                  </div>
-                  <textarea
-                    className="flex min-h-[160px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-                    placeholder={
-                      "每行一个卡密，例如：\nGMAL-8K2F-J9X3-Q7WN\nGMAL-3P7R-M1D5-H8YC\n\n也可点击上方按钮从 .txt/.csv 文件导入"
-                    }
-                    value={importContent}
-                    onChange={(e) => setImportContent(e.target.value)}
-                  />
-                  {importContent.trim() && (
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      已输入 {importLineCount} 个卡密
-                    </p>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setImportOpen(false)}
-                  disabled={importLoading}
-                >
-                  取消
-                </Button>
-                <Button
-                  onClick={handleImport}
-                  disabled={
-                    !importProduct || !importContent.trim() || importLoading
-                  }
-                >
-                  {importLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  确认导入
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <ImportCardKeysDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            products={products}
+            importProduct={importProduct}
+            onImportProductChange={setImportProduct}
+            importContent={importContent}
+            onImportContentChange={setImportContent}
+            importLoading={importLoading}
+            onImport={handleImport}
+            onFileUpload={handleFileUpload}
+          />
         </div>
       </div>
 
@@ -861,178 +733,20 @@ export default function AdminCardKeysPageContent() {
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
-        <table className="w-full text-sm" aria-label="卡密管理列表">
-          <thead>
-            <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
-              <th className="w-10 px-4 py-3">
-                <Checkbox
-                  checked={
-                    cardKeys.filter((k) => k.status !== "SOLD").length > 0 &&
-                    cardKeys
-                      .filter((k) => k.status !== "SOLD")
-                      .every((k) => selectedIds.has(k.id))
-                  }
-                  onCheckedChange={toggleSelectAll}
-                  aria-label="全选"
-                />
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
-                商品
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
-                卡密内容
-              </th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
-                状态
-              </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] md:table-cell">
-                添加时间
-              </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
-                售出时间
-              </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
-                订单号
-              </th>
-              <th className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
-                操作
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {cardKeys.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-16 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="mb-4 rounded-full bg-[var(--muted)] p-4">
-                      <Key className="h-10 w-10 text-[var(--muted-foreground)]" />
-                    </div>
-                    <p className="text-sm text-[var(--muted-foreground)]">
-                      暂无卡密数据
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              cardKeys.map((key) => (
-                <tr
-                  key={key.id}
-                  className="border-b border-[var(--border)] last:border-b-0 transition-colors hover:bg-[var(--card-hover)]"
-                >
-                  <td className="w-10 px-4 py-3">
-                    {key.status !== "SOLD" ? (
-                      <Checkbox
-                        checked={selectedIds.has(key.id)}
-                        onCheckedChange={() => toggleSelect(key.id)}
-                        aria-label={`选择 ${key.product.name} 卡密`}
-                      />
-                    ) : (
-                      <div className="h-4 w-4" />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    {key.product.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    <code className="rounded-[var(--radius-sm)] bg-[var(--muted)] px-2 py-1 font-mono text-xs">
-                      {revealedKeys.has(key.id)
-                        ? key.content
-                        : maskContent(key.content)}
-                    </code>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={statusVariant(key.status)}>
-                      {statusLabel(key.status)}
-                    </Badge>
-                  </td>
-                  <td className="hidden px-4 py-3 text-[var(--muted-foreground)] md:table-cell">
-                    {formatDateTime(key.createdAt)}
-                  </td>
-                  <td className="hidden px-4 py-3 text-[var(--muted-foreground)] lg:table-cell">
-                    {key.soldAt ? formatDateTime(key.soldAt) : "-"}
-                  </td>
-                  <td className="hidden px-4 py-3 text-[var(--muted-foreground)] lg:table-cell">
-                    {key.orderNo ? (
-                      <code className="rounded-[var(--radius-sm)] bg-[var(--muted)] px-1.5 py-0.5 font-mono text-xs">
-                        {key.orderNo}
-                      </code>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleReveal(key.id)}
-                        title={
-                          revealedKeys.has(key.id)
-                            ? "隐藏卡密"
-                            : "查看卡密"
-                        }
-                      >
-                        {revealedKeys.has(key.id) ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                        <span className="ml-1 hidden sm:inline">
-                          {revealedKeys.has(key.id) ? "隐藏" : "查看"}
-                        </span>
-                      </Button>
-                      {key.status !== "SOLD" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={mutating}
-                          onClick={() =>
-                            toggleStatus(key.id, key.status)
-                          }
-                          className={cn(
-                            key.status === "AVAILABLE"
-                              ? "text-[var(--destructive)] hover:text-[var(--destructive)]"
-                              : "text-[var(--success)] hover:text-[var(--success)]"
-                          )}
-                        >
-                          {key.status === "AVAILABLE" ? (
-                            <Ban className="h-4 w-4" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4" />
-                          )}
-                          <span className="ml-1 hidden sm:inline">
-                            {key.status === "AVAILABLE"
-                              ? "禁用"
-                              : "启用"}
-                          </span>
-                        </Button>
-                      )}
-                      {key.status !== "SOLD" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={mutating}
-                          className="text-[var(--destructive)] hover:text-[var(--destructive)]"
-                          onClick={() => {
-                            setDeleteTarget(key.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="ml-1 hidden sm:inline">
-                            删除
-                          </span>
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <CardKeysTable
+        cardKeys={cardKeys}
+        selectedIds={selectedIds}
+        revealedKeys={revealedKeys}
+        mutating={mutating}
+        onToggleSelectAll={toggleSelectAll}
+        onToggleSelect={toggleSelect}
+        onToggleReveal={toggleReveal}
+        onToggleStatus={toggleStatus}
+        onDelete={(id) => {
+          setDeleteTarget(id);
+          setDeleteDialogOpen(true);
+        }}
+      />
 
       {/* Pagination */}
       <Pagination
@@ -1043,85 +757,30 @@ export default function AdminCardKeysPageContent() {
       />
 
       {/* Delete confirmation dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-[var(--destructive)]" />
-              确认删除
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            确定要删除该卡密吗？此操作不可撤销。
-          </p>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteTarget(null);
-                setDeleteDialogOpen(false);
-              }}
-              disabled={mutating}
-            >
-              取消
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={mutating}
-              onClick={confirmDelete}
-            >
-              {mutating && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              确认删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteCardKeyDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        mutating={mutating}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteDialogOpen(false);
+        }}
+      />
 
       {/* Batch action confirmation dialog */}
-      <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className={cn(
-                "h-5 w-5",
-                batchAction === "delete"
-                  ? "text-[var(--destructive)]"
-                  : "text-[var(--primary)]"
-              )} />
-              确认批量{batchAction === "enable" ? "启用" : batchAction === "disable" ? "禁用" : "删除"}
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            确定要{batchAction === "enable" ? "启用" : batchAction === "disable" ? "禁用" : "删除"}{" "}
-            {selectedIds.size} 个卡密吗？
-            {batchAction === "delete" && "此操作不可撤销。"}
-          </p>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setBatchDialogOpen(false);
-                setBatchAction(null);
-              }}
-              disabled={mutating}
-            >
-              取消
-            </Button>
-            <Button
-              variant={batchAction === "delete" ? "destructive" : "default"}
-              disabled={mutating}
-              onClick={handleBatchAction}
-            >
-              {mutating && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              确认
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BatchActionDialog
+        open={batchDialogOpen}
+        onOpenChange={setBatchDialogOpen}
+        batchAction={batchAction}
+        selectedCount={selectedIds.size}
+        mutating={mutating}
+        onConfirm={handleBatchAction}
+        onCancel={() => {
+          setBatchDialogOpen(false);
+          setBatchAction(null);
+        }}
+      />
     </div>
   );
 }
