@@ -352,6 +352,8 @@ export default function CheckoutContent() {
       clearCart();
       router.push(`/order/${orderData.order.orderNo}`);
     } catch {
+      // Regenerate idempotency key so the retry is treated as a new attempt
+      idempotencyKeyRef.current = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       toast.error("网络错误", {
         description: "请检查网络连接后重试，您的购物车内容不会丢失",
         action: {
