@@ -83,6 +83,15 @@ function buildProductSummary(items: OrderItem[]): string {
   return label;
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 6) return "夜深了";
+  if (hour < 12) return "早上好";
+  if (hour < 14) return "中午好";
+  if (hour < 18) return "下午好";
+  return "晚上好";
+}
+
 /* ---- Static data ---- */
 const quickActions = [
   {
@@ -190,6 +199,11 @@ export default function DashboardPageContent() {
   const totalOrders = orders.length;
   const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
   const balance = user?.balance ?? 0;
+  const totalSpent = useMemo(() => {
+    return orders
+      .filter((o) => o.status === "PAID" || o.status === "DELIVERED")
+      .reduce((sum, o) => sum + parseFloat(String(o.totalAmount)), 0);
+  }, [orders]);
 
   const stats = [
     {
@@ -312,15 +326,40 @@ export default function DashboardPageContent() {
             <span className="font-medium">控制面板</span>
           </div>
           <h1 className="mt-2 text-2xl font-bold">
-            欢迎回来，{user?.username ?? "用户"}
+            {getGreeting()}，{user?.username ?? "用户"}
           </h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            这是您的账户概览，随时掌握最新动态
+            {totalOrders > 0
+              ? `您已完成 ${totalOrders} 笔订单，累计消费 ${formatCurrency(totalSpent)}`
+              : "这是您的账户概览，随时掌握最新动态"}
           </p>
         </div>
         {/* Decorative glow */}
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[var(--primary)]/5 blur-3xl" />
       </div>
+
+      {/* Unread notifications banner */}
+      {unreadCount > 0 && (
+        <Link
+          href="/dashboard/notifications"
+          className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4 transition-colors hover:bg-[var(--primary)]/10"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10">
+            <Bell className="h-4 w-4 text-[var(--primary)]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--foreground)]">
+              您有 {unreadCount} 条未读通知
+            </p>
+            {notifications.length > 0 && !notifications[0].isRead && (
+              <p className="text-xs text-[var(--muted-foreground)] truncate">
+                {notifications[0].title}
+              </p>
+            )}
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+        </Link>
+      )}
 
       {/* Stats Bento Grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

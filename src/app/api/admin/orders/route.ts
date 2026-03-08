@@ -632,32 +632,142 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Only allow batch cancel for safety (refund/deliver need individual review)
-    if (newStatus !== "CANCELLED") {
+    if (newStatus !== "CANCELLED" && newStatus !== "DELIVERED") {
       return NextResponse.json(
-        { success: false, message: "批量操作仅支持取消订单" },
+        { success: false, message: "批量操作仅支持取消或发货" },
         { status: 400 }
       );
     }
 
-    // Only cancel orders that are PENDING or PAID
-    const result = await db.order.updateMany({
-      where: {
-        id: { in: ids },
-        status: { in: ["PENDING", "PAID"] },
+    if (newStatus === "CANCELLED") {
+      // Only cancel orders that are PENDING or PAID
+      const result = await db.order.updateMany({
+        where: {
+          id: { in: ids },
+          status: { in: ["PENDING", "PAID"] },
+        },
+        data: { status: "CANCELLED" },
+      });
+
+      log.info(
+        { adminId: session.id, ids, affected: result.count },
+        "Admin batch cancelled orders"
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: `已取消 ${result.count} 个订单（${ids.length - result.count} 个订单状态不符，已跳过）`,
+        affected: result.count,
+      });
+    }
+
+    // Batch deliver: process PAID orders individually for card key allocation
+    const paidOrders = await db.order.findMany({
+      where: { id: { in: ids }, status: "PAID" },
+      include: {
+        items: { include: { product: true } },
       },
-      data: { status: "CANCELLED" },
     });
 
+    let delivered = 0;
+    let failed = 0;
+
+    for (const order of paidOrders) {
+      try {
+        let allKeysAllocated = true;
+
+        await db.$transaction(async (tx) => {
+          for (const item of order.items) {
+            const existingKeys = await tx.cardKey.count({
+              where: { orderId: item.id, status: "SOLD" },
+            });
+            if (existingKeys >= item.quantity) continue;
+
+            const needed = item.quantity - existingKeys;
+            const keys = await tx.cardKey.findMany({
+              where: { productId: item.productId, status: "AVAILABLE" },
+              take: needed,
+            });
+
+            if (keys.length < needed) {
+              allKeysAllocated = false;
+              throw new Error("INSUFFICIENT_KEYS");
+            }
+
+            await tx.cardKey.updateMany({
+              where: { id: { in: keys.map((k) => k.id) } },
+              data: { status: "SOLD", orderId: item.id, soldAt: new Date() },
+            });
+
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stockCount: { decrement: needed }, soldCount: { increment: needed } },
+            });
+          }
+
+          if (allKeysAllocated) {
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: "DELIVERED" },
+            });
+          }
+        });
+
+        delivered++;
+
+        // Send delivery email
+        if (order.email) {
+          const itemIds = order.items.map((i) => i.id);
+          const allKeys = await db.cardKey.findMany({
+            where: { orderId: { in: itemIds }, status: "SOLD" },
+            select: { content: true, orderId: true },
+          });
+          const keysByProduct: Record<string, { productName: string; cardKeys: string[] }> = {};
+          for (const item of order.items) {
+            const itemKeys = allKeys.filter((k) => k.orderId === item.id);
+            keysByProduct[item.productId] = {
+              productName: item.product.name,
+              cardKeys: itemKeys.map((k) => decryptCardKey(k.content)),
+            };
+          }
+          sendCardKeyDelivery({
+            to: order.email,
+            orderNo: order.orderNo,
+            items: Object.values(keysByProduct),
+          }).catch((err) => {
+            log.error({ err, orderNo: order.orderNo }, "Failed to send batch delivery email");
+          });
+        }
+
+        // In-app notification
+        if (order.userId) {
+          createNotification({
+            userId: order.userId,
+            type: "ORDER",
+            title: "订单已发货",
+            content: `您的订单 ${order.orderNo} 已完成发货，请前往订单详情查看卡密。`,
+            href: `/order/${order.orderNo}`,
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg !== "INSUFFICIENT_KEYS") {
+          log.error({ err, orderId: order.id }, "Batch deliver single order failed");
+        }
+        failed++;
+      }
+    }
+
+    const skipped = ids.length - paidOrders.length;
     log.info(
-      { adminId: session.id, ids, affected: result.count },
-      "Admin batch cancelled orders"
+      { adminId: session.id, ids, delivered, failed, skipped },
+      "Admin batch delivered orders"
     );
 
     return NextResponse.json({
       success: true,
-      message: `已取消 ${result.count} 个订单（${ids.length - result.count} 个订单状态不符，已跳过）`,
-      affected: result.count,
+      message: `已发货 ${delivered} 个订单${failed > 0 ? `，${failed} 个发货失败（库存不足）` : ""}${skipped > 0 ? `，${skipped} 个状态不符已跳过` : ""}`,
+      affected: delivered,
     });
   } catch (error) {
     log.error({ err: error }, "Admin orders PATCH error");

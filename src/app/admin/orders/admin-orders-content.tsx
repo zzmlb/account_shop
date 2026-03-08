@@ -21,6 +21,9 @@ import {
   User,
   CreditCard,
   CheckSquare,
+  DollarSign,
+  ShoppingCart,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -101,6 +104,13 @@ interface Pagination {
   totalPages: number;
 }
 
+interface OrderStats {
+  todayOrders: number;
+  todayRevenue: number;
+  pendingCount: number;
+  paidCount: number;
+}
+
 const statusConfig: Record<
   OrderStatus,
   {
@@ -168,6 +178,7 @@ export default function AdminOrdersPageContent() {
     total: 0,
     totalPages: 1,
   });
+  const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
@@ -205,6 +216,7 @@ export default function AdminOrdersPageContent() {
 
         setOrders(data.orders);
         setPagination(data.pagination);
+        if (data.stats) setOrderStats(data.stats);
       } catch {
         toast.error("网络错误，无法获取订单列表");
       } finally {
@@ -282,6 +294,7 @@ export default function AdminOrdersPageContent() {
   const [exporting, setExporting] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [batchCancelling, setBatchCancelling] = useState(false);
+  const [batchDelivering, setBatchDelivering] = useState(false);
 
   // Clear selection when filters/page change
   useEffect(() => {
@@ -339,6 +352,37 @@ export default function AdminOrdersPageContent() {
       toast.error("网络错误，批量取消失败");
     } finally {
       setBatchCancelling(false);
+    }
+  };
+
+  const handleBatchDeliver = async () => {
+    const ids = Array.from(selectedOrders);
+    const deliverable = orders.filter(
+      (o) => ids.includes(o.id) && o.status === "PAID"
+    );
+    if (deliverable.length === 0) {
+      toast.error("所选订单中没有可发货的订单（仅已支付订单可发货）");
+      return;
+    }
+    setBatchDelivering(true);
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status: "DELIVERED" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setSelectedOrders(new Set());
+        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
+      } else {
+        toast.error(data.message || "批量发货失败");
+      }
+    } catch {
+      toast.error("网络错误，批量发货失败");
+    } finally {
+      setBatchDelivering(false);
     }
   };
 
@@ -484,6 +528,42 @@ export default function AdminOrdersPageContent() {
         </Button>
       </div>
 
+      {/* Stats Cards */}
+      {orderStats && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <ShoppingCart className="h-3.5 w-3.5" />
+              今日订单
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--foreground)]">{orderStats.todayOrders}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <DollarSign className="h-3.5 w-3.5" />
+              今日收入
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--primary)]">
+              ¥{orderStats.todayRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <Clock className="h-3.5 w-3.5" />
+              待支付
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--warning)]">{orderStats.pendingCount}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <AlertCircle className="h-3.5 w-3.5" />
+              待发货
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--accent)]">{orderStats.paidCount}</p>
+          </div>
+        </div>
+      )}
+
       {/* Status Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="h-auto flex-wrap">
@@ -612,6 +692,20 @@ export default function AdminOrdersPageContent() {
             >
               <Download className="h-3.5 w-3.5" />
               导出所选
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              className="gap-1.5"
+              onClick={handleBatchDeliver}
+              disabled={batchDelivering}
+            >
+              {batchDelivering ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Truck className="h-3.5 w-3.5" />
+              )}
+              批量发货
             </Button>
             <Button
               size="sm"
