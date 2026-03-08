@@ -1,7 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const SESSION_SECRET =
+  process.env.NEXTAUTH_SECRET || "pj37-dev-fallback-secret-change-in-prod";
+
+/**
+ * Verify HMAC signature using Web Crypto API (Edge Runtime compatible).
+ */
+async function verifyHmac(
+  payload: string,
+  signature: string
+): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(SESSION_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const computed = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      encoder.encode(payload)
+    );
+    const expectedHex = Array.from(new Uint8Array(computed))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    // Constant-length comparison
+    if (expectedHex.length !== signature.length) return false;
+    let mismatch = 0;
+    for (let i = 0; i < expectedHex.length; i++) {
+      mismatch |= expectedHex.charCodeAt(i) ^ signature.charCodeAt(i);
+    }
+    return mismatch === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Decode base64 payload (Edge Runtime compatible).
+ */
 function decodeBase64(str: string): string {
-  // Edge Runtime compatible base64 decode using atob
   try {
     return decodeURIComponent(
       atob(str)
@@ -14,26 +55,56 @@ function decodeBase64(str: string): string {
   }
 }
 
-export function middleware(request: NextRequest) {
+/**
+ * Parse and verify session cookie.
+ */
+async function parseSession(
+  sessionCookie: string
+): Promise<{ isAuthenticated: boolean; isAdmin: boolean }> {
+  const dotIdx = sessionCookie.lastIndexOf(".");
+  if (dotIdx === -1) {
+    return { isAuthenticated: false, isAdmin: false };
+  }
+
+  const payload = sessionCookie.slice(0, dotIdx);
+  const sig = sessionCookie.slice(dotIdx + 1);
+  if (!payload || !sig) {
+    return { isAuthenticated: false, isAdmin: false };
+  }
+
+  // Verify HMAC signature
+  const valid = await verifyHmac(payload, sig);
+  if (!valid) {
+    return { isAuthenticated: false, isAdmin: false };
+  }
+
+  try {
+    const decoded = decodeBase64(payload);
+    const data = JSON.parse(decoded);
+    if (data && data.id && data.username) {
+      const role = (data.role || "").toUpperCase();
+      return {
+        isAuthenticated: true,
+        isAdmin: role === "ADMIN" || role === "SUPER_ADMIN",
+      };
+    }
+  } catch {
+    // Invalid payload
+  }
+  return { isAuthenticated: false, isAdmin: false };
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get("session")?.value;
 
-  // Check if user has a valid session cookie
   let isAuthenticated = false;
   let isAdmin = false;
 
   if (sessionCookie) {
-    try {
-      const decoded = decodeBase64(sessionCookie);
-      const data = JSON.parse(decoded);
-      if (data && data.id && data.username) {
-        isAuthenticated = true;
-        const role = (data.role || "").toUpperCase();
-        isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
-      }
-    } catch {
-      // Invalid session cookie
-    }
+    const result = await parseSession(sessionCookie);
+    isAuthenticated = result.isAuthenticated;
+    isAdmin = result.isAdmin;
   }
 
   // Protect /dashboard routes - require authentication

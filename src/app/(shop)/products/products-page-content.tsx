@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
-import { SlidersHorizontal, Loader2 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { SlidersHorizontal, Loader2, Search, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -41,6 +42,7 @@ interface ApiResponse {
 
 export default function ProductsPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -104,16 +106,31 @@ export default function ProductsPageContent() {
     fetchProducts();
   }, [fetchProducts]);
 
+  const hasActiveFilters = !!(search || category || minPrice || maxPrice || inStock);
+
+  const clearSearch = () => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("q");
+    params.delete("search");
+    router.push(`/products${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
+  const clearAllFilters = () => {
+    router.push("/products");
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[var(--foreground)]">
-            全部商品
+            {search ? `搜索: "${search}"` : "全部商品"}
           </h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            共 {total} 件商品
+            {search
+              ? `找到 ${total} 件相关商品`
+              : `共 ${total} 件商品`}
           </p>
         </div>
         {/* Mobile filter button */}
@@ -134,6 +151,46 @@ export default function ProductsPageContent() {
           </SheetContent>
         </Sheet>
       </div>
+
+      {/* Active filter indicators */}
+      {hasActiveFilters && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {search && (
+            <Badge variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1.5">
+              <Search className="h-3 w-3" />
+              {search}
+              <button
+                onClick={clearSearch}
+                className="ml-1 rounded-full p-0.5 hover:bg-[var(--muted)]"
+                aria-label="清除搜索"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {category && (
+            <Badge variant="secondary" className="py-1">
+              分类: {category}
+            </Badge>
+          )}
+          {(minPrice || maxPrice) && (
+            <Badge variant="secondary" className="py-1">
+              价格: {minPrice || "0"} - {maxPrice || "∞"}
+            </Badge>
+          )}
+          {inStock === "true" && (
+            <Badge variant="secondary" className="py-1">
+              仅有货
+            </Badge>
+          )}
+          <button
+            onClick={clearAllFilters}
+            className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
+          >
+            清除全部筛选
+          </button>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex gap-8">

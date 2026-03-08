@@ -73,6 +73,13 @@ export default function CartItem({ item, compact = false }: CartItemProps) {
           </Button>
         </div>
 
+        {/* Low stock warning */}
+        {item.maxStock <= 3 && item.maxStock > 0 && (
+          <p className={cn("text-[var(--warning)]", compact ? "text-[10px]" : "text-xs")}>
+            仅剩 {item.maxStock} 件
+          </p>
+        )}
+
         {/* Bottom row: quantity + price */}
         <div className="flex items-center justify-between gap-2">
           {/* Quantity selector */}
