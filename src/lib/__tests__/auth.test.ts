@@ -55,7 +55,7 @@ describe("encodeSession / decodeSession", () => {
 
   it("returns null for tampered payload", () => {
     const token = encodeSession(testUser);
-    const [_payload, sig] = token.split(".");
+    const sig = token.split(".").pop()!;
     // Tamper with the payload
     const tampered = Buffer.from('{"id":"hacker","username":"evil","role":"ADMIN"}').toString("base64");
     const result = decodeSession(`${tampered}.${sig}`);

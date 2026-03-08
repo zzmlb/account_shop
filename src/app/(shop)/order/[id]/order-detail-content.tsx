@@ -21,7 +21,6 @@ import {
   RotateCcw,
   Printer,
 } from "lucide-react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
