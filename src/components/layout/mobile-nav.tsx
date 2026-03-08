@@ -47,6 +47,8 @@ export default function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={badgeCount > 0 ? `${item.label} (${badgeCount})` : item.label}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 transition-colors duration-200",
                 isActive

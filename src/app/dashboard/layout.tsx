@@ -186,6 +186,7 @@ export default function DashboardLayout({
                 <Link
                   key={link.href}
                   href={link.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors",
                     active
@@ -225,6 +226,7 @@ export default function DashboardLayout({
               <Link
                 key={tab.href}
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
                   active
