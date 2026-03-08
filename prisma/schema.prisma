@@ -187,6 +187,8 @@ model OrderItem {
 
   cardKeys CardKey[]
 
+  @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 

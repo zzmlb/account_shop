@@ -44,11 +44,11 @@ export async function GET(request: NextRequest) {
       where.stockCount = { gt: 0 };
     }
 
-    if (minPrice) {
-      where.price = { ...(where.price as Record<string, unknown> || {}), gte: parseFloat(minPrice) };
-    }
-    if (maxPrice) {
-      where.price = { ...(where.price as Record<string, unknown> || {}), lte: parseFloat(maxPrice) };
+    const priceFilter: { gte?: number; lte?: number } = {};
+    if (minPrice) priceFilter.gte = parseFloat(minPrice);
+    if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
+    if (Object.keys(priceFilter).length > 0) {
+      where.price = priceFilter;
     }
 
     // Build orderBy (support both dash and underscore formats)

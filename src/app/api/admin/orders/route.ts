@@ -61,7 +61,14 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
+    const VALID_ORDER_STATUSES = ["PENDING", "PAID", "DELIVERED", "CANCELLED", "REFUNDED", "EXPIRED"];
     if (status) {
+      if (!VALID_ORDER_STATUSES.includes(status)) {
+        return NextResponse.json(
+          { success: false, message: "无效的订单状态" },
+          { status: 400 }
+        );
+      }
       where.status = status;
     }
 

@@ -237,9 +237,10 @@ export default function CheckoutContent() {
         if (!payData.success) {
           // Balance payment failed — navigate to order page with PENDING status
           // so user can retry payment or choose another method
-          toast.error("余额支付失败", {
-            description: payData.message || "余额不足，请充值后在订单页重新支付",
-          });
+          const description = payData.needed
+            ? `余额不足，还需充值 ${formatPrice(payData.needed)}`
+            : payData.message || "余额不足，请充值后在订单页重新支付";
+          toast.error("余额支付失败", { description });
           sessionStorage.setItem(
             `order-${orderData.order.orderNo}`,
             JSON.stringify({
@@ -354,6 +355,7 @@ export default function CheckoutContent() {
               placeholder="请输入您的邮箱地址"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isSubmitting}
               className="max-w-md"
               aria-describedby={email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "email-error" : undefined}
               aria-invalid={email ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : undefined}
@@ -378,6 +380,7 @@ export default function CheckoutContent() {
                   <button
                     key={method.id}
                     onClick={() => setPaymentMethod(method.id)}
+                    disabled={isSubmitting}
                     role="radio"
                     aria-checked={isSelected}
                     aria-label={method.label}
@@ -441,7 +444,7 @@ export default function CheckoutContent() {
                   {formatPrice(user.balance)}
                   {user.balance < getTotal() && (
                     <span className="ml-2 text-xs font-normal">
-                      (余额不足)
+                      (还需充值 {formatPrice(getTotal() - user.balance)})
                     </span>
                   )}
                 </span>

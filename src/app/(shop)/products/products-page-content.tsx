@@ -286,22 +286,26 @@ export default function ProductsPageContent() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
             </div>
-          ) : products.length === 0 && hasActiveFilters ? (
+          ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="mb-4 rounded-full bg-[var(--muted)] p-4">
                 <Search className="h-10 w-10 text-[var(--muted-foreground)]" />
               </div>
               <h3 className="mb-1 text-lg font-semibold text-[var(--foreground)]">
-                {search ? `未找到与"${search}"相关的商品` : "暂无匹配商品"}
+                {search ? `未找到与"${search}"相关的商品` : hasActiveFilters ? "暂无匹配商品" : "暂无商品"}
               </h3>
               <p className="mb-4 max-w-sm text-sm text-[var(--muted-foreground)]">
                 {search
                   ? "请尝试更换关键词或调整筛选条件"
-                  : "当前筛选条件下没有找到商品，请尝试调整筛选条件"}
+                  : hasActiveFilters
+                    ? "当前筛选条件下没有找到商品，请尝试调整筛选条件"
+                    : "商品正在上架中，请稍后再来"}
               </p>
-              <Button onClick={clearAllFilters} variant="outline">
-                清除全部筛选
-              </Button>
+              {hasActiveFilters && (
+                <Button onClick={clearAllFilters} variant="outline">
+                  清除全部筛选
+                </Button>
+              )}
             </div>
           ) : viewMode === "list" ? (
             <div className="space-y-3">
