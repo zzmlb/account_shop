@@ -852,9 +852,10 @@ export default function AdminOrdersPageContent() {
                               <span>卡密信息</span>
                               <button
                                 onClick={() => {
-                                  const text = item.cardKeys!.map((ck) => ck.content).join("\n");
+                                  const keys = item.cardKeys ?? [];
+                                  const text = keys.map((ck) => ck.content).join("\n");
                                   navigator.clipboard.writeText(text);
-                                  toast.success(`已复制 ${item.cardKeys!.length} 个卡密`);
+                                  toast.success(`已复制 ${keys.length} 个卡密`);
                                 }}
                                 className="ml-auto text-[var(--primary)] hover:underline"
                               >

@@ -67,13 +67,18 @@ export async function GET(request: NextRequest) {
       date: a.createdAt.toISOString().split("T")[0],
     }));
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       articles: formatted,
       total,
       page,
       limit,
     });
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=120, stale-while-revalidate=600"
+    );
+    return response;
   } catch (error) {
     log.error({ err: error }, "Articles GET error");
     return NextResponse.json(
