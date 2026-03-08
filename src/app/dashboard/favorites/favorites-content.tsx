@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
+import ConfirmDialog from "@/components/shared/confirm-dialog";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
 
@@ -106,6 +107,7 @@ export default function FavoritesPageContent() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
   const fetchFavorites = useCallback(async () => {
@@ -156,7 +158,11 @@ export default function FavoritesPageContent() {
 
   const handleClearAll = async () => {
     if (favorites.length === 0) return;
-    if (!window.confirm(`确定要清空全部 ${favorites.length} 个收藏吗？此操作不可撤销。`)) return;
+    setClearConfirmOpen(true);
+  };
+
+  const doClearAll = async () => {
+    setClearConfirmOpen(false);
     setClearingAll(true);
     try {
       const results = await Promise.allSettled(
@@ -248,6 +254,7 @@ export default function FavoritesPageContent() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
+                aria-label="排序方式"
                 className="h-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] py-0 pl-8 pr-8 text-xs text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none"
               >
                 {SORT_OPTIONS.map((opt) => (
@@ -402,6 +409,17 @@ export default function FavoritesPageContent() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        onOpenChange={setClearConfirmOpen}
+        title="清空收藏"
+        description={`确定要清空全部 ${favorites.length} 个收藏吗？此操作不可撤销。`}
+        confirmLabel="清空"
+        variant="destructive"
+        isLoading={clearingAll}
+        onConfirm={doClearAll}
+      />
     </div>
   );
 }

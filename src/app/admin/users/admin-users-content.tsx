@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { exportToCsv } from "@/lib/csv-export";
+import ConfirmDialog from "@/components/shared/confirm-dialog";
 
 type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
 type UserStatus = "ACTIVE" | "BANNED";
@@ -109,6 +110,11 @@ export default function AdminUsersPageContent() {
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
   const pageSize = 5;
 
   // Debounce search input
@@ -164,13 +170,20 @@ export default function AdminUsersPageContent() {
   }, [fetchUsers]);
 
   // Toggle ban/unban
-  const handleToggleBan = async (user: ApiUser) => {
+  const handleToggleBan = (user: ApiUser) => {
     const newStatus: UserStatus =
       user.status === "ACTIVE" ? "BANNED" : "ACTIVE";
     const actionLabel = newStatus === "BANNED" ? "封禁" : "解封";
 
-    if (!window.confirm(`确定要${actionLabel}用户「${user.username}」吗？`)) return;
+    setConfirmAction({
+      title: `${actionLabel}用户`,
+      description: `确定要${actionLabel}用户「${user.username}」吗？`,
+      onConfirm: () => doToggleBan(user, newStatus, actionLabel),
+    });
+  };
 
+  const doToggleBan = async (user: ApiUser, newStatus: UserStatus, actionLabel: string) => {
+    setConfirmAction(null);
     setActionLoading(user.id);
     try {
       const res = await fetch(`/api/admin/users?id=${user.id}`, {
@@ -263,12 +276,20 @@ export default function AdminUsersPageContent() {
     });
   };
 
-  const handleBatchStatus = async (newStatus: "ACTIVE" | "BANNED") => {
+  const handleBatchStatus = (newStatus: "ACTIVE" | "BANNED") => {
     const ids = Array.from(selectedUsers);
     if (ids.length === 0) return;
     const actionLabel = newStatus === "BANNED" ? "封禁" : "解封";
-    if (!window.confirm(`确定要批量${actionLabel} ${ids.length} 个用户吗？`)) return;
 
+    setConfirmAction({
+      title: `批量${actionLabel}`,
+      description: `确定要批量${actionLabel} ${ids.length} 个用户吗？`,
+      onConfirm: () => doBatchStatus(ids, newStatus, actionLabel),
+    });
+  };
+
+  const doBatchStatus = async (ids: string[], newStatus: "ACTIVE" | "BANNED", actionLabel: string) => {
+    setConfirmAction(null);
     setBatchLoading(true);
     try {
       const res = await fetch("/api/admin/users", {
@@ -374,6 +395,7 @@ export default function AdminUsersPageContent() {
         <select
           value={roleFilter}
           onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+          aria-label="按角色筛选"
           className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">全部角色</option>
@@ -384,6 +406,7 @@ export default function AdminUsersPageContent() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+          aria-label="按状态筛选"
           className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">全部状态</option>
@@ -393,6 +416,7 @@ export default function AdminUsersPageContent() {
         <select
           value={sortBy}
           onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+          aria-label="排序方式"
           className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">最新注册</option>
@@ -917,6 +941,16 @@ export default function AdminUsersPageContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        title={confirmAction?.title ?? ""}
+        description={confirmAction?.description ?? ""}
+        confirmLabel="确认"
+        variant="destructive"
+        onConfirm={() => confirmAction?.onConfirm()}
+      />
     </div>
   );
 }
