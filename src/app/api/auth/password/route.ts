@@ -4,6 +4,8 @@ import { getSessionFromRequest, verifyPassword, hashPassword } from "@/lib/auth"
 import { loginLimiter } from "@/lib/rate-limit";
 import { changePasswordSchema, formatZodError } from "@/lib/validators";
 import { createLogger } from "@/lib/logger";
+import { sendPasswordChanged } from "@/server/services/email";
+import { createNotification } from "@/server/services/notification";
 
 const log = createLogger("auth/password");
 
@@ -66,10 +68,41 @@ export async function PUT(request: NextRequest) {
       data: { passwordHash: newHash },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "密码修改成功",
+    log.info({ userId: session.id }, "Password changed successfully");
+
+    // Send email notification (fire-and-forget)
+    if (user.email) {
+      sendPasswordChanged({
+        to: user.email,
+        username: user.username,
+        ip,
+        time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }),
+      }).catch((err) => {
+        log.error({ err, userId: session.id }, "Failed to send password change email");
+      });
+    }
+
+    // Create in-app notification (fire-and-forget)
+    createNotification({
+      userId: session.id,
+      type: "SYSTEM",
+      title: "密码已修改",
+      content: `您的账号密码已于 ${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })} 修改成功。如非本人操作，请立即联系客服。`,
     });
+
+    // Force logout: clear session cookie so user must re-login
+    const response = NextResponse.json({
+      success: true,
+      message: "密码修改成功，请重新登录",
+    });
+    response.cookies.set("session", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+    return response;
   } catch (error) {
     log.error({ err: error }, "Password change error");
     return NextResponse.json(

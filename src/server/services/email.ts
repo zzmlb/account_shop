@@ -450,3 +450,59 @@ export async function sendPasswordReset(data: PasswordResetEmailData): Promise<b
     return false;
   }
 }
+
+// ==================== Password Changed Notification ====================
+interface PasswordChangedEmailData {
+  to: string;
+  username: string;
+  ip: string;
+  time: string;
+}
+
+function passwordChangedHtml(data: PasswordChangedEmailData): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#6c5ce7,#a855f7);padding:30px;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">${SITE_NAME}</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;">密码已修改</p>
+      </div>
+      <div style="padding:30px;">
+        <p style="color:#333;font-size:16px;margin:0 0 20px;">您好 ${data.username}，</p>
+        <p style="color:#666;font-size:14px;margin:0 0 20px;">您的账户密码已成功修改。如果这不是您本人操作，请立即联系客服。</p>
+        <div style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:20px;">
+          <p style="margin:0 0 8px;color:#666;font-size:13px;">操作详情：</p>
+          <p style="margin:0 0 4px;color:#333;font-size:14px;">时间：${data.time}</p>
+          <p style="margin:0;color:#333;font-size:14px;">IP：${data.ip}</p>
+        </div>
+        <div style="text-align:center;margin-top:30px;">
+          <a href="${SITE_URL}/login" style="display:inline-block;background:#6c5ce7;color:#fff;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:600;">重新登录</a>
+        </div>
+      </div>
+      <div style="padding:20px 30px;background:#f8f9fa;text-align:center;">
+        <p style="margin:0;color:#999;font-size:12px;">此邮件由 ${SITE_NAME} 自动发送，请勿回复。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendPasswordChanged(data: PasswordChangedEmailData): Promise<boolean> {
+  try {
+    const sent = await sendEmail(
+      data.to,
+      `密码修改通知 | ${SITE_NAME}`,
+      passwordChangedHtml(data),
+    );
+    if (sent) log.info({ to: data.to }, "Password changed notification email sent");
+    return sent;
+  } catch (error) {
+    log.error({ err: error }, "Failed to send password changed notification email");
+    return false;
+  }
+}

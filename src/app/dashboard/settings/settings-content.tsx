@@ -188,11 +188,16 @@ export default function DashboardSettingsPageContent() {
         });
         toast.error(data.message || "密码修改失败");
       } else {
-        setPasswordMessage({ type: "success", text: data.message });
-        toast.success(data.message || "密码已更新");
+        setPasswordMessage({ type: "success", text: "密码修改成功，即将跳转到登录页..." });
+        toast.success("密码修改成功，请重新登录");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        // Server clears session cookie; redirect to login after brief delay
+        setTimeout(() => {
+          logout();
+          router.push("/login");
+        }, 1500);
       }
     } catch {
       setPasswordMessage({ type: "error", text: "网络错误，请稍后重试" });
