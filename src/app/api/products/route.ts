@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     if (!rl.success) return rateLimitResponse(rl);
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get("category");
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.slice(0, 100);
     const sort = searchParams.get("sort");
     const inStock = searchParams.get("inStock");
     const minPrice = searchParams.get("minPrice");
@@ -26,9 +26,10 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: Record<string, unknown> = { isActive: true };
 
-    // Filter by specific slugs (for cart validation)
+    // Filter by specific slugs (for cart validation, max 50)
     if (slugs) {
-      where.slug = { in: slugs.split(",").filter(Boolean) };
+      const slugList = slugs.split(",").filter(Boolean).slice(0, 50);
+      where.slug = { in: slugList };
     }
 
     if (category && category !== "全部") {

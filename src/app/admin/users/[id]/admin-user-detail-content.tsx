@@ -142,8 +142,49 @@ export default function AdminUserDetailContent({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      <div className="space-y-6" aria-busy="true">
+        {/* Back button */}
+        <div className="h-9 w-16 animate-pulse rounded bg-[var(--muted)]" />
+        {/* Profile card */}
+        <div className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-[var(--muted)]" />
+            <div className="space-y-2">
+              <div className="h-5 w-32 rounded bg-[var(--muted)]" />
+              <div className="h-3 w-48 rounded bg-[var(--muted)]" />
+            </div>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-[var(--radius-md)] bg-[var(--muted)]/50 p-3 text-center">
+                <div className="mx-auto mb-1 h-4 w-4 rounded bg-[var(--muted)]" />
+                <div className="mx-auto h-5 w-12 rounded bg-[var(--muted)]" />
+                <div className="mx-auto mt-1 h-3 w-10 rounded bg-[var(--muted)]" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Two column cards */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
+              <div className="border-b border-[var(--border)] px-5 py-3">
+                <div className="h-4 w-20 rounded bg-[var(--muted)]" />
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className="flex items-center justify-between px-5 py-3">
+                    <div className="space-y-1.5">
+                      <div className="h-3 w-28 rounded bg-[var(--muted)]" />
+                      <div className="h-3 w-16 rounded bg-[var(--muted)]" />
+                    </div>
+                    <div className="h-4 w-16 rounded bg-[var(--muted)]" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

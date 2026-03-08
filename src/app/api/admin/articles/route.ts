@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
     const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
     const rawLimit = parseInt(searchParams.get("limit") || "20", 10);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
-    const search = searchParams.get("search");
-    const category = searchParams.get("category");
+    const search = searchParams.get("search")?.slice(0, 100);
+    const category = searchParams.get("category")?.slice(0, 50);
     const isPublished = searchParams.get("isPublished");
 
     const where: Record<string, unknown> = {};

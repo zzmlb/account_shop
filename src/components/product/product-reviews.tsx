@@ -44,8 +44,22 @@ function Stars({
   const [hovered, setHovered] = useState(0);
   const cls = size === "md" ? "h-5 w-5" : "h-4 w-4";
 
+  const handleKeyDown = (e: React.KeyboardEvent, current: number) => {
+    if (!interactive || !onRate) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      e.preventDefault();
+      onRate(Math.min(5, current + 1));
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      e.preventDefault();
+      onRate(Math.max(1, current - 1));
+    }
+  };
+
   return (
-    <div className="flex items-center gap-0.5">
+    <div
+      className="flex items-center gap-0.5"
+      {...(interactive ? { role: "radiogroup", "aria-label": "评价等级" } : { "aria-label": `${rating}星评价` })}
+    >
       {[1, 2, 3, 4, 5].map((i) => {
         const filled = interactive ? i <= (hovered || rating) : i <= rating;
         return (
@@ -57,6 +71,10 @@ function Stars({
             onClick={() => onRate?.(i)}
             onMouseEnter={() => interactive && setHovered(i)}
             onMouseLeave={() => interactive && setHovered(0)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            {...(interactive
+              ? { role: "radio", "aria-checked": rating === i, "aria-label": `${i}星` }
+              : { "aria-hidden": true, tabIndex: -1 })}
           >
             <Star
               className={`${cls} ${

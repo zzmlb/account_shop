@@ -19,6 +19,8 @@ import {
   RefreshCw,
   Key,
   Ticket,
+  StickyNote,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +104,8 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [noteValue, setNoteValue] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -109,6 +113,7 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
       const data = await res.json();
       if (data.success) {
         setOrder(data.order);
+        setNoteValue(data.order.adminNote || "");
       } else {
         toast.error(data.message || "加载失败");
       }
@@ -122,6 +127,28 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
+
+  const handleSaveNote = async () => {
+    setNoteSaving(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminNote: noteValue }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("备注已保存");
+        if (order) setOrder({ ...order, adminNote: noteValue.trim() || null });
+      } else {
+        toast.error(data.message || "保存失败");
+      }
+    } catch {
+      toast.error("网络错误");
+    } finally {
+      setNoteSaving(false);
+    }
+  };
 
   const updateStatus = async (newStatus: string) => {
     if (!order) return;
@@ -319,6 +346,43 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Admin Note */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
+            <div className="border-b border-[var(--border)] px-5 py-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                <StickyNote className="h-4 w-4 text-[var(--warning)]" />
+                管理员备注
+              </h2>
+            </div>
+            <div className="px-5 py-4">
+              <textarea
+                className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 resize-none"
+                rows={3}
+                placeholder="添加内部备注（仅管理员可见）..."
+                value={noteValue}
+                onChange={(e) => setNoteValue(e.target.value)}
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  仅管理员可见，不会展示给用户
+                </span>
+                <Button
+                  size="sm"
+                  onClick={handleSaveNote}
+                  disabled={noteSaving || noteValue === (order.adminNote || "")}
+                  className="gap-1.5"
+                >
+                  {noteSaving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                  保存备注
+                </Button>
+              </div>
             </div>
           </div>
 
