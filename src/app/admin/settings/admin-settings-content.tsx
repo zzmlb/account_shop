@@ -556,6 +556,9 @@ export default function AdminSettingsPageContent() {
               placeholder="首页 Title 标签"
               maxLength={70}
             />
+            <p className={`text-xs ${settings.seo_title.length > 60 ? "text-[var(--warning)]" : "text-[var(--muted-foreground)]"}`}>
+              {settings.seo_title.length}/60 {settings.seo_title.length > 60 ? "(建议不超过60字符)" : "字符"}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="seoDescription">首页描述</Label>
@@ -569,6 +572,9 @@ export default function AdminSettingsPageContent() {
               placeholder="首页 Meta Description"
               maxLength={300}
             />
+            <p className={`text-xs ${settings.seo_description.length > 160 ? "text-[var(--warning)]" : "text-[var(--muted-foreground)]"}`}>
+              {settings.seo_description.length}/160 {settings.seo_description.length > 160 ? "(建议不超过160字符以获最佳搜索展示)" : "字符"}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="seoKeywords">首页关键词</Label>

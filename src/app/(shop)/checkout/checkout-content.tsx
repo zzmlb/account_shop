@@ -62,10 +62,11 @@ const PAYMENT_METHODS = [
   {
     id: "usdt",
     label: "USDT",
-    description: "TRC20 / ERC20 链上支付",
+    description: "TRC20 / ERC20 链上支付（即将上线）",
     icon: Bitcoin,
     color: "text-[#f7931a]",
     bgColor: "bg-[#f7931a]/10",
+    disabled: true,
   },
 ] as const;
 
@@ -392,34 +393,37 @@ export default function CheckoutContent() {
             </h2>
             <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="支付方式">
               {PAYMENT_METHODS.map((method, idx) => {
+                const isDisabled = "disabled" in method && method.disabled;
                 const isSelected = paymentMethod === method.id;
                 return (
                   <button
                     key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
+                    onClick={() => !isDisabled && setPaymentMethod(method.id)}
                     onKeyDown={(e) => {
                       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
                         e.preventDefault();
                         const next = PAYMENT_METHODS[(idx + 1) % PAYMENT_METHODS.length];
-                        setPaymentMethod(next.id);
+                        if (!("disabled" in next && next.disabled)) setPaymentMethod(next.id);
                         (e.currentTarget.parentElement?.children[(idx + 1) % PAYMENT_METHODS.length] as HTMLElement)?.focus();
                       } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
                         e.preventDefault();
                         const prev = PAYMENT_METHODS[(idx - 1 + PAYMENT_METHODS.length) % PAYMENT_METHODS.length];
-                        setPaymentMethod(prev.id);
+                        if (!("disabled" in prev && prev.disabled)) setPaymentMethod(prev.id);
                         (e.currentTarget.parentElement?.children[(idx - 1 + PAYMENT_METHODS.length) % PAYMENT_METHODS.length] as HTMLElement)?.focus();
                       }
                     }}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDisabled}
                     tabIndex={isSelected ? 0 : -1}
                     role="radio"
                     aria-checked={isSelected}
                     aria-label={method.label}
                     className={cn(
-                      "flex items-center gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-all",
-                      isSelected
-                        ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                        : "border-[var(--border)] bg-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--card-hover)]"
+                      "relative flex items-center gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-all",
+                      isDisabled
+                        ? "cursor-not-allowed border-[var(--border)] opacity-50"
+                        : isSelected
+                          ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                          : "border-[var(--border)] bg-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--card-hover)]"
                     )}
                   >
                     <div

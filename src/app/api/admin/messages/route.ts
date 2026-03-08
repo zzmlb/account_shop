@@ -37,9 +37,19 @@ export async function GET(request: NextRequest) {
     const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
     const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
 
+    const search = searchParams.get("search");
+
     const where: Record<string, unknown> = {};
     if (status && ["PENDING", "REPLIED", "CLOSED"].includes(status)) {
       where.status = status;
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { subject: { contains: search, mode: "insensitive" } },
+        { message: { contains: search, mode: "insensitive" } },
+      ];
     }
 
     const [messages, total] = await Promise.all([
@@ -105,6 +115,48 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, message: "状态已更新" });
   } catch (error) {
     log.error({ err: error }, "更新留言状态失败");
+    return NextResponse.json({ success: false, message: "服务器内部错误" }, { status: 500 });
+  }
+}
+
+// PATCH - Batch close messages
+export async function PATCH(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { ids, status: newStatus } = body as { ids: string[]; status: string };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ success: false, message: "请选择至少一条留言" }, { status: 400 });
+    }
+    if (ids.length > 100) {
+      return NextResponse.json({ success: false, message: "单次批量操作最多100条" }, { status: 400 });
+    }
+    if (!["REPLIED", "CLOSED"].includes(newStatus)) {
+      return NextResponse.json({ success: false, message: "批量操作仅支持标记已回复或关闭" }, { status: 400 });
+    }
+
+    const typedStatus = newStatus as "REPLIED" | "CLOSED";
+
+    const result = await db.contactMessage.updateMany({
+      where: { id: { in: ids } },
+      data: { status: typedStatus },
+    });
+
+    log.info({ adminId: session.id, ids, status: newStatus, affected: result.count }, "批量更新留言状态");
+
+    return NextResponse.json({
+      success: true,
+      message: `已更新 ${result.count} 条留言`,
+      affected: result.count,
+    });
+  } catch (error) {
+    log.error({ err: error }, "批量更新留言状态失败");
     return NextResponse.json({ success: false, message: "服务器内部错误" }, { status: 500 });
   }
 }

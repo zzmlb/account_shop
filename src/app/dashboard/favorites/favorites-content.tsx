@@ -9,6 +9,7 @@ import {
   Package,
   Trash2,
   Loader2,
+  ArrowUpDown,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,10 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/empty-state";
+import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
+
+type SortOption = "newest" | "oldest" | "price-asc" | "price-desc" | "name";
 
 interface FavoriteProduct {
   id: string;
@@ -31,6 +35,7 @@ interface FavoriteProduct {
   salesCount: number;
   category: string;
   inStock: boolean;
+  stockCount: number;
   image?: string;
   addedAt: string;
   productId: string;
@@ -63,6 +68,7 @@ function mapApiToFavorite(fav: ApiFavorite): FavoriteProduct {
     salesCount: fav.product.soldCount,
     category: fav.product.categoryName,
     inStock: fav.product.stockCount > 0,
+    stockCount: fav.product.stockCount,
     image: fav.product.image ?? undefined,
     addedAt: fav.createdAt,
   };

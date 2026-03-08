@@ -326,9 +326,23 @@ export default function BalancePageContent() {
               ))}
             </div>
           ) : logs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">
-              <Wallet className="mb-2 h-10 w-10 opacity-30" />
-              <p className="text-sm">暂无交易记录</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--muted)]">
+                <Wallet className="h-8 w-8 text-[var(--muted-foreground)]" />
+              </div>
+              <p className="text-sm font-medium text-[var(--foreground)]">暂无交易记录</p>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                充值余额后即可在此查看交易明细
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 gap-1.5"
+                onClick={() => setShowRechargeGuide(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                立即充值
+              </Button>
             </div>
           ) : (
             <>
