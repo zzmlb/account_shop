@@ -98,6 +98,9 @@ export async function GET(request: NextRequest) {
 // POST - Create coupon
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -135,6 +138,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    log.info(
+      { adminId: session.id, couponId: coupon.id, code: coupon.code, type, value },
+      "Admin created coupon"
+    );
+
     return NextResponse.json({
       success: true,
       coupon: {
@@ -157,6 +165,9 @@ export async function POST(request: NextRequest) {
 // PUT - Update coupon
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -189,6 +200,11 @@ export async function PUT(request: NextRequest) {
       data,
     });
 
+    log.info(
+      { adminId: session.id, couponId: id, code: existing.code, fields: Object.keys(data) },
+      "Admin updated coupon"
+    );
+
     return NextResponse.json({
       success: true,
       coupon: {
@@ -210,6 +226,9 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete coupon
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -241,6 +260,11 @@ export async function DELETE(request: NextRequest) {
     // Delete associated UserCoupon records first
     await db.userCoupon.deleteMany({ where: { couponId: id } });
     await db.coupon.delete({ where: { id } });
+
+    log.info(
+      { adminId: session.id, couponId: id, code: existing.code },
+      "Admin deleted coupon"
+    );
 
     return NextResponse.json({
       success: true,

@@ -65,6 +65,9 @@ export async function GET(request: NextRequest) {
 // POST - Create a new category
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = getSessionFromRequest(request);
     if (!session || !isAdmin(session.role)) {
       return NextResponse.json(
@@ -103,6 +106,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    log.info(
+      { adminId: session.id, categoryId: category.id, categoryName: name.trim(), slug },
+      "Admin created category"
+    );
+
     return NextResponse.json({ success: true, category });
   } catch (error) {
     log.error({ err: error }, "Admin categories POST error");
@@ -116,6 +124,9 @@ export async function POST(request: NextRequest) {
 // PUT - Update a category
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = getSessionFromRequest(request);
     if (!session || !isAdmin(session.role)) {
       return NextResponse.json(
@@ -162,6 +173,11 @@ export async function PUT(request: NextRequest) {
 
     const updated = await db.category.update({ where: { id }, data });
 
+    log.info(
+      { adminId: session.id, categoryId: id, categoryName: existing.name, fields: Object.keys(data) },
+      "Admin updated category"
+    );
+
     return NextResponse.json({ success: true, category: updated });
   } catch (error) {
     log.error({ err: error }, "Admin categories PUT error");
@@ -175,6 +191,9 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete a category (only if no products)
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = getSessionFromRequest(request);
     if (!session || !isAdmin(session.role)) {
       return NextResponse.json(
@@ -205,7 +224,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const catToDelete = await db.category.findUnique({ where: { id } });
     await db.category.delete({ where: { id } });
+
+    log.info(
+      { adminId: session.id, categoryId: id, categoryName: catToDelete?.name },
+      "Admin deleted category"
+    );
 
     return NextResponse.json({ success: true, message: "分类已删除" });
   } catch (error) {

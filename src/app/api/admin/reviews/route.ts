@@ -111,6 +111,9 @@ export async function GET(request: NextRequest) {
 // PUT - Toggle review visibility
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -158,6 +161,9 @@ export async function PUT(request: NextRequest) {
 // PATCH - Reply to a review
 export async function PATCH(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -218,6 +224,9 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a review
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 

@@ -124,6 +124,9 @@ export async function GET(request: NextRequest) {
 // POST - Create article
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -163,6 +166,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    log.info(
+      { adminId: session.id, articleId: article.id, title, slug: articleSlug },
+      "Admin created article"
+    );
+
     return NextResponse.json({
       success: true,
       article: {
@@ -190,6 +198,9 @@ export async function POST(request: NextRequest) {
 // PUT - Update article
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -255,6 +266,11 @@ export async function PUT(request: NextRequest) {
       data: updateData,
     });
 
+    log.info(
+      { adminId: session.id, articleId: id, title: existing.title, fields: Object.keys(updateData) },
+      "Admin updated article"
+    );
+
     return NextResponse.json({
       success: true,
       message: "文章已更新",
@@ -283,6 +299,9 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete article
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -305,6 +324,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     await db.article.delete({ where: { id } });
+
+    log.info(
+      { adminId: session.id, articleId: id, title: existing.title },
+      "Admin deleted article"
+    );
 
     return NextResponse.json({
       success: true,

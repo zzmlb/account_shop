@@ -140,6 +140,9 @@ export async function GET(request: NextRequest) {
 // POST - Bulk import card keys (admin only)
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -206,6 +209,10 @@ export async function POST(request: NextRequest) {
     const dbDuplicates = uniqueKeys.length - newKeys.length;
 
     if (newKeys.length === 0) {
+      log.info(
+        { adminId: session.id, productId, totalKeys: rawKeys.length, newKeys: 0 },
+        "Admin card-key import (all duplicates)"
+      );
       return NextResponse.json({
         success: true,
         count: 0,
@@ -230,6 +237,11 @@ export async function POST(request: NextRequest) {
         stockCount: { increment: result.count },
       },
     });
+
+    log.info(
+      { adminId: session.id, productId, productName: product.name, imported: result.count, batchDuplicates, dbDuplicates },
+      "Admin imported card keys"
+    );
 
     const warnings = [];
     if (batchDuplicates > 0) {
@@ -259,6 +271,9 @@ export async function POST(request: NextRequest) {
 // PATCH - Batch operations (admin only)
 export async function PATCH(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -310,6 +325,7 @@ export async function PATCH(request: NextRequest) {
         where: { id: { in: disabled.map((t) => t.id) } },
         data: { status: "AVAILABLE" },
       });
+      log.info({ adminId: session.id, action, count: disabled.length }, "Admin batch card-key operation");
       return NextResponse.json({
         success: true,
         message: `已启用 ${disabled.length} 个卡密`,
@@ -323,6 +339,7 @@ export async function PATCH(request: NextRequest) {
         where: { id: { in: available.map((t) => t.id) } },
         data: { status: "DISABLED" },
       });
+      log.info({ adminId: session.id, action, count: available.length }, "Admin batch card-key operation");
       return NextResponse.json({
         success: true,
         message: `已禁用 ${available.length} 个卡密`,
@@ -351,6 +368,7 @@ export async function PATCH(request: NextRequest) {
         }
       });
 
+      log.info({ adminId: session.id, action, count: operable.length }, "Admin batch card-key operation");
       return NextResponse.json({
         success: true,
         message: `已删除 ${operable.length} 个卡密`,
@@ -374,6 +392,9 @@ export async function PATCH(request: NextRequest) {
 // PUT - Update card key status (admin only, ?id= query param)
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -438,6 +459,11 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    log.info(
+      { adminId: session.id, cardKeyId: id, oldStatus: existing.status, newStatus: status },
+      "Admin updated card-key status"
+    );
+
     return NextResponse.json({
       success: true,
       cardKey: {
@@ -467,6 +493,9 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete card key (admin only, ?id= query param)
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -513,6 +542,11 @@ export async function DELETE(request: NextRequest) {
         },
       });
     }
+
+    log.info(
+      { adminId: session.id, cardKeyId: id, productId: existing.productId },
+      "Admin deleted card key"
+    );
 
     return NextResponse.json({
       success: true,

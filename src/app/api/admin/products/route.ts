@@ -132,6 +132,9 @@ export async function GET(request: NextRequest) {
 // POST - Create a new product (admin only)
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -214,6 +217,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    log.info(
+      { adminId: session.id, productId: product.id, productName: name, slug: productSlug },
+      "Admin created product"
+    );
+
     return NextResponse.json({
       success: true,
       ...(nameWarning && { warning: nameWarning }),
@@ -255,6 +263,9 @@ export async function POST(request: NextRequest) {
 // PUT - Update a product (admin only)
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -354,6 +365,11 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    log.info(
+      { adminId: session.id, productId: id, productName: existing.name, fields: Object.keys(updateData) },
+      "Admin updated product"
+    );
+
     return NextResponse.json({
       success: true,
       product: {
@@ -394,6 +410,9 @@ export async function PUT(request: NextRequest) {
 // DELETE - Soft delete a product (admin only)
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -421,6 +440,11 @@ export async function DELETE(request: NextRequest) {
       where: { id },
       data: { isActive: false },
     });
+
+    log.info(
+      { adminId: session.id, productId: id, productName: existing.name },
+      "Admin soft-deleted product"
+    );
 
     return NextResponse.json({
       success: true,

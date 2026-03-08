@@ -193,6 +193,9 @@ export async function GET(request: NextRequest) {
 // PUT - Update order status (admin only)
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -492,6 +495,11 @@ export async function PUT(request: NextRequest) {
         },
       },
     });
+
+    log.info(
+      { adminId: session.id, orderId: id, orderNo: existing.orderNo, oldStatus: existing.status, newStatus },
+      "Admin updated order status"
+    );
 
     return NextResponse.json({
       success: true,

@@ -108,7 +108,7 @@ export const useCartStore = create<CartStore>()(
       name: "pj37-cart",
       partialize: (state) => ({ items: state.items, updatedAt: state.updatedAt }),
       onRehydrateStorage: () => (state) => {
-        if (state && state.updatedAt && Date.now() - state.updatedAt > CART_TTL) {
+        if (state && (!state.updatedAt || Date.now() - state.updatedAt > CART_TTL)) {
           state.items = [];
           state.updatedAt = Date.now();
         }
