@@ -457,8 +457,8 @@ export default function AdminOrdersPageContent() {
         </div>
       </div>
 
-      {/* Orders Table */}
-      <Card>
+      {/* Orders Table - Desktop */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -677,6 +677,161 @@ export default function AdminOrdersPageContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Orders Cards - Mobile */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 text-[var(--muted-foreground)] animate-spin" />
+            </CardContent>
+          </Card>
+        ) : orders.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Package className="h-10 w-10 text-[var(--muted-foreground)] mb-3" />
+              <p className="text-sm text-[var(--muted-foreground)]">暂无订单数据</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {orders.map((order) => {
+              const status = statusConfig[order.status] ?? {
+                label: order.status,
+                variant: "outline" as const,
+              };
+              const displayEmail = order.user?.email || order.email || "-";
+              const displayName = order.user?.username || displayEmail;
+
+              return (
+                <Card
+                  key={order.id}
+                  className="cursor-pointer hover:bg-[var(--muted)]/50 transition-colors"
+                  onClick={() => setDetailOrder(order)}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-mono font-medium text-[var(--foreground)]">
+                        {order.orderNo}
+                      </span>
+                      <Badge variant={status.variant} className={status.className}>
+                        {status.label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-1.5 text-[var(--muted-foreground)]">
+                        <User className="h-3.5 w-3.5" />
+                        <span className="truncate max-w-[140px]">{displayName}</span>
+                      </div>
+                      <span className="font-semibold text-[var(--foreground)]">
+                        ¥{order.payAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                      <span className="truncate max-w-[180px]">{getProductSummary(order.items)}</span>
+                      <span className="whitespace-nowrap flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDateTime(order.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
+                      <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+                        <CreditCard className="h-3 w-3" />
+                        {formatPaymentMethod(order.paymentMethod)}
+                      </span>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={actionLoading === order.id}
+                              aria-label="订单操作"
+                            >
+                              {actionLoading === order.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="gap-2 cursor-pointer"
+                              onClick={() => setDetailOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              快速查看
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+                              <Link href={`/admin/orders/${order.id}`}>
+                                <ExternalLink className="h-4 w-4" />
+                                订单详情页
+                              </Link>
+                            </DropdownMenuItem>
+                            {order.status === "PAID" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="gap-2 cursor-pointer"
+                                  onClick={() =>
+                                    setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "DELIVERED" })
+                                  }
+                                >
+                                  <Truck className="h-4 w-4" />
+                                  手动发货
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {(order.status === "PAID" || order.status === "DELIVERED") && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="gap-2 cursor-pointer text-[var(--destructive)]"
+                                  onClick={() =>
+                                    setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "REFUNDED" })
+                                  }
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                  退款
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {(order.status === "PENDING" || order.status === "PAID") && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="gap-2 cursor-pointer text-[var(--destructive)]"
+                                  onClick={() =>
+                                    setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "CANCELLED" })
+                                  }
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  取消订单
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {total > 0 && (
+              <PaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                total={total}
+                onPageChange={setCurrentPage}
+                totalLabel="条订单"
+              />
+            )}
+          </>
+        )}
+      </div>
       {/* Order Detail Dialog */}
       <Dialog open={!!detailOrder} onOpenChange={(open) => !open && setDetailOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
