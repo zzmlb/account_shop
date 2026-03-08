@@ -91,6 +91,16 @@ export async function GET(request: NextRequest) {
               orders: true,
             },
           },
+          orders: {
+            where: { status: { in: ["PAID", "DELIVERED"] } },
+            select: { payAmount: true },
+          },
+          loginLogs: {
+            where: { success: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { createdAt: true },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
@@ -108,6 +118,8 @@ export async function GET(request: NextRequest) {
       role: u.role,
       status: u.status,
       orderCount: u._count.orders,
+      totalSpent: u.orders.reduce((sum, o) => sum + Number(o.payAmount), 0),
+      lastLoginAt: u.loginLogs[0]?.createdAt.toISOString() ?? null,
       createdAt: u.createdAt.toISOString(),
       updatedAt: u.updatedAt.toISOString(),
     }));

@@ -53,9 +53,9 @@ export default function HeroSection() {
   }, []);
 
   const displayStats = [
-    { value: stats ? stats.products : "---", label: "精选商品" },
-    { value: stats ? stats.users : "---", label: "注册用户" },
-    { value: stats ? stats.orders : "---", label: "成功交易" },
+    { value: stats?.products, label: "精选商品" },
+    { value: stats?.users, label: "注册用户" },
+    { value: stats?.orders, label: "成功交易" },
   ];
 
   const handleSearch = (e: React.FormEvent) => {
@@ -208,18 +208,22 @@ export default function HeroSection() {
           >
             {displayStats.map((stat, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
-                <span
-                  className="text-2xl font-bold sm:text-3xl"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--primary), var(--accent))",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
-                  {stat.value}
-                </span>
+                {stat.value != null ? (
+                  <span
+                    className="text-2xl font-bold sm:text-3xl"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--primary), var(--accent))",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    {stat.value}
+                  </span>
+                ) : (
+                  <div className="h-8 w-16 animate-pulse rounded bg-[var(--muted)] sm:h-9" />
+                )}
                 <span className="text-sm text-[var(--muted-foreground)]">
                   {stat.label}
                 </span>

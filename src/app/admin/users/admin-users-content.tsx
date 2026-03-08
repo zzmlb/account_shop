@@ -51,6 +51,8 @@ interface ApiUser {
   role: UserRole;
   status: UserStatus;
   orderCount: number;
+  totalSpent: number;
+  lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -274,6 +276,8 @@ export default function AdminUsersPageContent() {
                   { header: "状态", accessor: (u: ApiUser) => u.status === "ACTIVE" ? "正常" : "封禁" },
                   { header: "余额", accessor: (u: ApiUser) => u.balance },
                   { header: "订单数", accessor: (u: ApiUser) => u.orderCount },
+                  { header: "消费总额", accessor: (u: ApiUser) => (u.totalSpent ?? 0).toFixed(2) },
+                  { header: "最后登录", accessor: (u: ApiUser) => u.lastLoginAt ? formatDate(u.lastLoginAt) : "-" },
                   { header: "注册时间", accessor: (u: ApiUser) => formatDate(u.createdAt) },
                 ],
                 users
@@ -338,6 +342,9 @@ export default function AdminUsersPageContent() {
                   <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     订单数
                   </th>
+                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3 hidden lg:table-cell">
+                    消费总额
+                  </th>
                   <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     角色
                   </th>
@@ -368,7 +375,7 @@ export default function AdminUsersPageContent() {
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-12">
+                    <td colSpan={9} className="text-center py-12">
                       <Users className="h-10 w-10 mx-auto text-[var(--muted-foreground)] mb-3" />
                       <p className="text-sm text-[var(--muted-foreground)]">
                         暂无用户数据
@@ -402,6 +409,11 @@ export default function AdminUsersPageContent() {
                         <td className="px-4 py-3 text-right">
                           <span className="text-sm text-[var(--muted-foreground)]">
                             {user.orderCount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right hidden lg:table-cell">
+                          <span className="text-sm text-[var(--foreground)]">
+                            ¥{(user.totalSpent ?? 0).toFixed(2)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -625,6 +637,14 @@ export default function AdminUsersPageContent() {
                 <div>
                   <p className="text-[var(--muted-foreground)]">订单数</p>
                   <p className="font-medium text-[var(--foreground)]">{detailUser.orderCount}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">消费总额</p>
+                  <p className="font-semibold text-[var(--foreground)]">¥{(detailUser.totalSpent ?? 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[var(--muted-foreground)]">最后登录</p>
+                  <p className="font-medium text-[var(--foreground)]">{detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleDateString("zh-CN") : "从未登录"}</p>
                 </div>
                 <div>
                   <p className="text-[var(--muted-foreground)]">注册时间</p>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut, Wallet } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut, Wallet, Heart } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/constants";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useCartStore } from "@/stores/cart-store";
 import { useSiteSettingsStore } from "@/stores/site-settings-store";
 import { useNotificationStore } from "@/stores/notification-store";
+import { useFavoritesStore } from "@/stores/favorites-store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header() {
@@ -22,6 +23,8 @@ export default function Header() {
   const { siteName, load: loadSettings } = useSiteSettingsStore();
   const unreadNotifications = useNotificationStore((s) => s.unreadCount);
   const fetchNotifCount = useNotificationStore((s) => s.fetchCount);
+  const favCount = useFavoritesStore((s) => s.ids.size);
+  const loadFavorites = useFavoritesStore((s) => s.load);
 
   useEffect(() => {
     loadSettings();
@@ -30,9 +33,10 @@ export default function Header() {
   useEffect(() => {
     if (!user) return;
     fetchNotifCount();
+    loadFavorites();
     const interval = setInterval(fetchNotifCount, 60_000);
     return () => clearInterval(interval);
-  }, [user, fetchNotifCount]);
+  }, [user, fetchNotifCount, loadFavorites]);
 
   // Close mobile menu on Escape key
   const handleEscape = useCallback((e: KeyboardEvent) => {
@@ -210,6 +214,22 @@ export default function Header() {
               {unreadNotifications > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-[var(--primary-foreground)]">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {/* Favorites (logged in users only) */}
+          {user && (
+            <Link
+              href="/dashboard/favorites"
+              className="relative hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors sm:flex"
+              aria-label={`收藏${favCount > 0 ? ` (${favCount}件)` : ""}`}
+            >
+              <Heart className="h-5 w-5" />
+              {favCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--destructive)] px-1 text-[10px] font-bold text-white">
+                  {favCount > 99 ? "99+" : favCount}
                 </span>
               )}
             </Link>
