@@ -1,0 +1,489 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  Ticket,
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Copy,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+
+interface Coupon {
+  id: string;
+  code: string;
+  type: "FIXED" | "PERCENTAGE";
+  value: number;
+  minAmount: number | null;
+  maxUses: number | null;
+  usedCount: number;
+  startAt: string;
+  expireAt: string;
+  isActive: boolean;
+  createdAt: string;
+  claimedCount: number;
+}
+
+export default function AdminCouponsContent() {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
+
+  // Create dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formCode, setFormCode] = useState("");
+  const [formType, setFormType] = useState<"FIXED" | "PERCENTAGE">("FIXED");
+  const [formValue, setFormValue] = useState("");
+  const [formMinAmount, setFormMinAmount] = useState("");
+  const [formMaxUses, setFormMaxUses] = useState("");
+  const [formStartAt, setFormStartAt] = useState("");
+  const [formExpireAt, setFormExpireAt] = useState("");
+
+  // Delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null);
+
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/coupons");
+      const data = await res.json();
+      if (data.success) {
+        setCoupons(data.coupons);
+      }
+    } catch {
+      toast.error("加载优惠券失败");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCoupons();
+  }, [fetchCoupons]);
+
+  const openCreateDialog = () => {
+    setFormCode("");
+    setFormType("FIXED");
+    setFormValue("");
+    setFormMinAmount("");
+    setFormMaxUses("");
+    // Default: start now, expire in 30 days
+    const now = new Date();
+    setFormStartAt(now.toISOString().slice(0, 16));
+    const later = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    setFormExpireAt(later.toISOString().slice(0, 16));
+    setDialogOpen(true);
+  };
+
+  const handleCreate = async () => {
+    if (!formCode.trim() || !formValue) {
+      toast.error("请填写优惠码和优惠值");
+      return;
+    }
+
+    setIsMutating(true);
+    try {
+      const res = await fetch("/api/admin/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: formCode.trim(),
+          type: formType,
+          value: formValue,
+          minAmount: formMinAmount || undefined,
+          maxUses: formMaxUses || undefined,
+          startAt: formStartAt,
+          expireAt: formExpireAt,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("优惠券创建成功");
+        setDialogOpen(false);
+        fetchCoupons();
+      } else {
+        toast.error(data.message || "创建失败");
+      }
+    } catch {
+      toast.error("创建失败");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const toggleActive = async (coupon: Coupon) => {
+    try {
+      const res = await fetch("/api/admin/coupons", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: coupon.id, isActive: !coupon.isActive }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCoupons((prev) =>
+          prev.map((c) =>
+            c.id === coupon.id ? { ...c, isActive: !c.isActive } : c
+          )
+        );
+        toast.success(coupon.isActive ? "优惠券已停用" : "优惠券已启用");
+      } else {
+        toast.error(data.message || "操作失败");
+      }
+    } catch {
+      toast.error("操作失败");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingCoupon) return;
+    setIsMutating(true);
+    try {
+      const res = await fetch(
+        `/api/admin/coupons?id=${deletingCoupon.id}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+      if (data.success) {
+        toast.success("优惠券已删除");
+        setDeleteDialogOpen(false);
+        setDeletingCoupon(null);
+        fetchCoupons();
+      } else {
+        toast.error(data.message || "删除失败");
+      }
+    } catch {
+      toast.error("删除失败");
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success("已复制优惠码");
+  };
+
+  const isExpired = (expireAt: string) => new Date(expireAt) < new Date();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-[var(--radius-md)]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--foreground)]">
+            <Ticket className="h-6 w-6 text-[var(--primary)]" />
+            优惠券管理
+          </h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            共 {coupons.length} 张优惠券
+          </p>
+        </div>
+        <Button onClick={openCreateDialog} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          创建优惠券
+        </Button>
+      </div>
+
+      {/* Coupon list */}
+      {coupons.length === 0 ? (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-12 text-center">
+          <Ticket className="mx-auto h-12 w-12 text-[var(--muted-foreground)]" />
+          <p className="mt-4 text-[var(--muted-foreground)]">
+            暂无优惠券，点击上方按钮创建
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+          <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-4 border-b border-[var(--border)] bg-[var(--secondary)]/50 px-4 py-3 text-xs font-medium text-[var(--muted-foreground)]">
+            <span>优惠券信息</span>
+            <span className="w-20 text-center">类型</span>
+            <span className="w-24 text-center">使用情况</span>
+            <span className="w-28 text-center">有效期</span>
+            <span className="w-16 text-center">状态</span>
+            <span className="w-20 text-center">操作</span>
+          </div>
+
+          {coupons.map((coupon) => (
+            <div
+              key={coupon.id}
+              className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 sm:gap-4 items-center border-b last:border-b-0 border-[var(--border)] px-4 py-3 hover:bg-[var(--secondary)]/30 transition-colors"
+            >
+              {/* Code & value */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)]/10">
+                  <Ticket className="h-4 w-4 text-[var(--primary)]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-[var(--foreground)]">
+                      {coupon.code}
+                    </span>
+                    <button
+                      onClick={() => copyCode(coupon.code)}
+                      className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-[var(--muted-foreground)]">
+                    {coupon.type === "FIXED"
+                      ? `减 ¥${coupon.value}`
+                      : `${coupon.value}% 折扣`}
+                    {coupon.minAmount && ` (满 ¥${coupon.minAmount})`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Type badge */}
+              <div className="w-20 flex justify-center">
+                <Badge variant={coupon.type === "FIXED" ? "default" : "secondary"}>
+                  {coupon.type === "FIXED" ? "固定金额" : "百分比"}
+                </Badge>
+              </div>
+
+              {/* Usage */}
+              <div className="w-24 text-center text-sm text-[var(--muted-foreground)]">
+                {coupon.usedCount}
+                {coupon.maxUses ? `/${coupon.maxUses}` : ""} 次
+              </div>
+
+              {/* Expiry */}
+              <div className="w-28 text-center">
+                <span className={`text-xs ${isExpired(coupon.expireAt) ? "text-[var(--destructive)]" : "text-[var(--muted-foreground)]"}`}>
+                  {new Date(coupon.expireAt).toLocaleDateString("zh-CN")}
+                </span>
+              </div>
+
+              {/* Status toggle */}
+              <div className="w-16 flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => toggleActive(coupon)}
+                  title={coupon.isActive ? "点击停用" : "点击启用"}
+                >
+                  {coupon.isActive && !isExpired(coupon.expireAt) ? (
+                    <Eye className="h-4 w-4 text-[var(--success)]" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-[var(--muted-foreground)]" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Actions */}
+              <div className="w-20 flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-[var(--destructive)] hover:text-[var(--destructive)]"
+                  onClick={() => {
+                    setDeletingCoupon(coupon);
+                    setDeleteDialogOpen(true);
+                  }}
+                  title="删除"
+                  disabled={coupon.usedCount > 0}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>创建优惠券</DialogTitle>
+            <DialogDescription>填写优惠券信息</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="coupon-code">
+                优惠码 <span className="text-[var(--destructive)]">*</span>
+              </Label>
+              <Input
+                id="coupon-code"
+                placeholder="例如: WELCOME20"
+                value={formCode}
+                onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+                className="font-mono"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>优惠类型</Label>
+                <Select
+                  value={formType}
+                  onValueChange={(v) => setFormType(v as "FIXED" | "PERCENTAGE")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FIXED">固定金额</SelectItem>
+                    <SelectItem value="PERCENTAGE">百分比</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coupon-value">
+                  优惠值 <span className="text-[var(--destructive)]">*</span>
+                </Label>
+                <Input
+                  id="coupon-value"
+                  type="number"
+                  placeholder={formType === "FIXED" ? "金额 (元)" : "百分比"}
+                  value={formValue}
+                  onChange={(e) => setFormValue(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="coupon-min">最低消费 (可选)</Label>
+                <Input
+                  id="coupon-min"
+                  type="number"
+                  placeholder="¥0"
+                  value={formMinAmount}
+                  onChange={(e) => setFormMinAmount(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coupon-max-uses">最大使用次数 (可选)</Label>
+                <Input
+                  id="coupon-max-uses"
+                  type="number"
+                  placeholder="不限"
+                  value={formMaxUses}
+                  onChange={(e) => setFormMaxUses(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="coupon-start">开始时间</Label>
+                <Input
+                  id="coupon-start"
+                  type="datetime-local"
+                  value={formStartAt}
+                  onChange={(e) => setFormStartAt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coupon-expire">过期时间</Label>
+                <Input
+                  id="coupon-expire"
+                  type="datetime-local"
+                  value={formExpireAt}
+                  onChange={(e) => setFormExpireAt(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isMutating}
+            >
+              取消
+            </Button>
+            <Button onClick={handleCreate} disabled={isMutating}>
+              {isMutating ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  创建中...
+                </>
+              ) : (
+                "创建"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除优惠券「{deletingCoupon?.code}」吗？此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isMutating}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isMutating}
+            >
+              {isMutating ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                "确认删除"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

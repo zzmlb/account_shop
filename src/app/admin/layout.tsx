@@ -11,6 +11,7 @@ import {
   FileText,
   Users,
   BookOpen,
+  Ticket,
   Settings,
   LogOut,
   Bell,
@@ -41,6 +42,7 @@ const sidebarLinks = [
   { label: "订单管理", href: "/admin/orders", icon: FileText },
   { label: "用户管理", href: "/admin/users", icon: Users },
   { label: "文章管理", href: "/admin/articles", icon: BookOpen },
+  { label: "优惠券管理", href: "/admin/coupons", icon: Ticket },
   { label: "系统设置", href: "/admin/settings", icon: Settings },
 ];
 

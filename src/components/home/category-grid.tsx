@@ -52,7 +52,7 @@ export default async function CategoryGrid() {
           return (
             <Link
               key={cat.slug}
-              href={`/products?category=${encodeURIComponent(cat.name)}`}
+              href={`/category/${cat.slug}`}
               className={cn(
                 "group relative flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6",
                 "transition-all duration-300",

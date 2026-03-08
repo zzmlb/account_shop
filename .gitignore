@@ -30,6 +30,10 @@ redis_data/
 *.log
 logs/
 
+# 用户上传文件
+public/uploads/*
+!public/uploads/.gitkeep
+
 # 本地配置
 local.config.*
 *.local
