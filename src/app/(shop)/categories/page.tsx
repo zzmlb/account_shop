@@ -17,7 +17,7 @@ import { db } from "@/server/db";
 import { SITE_NAME } from "@/lib/constants";
 import AnimatedSection from "@/components/shared/animated-section";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120; // ISR: revalidate every 2 minutes
 
 export const metadata: Metadata = {
   title: `商品分类 - ${SITE_NAME}`,

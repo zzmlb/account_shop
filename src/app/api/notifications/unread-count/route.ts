@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 // GET - Lightweight unread notification count
 export async function GET(request: NextRequest) {
+  const rl = apiLimiter(getClientIp(request));
+  if (!rl.success) return rateLimitResponse(rl);
+
   const session = decodeSession(request.cookies.get("session")?.value || "");
   if (!session) {
     return NextResponse.json({ count: 0 });

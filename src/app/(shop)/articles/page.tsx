@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { db } from "@/server/db";
 import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120; // ISR: revalidate every 2 minutes
 
 export const metadata = {
   title: "帮助中心 - PJ37 数字商品交易平台",

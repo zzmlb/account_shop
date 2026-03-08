@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL, SITE_DESCRIPTION } from "@/lib/constants";
 import CategoryPageContent from "./category-page-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR: revalidate every 60 seconds
 
 interface Props {
   params: Promise<{ slug: string }>;

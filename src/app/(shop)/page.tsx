@@ -10,7 +10,7 @@ import Testimonials from "@/components/home/testimonials";
 import RecentlyViewed from "@/components/home/recently-viewed";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR: revalidate every 60 seconds
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} — ${SITE_DESCRIPTION}`,

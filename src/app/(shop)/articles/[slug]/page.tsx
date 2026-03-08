@@ -4,7 +4,7 @@ import ArticleDetailContent from "./article-detail-content";
 import type { Metadata } from "next";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120; // ISR: revalidate every 2 minutes
 
 interface Props {
   params: Promise<{ slug: string }>;

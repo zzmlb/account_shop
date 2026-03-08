@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { sendCardKeyDelivery } from "@/server/services/email";
 import { createNotification } from "@/server/services/notification";
 import { decryptCardKey } from "@/lib/crypto";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("admin/orders");
 
@@ -44,6 +45,9 @@ function getAdminSession(request: NextRequest) {
 // GET - List all orders (admin only)
 export async function GET(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 

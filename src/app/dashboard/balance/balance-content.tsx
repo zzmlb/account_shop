@@ -15,6 +15,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -116,10 +123,11 @@ export default function BalancePageContent() {
 
   const displayBalance = balance !== null ? balance : (user?.balance ?? 0);
 
+  const [showRechargeGuide, setShowRechargeGuide] = useState(false);
+
   const handleRecharge = () => {
-    toast.info("充值功能开发中", {
-      description: "支付集成即将上线，敬请期待",
-    });
+    if (!selectedAmount) return;
+    setShowRechargeGuide(true);
   };
 
   const exportTransactions = () => {
@@ -326,6 +334,42 @@ export default function BalancePageContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Recharge Guide Dialog */}
+      <Dialog open={showRechargeGuide} onOpenChange={setShowRechargeGuide}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>充值 ¥{selectedAmount}</DialogTitle>
+            <DialogDescription>
+              请按以下步骤完成余额充值
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]/50 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)]">1</span>
+                <p className="text-sm">联系客服获取充值账户信息（支付宝/微信/银行卡）</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)]">2</span>
+                <p className="text-sm">转账 <strong className="text-[var(--primary)]">¥{selectedAmount}</strong>，备注您的用户名: <strong className="text-[var(--primary)]">{user?.username}</strong></p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-[var(--primary-foreground)]">3</span>
+                <p className="text-sm">转账完成后通知客服，管理员审核后余额将自动到账</p>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--muted-foreground)] text-center">
+              如有问题请通过<a href="/contact" className="text-[var(--primary)] hover:underline">联系我们</a>页面反馈
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowRechargeGuide(false)}>
+              关闭
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

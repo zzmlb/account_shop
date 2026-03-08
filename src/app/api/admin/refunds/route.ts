@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { sendRefundNotification } from "@/server/services/email";
 import { createNotification } from "@/server/services/notification";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("admin/refunds");
 
@@ -36,6 +37,9 @@ function getAdminSession(request: NextRequest) {
 // GET - List all refund requests
 export async function GET(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 

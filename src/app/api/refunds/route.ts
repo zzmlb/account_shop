@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("refunds");
 
 // GET - List user's refund requests
 export async function GET(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = decodeSession(request.cookies.get("session")?.value || "");
     if (!session) {
       return NextResponse.json(
@@ -64,6 +68,9 @@ export async function GET(request: NextRequest) {
 // POST - Submit a refund request
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = decodeSession(request.cookies.get("session")?.value || "");
     if (!session) {
       return NextResponse.json(

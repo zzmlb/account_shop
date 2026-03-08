@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { getSessionFromRequest } from "@/lib/auth";
 import { createLogger } from "@/lib/logger";
 import { createCategorySchema, updateCategorySchema, formatZodError } from "@/lib/validators";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("admin/categories");
 
@@ -21,6 +22,9 @@ function slugify(text: string): string {
 // GET - List all categories (admin sees all, including inactive)
 export async function GET(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = getSessionFromRequest(request);
     if (!session || !isAdmin(session.role)) {
       return NextResponse.json(
