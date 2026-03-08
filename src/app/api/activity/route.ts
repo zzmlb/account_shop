@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("activity");
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +60,8 @@ export async function GET(request: NextRequest) {
       "public, s-maxage=30, stale-while-revalidate=120"
     );
     return response;
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Activity feed error");
     return NextResponse.json(
       { success: false, activity: [] },
       { status: 500 }

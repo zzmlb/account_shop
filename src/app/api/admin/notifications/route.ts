@@ -174,7 +174,8 @@ export async function GET(request: NextRequest) {
       count: notifications.length,
       notifications,
     });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Admin notifications GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

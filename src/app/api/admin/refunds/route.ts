@@ -282,7 +282,7 @@ export async function PUT(request: NextRequest) {
         userId: refund.userId,
         type: "REFUND",
         title: "退款申请已通过",
-        content: `您的订单 ${refund.order.orderNo} 退款申请已通过，¥${Number(refund.amount).toFixed(2)} 已退还至账户余额。${adminNote ? `管理员备注: ${adminNote}` : ""}`,
+        content: `您的订单 ${refund.order.orderNo} 退款申请已通过，¥${Number(refund.amount).toFixed(2)} 已退还至账户余额。${adminNote ? `管理员备注: ${stripHtml(adminNote)}` : ""}`,
         href: "/dashboard/refunds",
       });
 
@@ -334,7 +334,7 @@ export async function PUT(request: NextRequest) {
         userId: refund.userId,
         type: "REFUND",
         title: "退款申请被拒绝",
-        content: `您的订单 ${refund.order.orderNo} 退款申请未通过。${adminNote ? `管理员备注: ${adminNote}` : "如有疑问请联系客服。"}`,
+        content: `您的订单 ${refund.order.orderNo} 退款申请未通过。${adminNote ? `管理员备注: ${stripHtml(adminNote)}` : "如有疑问请联系客服。"}`,
         href: "/dashboard/refunds",
       });
 

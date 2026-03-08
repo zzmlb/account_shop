@@ -3,6 +3,9 @@ import { db } from "@/server/db";
 import { getAdminSession } from "@/lib/admin-auth";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("admin/audit-logs");
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +54,8 @@ export async function GET(request: NextRequest) {
       })),
       ...paginationMeta(total, page, pageSize),
     });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Audit logs error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
