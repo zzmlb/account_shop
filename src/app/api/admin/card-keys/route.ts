@@ -163,6 +163,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (keys.length > 5000) {
+      return NextResponse.json(
+        { success: false, message: "单次最多导入5000个卡密" },
+        { status: 400 }
+      );
+    }
+
     // Verify product exists
     const product = await db.product.findUnique({
       where: { id: productId },

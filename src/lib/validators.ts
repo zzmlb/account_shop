@@ -166,7 +166,7 @@ export const createOrderSchema = z.object({
     .min(1, "订单商品不能为空")
     .max(50, "单笔订单商品种类不能超过50"),
   paymentMethod: z.string().optional(),
-  email: z.string().email("邮箱格式不正确").optional().or(z.literal("")),
+  email: z.union([z.string().email("邮箱格式不正确"), z.literal("")]).optional(),
   couponCode: z.string().max(50).optional(),
 });
 

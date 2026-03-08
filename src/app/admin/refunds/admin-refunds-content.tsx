@@ -8,13 +8,12 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
   User,
   ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -322,33 +321,7 @@ export default function AdminRefundsContent() {
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-sm text-[var(--muted-foreground)]">
-                共 {total} 条，第 {page}/{totalPages} 页
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  上一页
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  下一页
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </>
       )}
 

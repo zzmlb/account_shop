@@ -167,6 +167,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Cap adminNote length
+    if (adminNote && typeof adminNote === "string" && adminNote.length > 500) {
+      return NextResponse.json(
+        { success: false, message: "管理员备注不能超过500个字符" },
+        { status: 400 }
+      );
+    }
+
     const refund = await db.refundRequest.findUnique({
       where: { id },
       include: {
