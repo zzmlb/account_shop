@@ -55,11 +55,21 @@ export async function POST(request: NextRequest) {
       where: { isRead: true, createdAt: { lt: thirtyDaysAgo } },
     });
 
+    // Auto-deactivate expired coupons
+    const deactivatedCoupons = await db.coupon.updateMany({
+      where: {
+        isActive: true,
+        expireAt: { lt: now },
+      },
+      data: { isActive: false },
+    });
+
     log.info(
       {
         loginLogs: deletedLogs.count,
         passwordResets: deletedTokens.count,
         notifications: deletedNotifications.count,
+        deactivatedCoupons: deactivatedCoupons.count,
       },
       "Data cleanup completed"
     );
@@ -71,6 +81,7 @@ export async function POST(request: NextRequest) {
         loginLogs: deletedLogs.count,
         passwordResets: deletedTokens.count,
         notifications: deletedNotifications.count,
+        deactivatedCoupons: deactivatedCoupons.count,
       },
     });
   } catch (error) {

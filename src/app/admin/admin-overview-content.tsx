@@ -15,6 +15,7 @@ import {
   Crown,
   Loader2,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ interface StatsData {
   totalProducts: number;
   totalUsers: number;
   totalRevenue: number;
+  pendingRefunds: number;
 }
 
 interface OrderStatusCount {
@@ -266,7 +268,9 @@ export default function AdminOverviewPageContent() {
       icon: AlertTriangle,
       color: "var(--warning)",
       change: null,
-      sub: `在售商品 ${stats?.totalProducts ?? 0}`,
+      sub: stats?.pendingRefunds
+        ? `待处理退款 ${stats.pendingRefunds} 件`
+        : `在售商品 ${stats?.totalProducts ?? 0}`,
     },
   ];
 
@@ -726,6 +730,26 @@ export default function AdminOverviewPageContent() {
                   </div>
                 </Link>
               </Button>
+              {(stats?.pendingRefunds ?? 0) > 0 && (
+                <Button
+                  asChild
+                  className="w-full justify-start gap-3"
+                  variant="outline"
+                  size="lg"
+                >
+                  <Link href="/admin/refunds">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--destructive)]/10">
+                      <RotateCcw className="h-4 w-4 text-[var(--destructive)]" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">待处理退款</span>
+                      <span className="text-[10px] text-[var(--muted-foreground)]">
+                        {stats?.pendingRefunds} 件退款申请等待审核
+                      </span>
+                    </div>
+                  </Link>
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

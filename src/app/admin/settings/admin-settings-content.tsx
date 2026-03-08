@@ -177,6 +177,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.site_name}
                 onChange={(e) => updateSetting("site_name", e.target.value)}
                 placeholder="请输入站点名称"
+                maxLength={50}
               />
             </div>
             <div className="space-y-2">
@@ -186,6 +187,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.logo_url}
                 onChange={(e) => updateSetting("logo_url", e.target.value)}
                 placeholder="https://example.com/logo.png"
+                maxLength={500}
               />
             </div>
           </div>
@@ -198,6 +200,7 @@ export default function AdminSettingsPageContent() {
                 updateSetting("site_description", e.target.value)
               }
               placeholder="请输入站点描述"
+              maxLength={200}
             />
           </div>
           <div className="space-y-2">
@@ -210,6 +213,7 @@ export default function AdminSettingsPageContent() {
                 updateSetting("announcement", e.target.value)
               }
               placeholder="请输入公告内容"
+              maxLength={500}
             />
           </div>
           <Separator />
@@ -260,6 +264,7 @@ export default function AdminSettingsPageContent() {
                   updateSetting("alipay_merchant_id", e.target.value)
                 }
                 placeholder="请输入支付宝商户 ID"
+                maxLength={64}
               />
             </div>
             <div className="space-y-2">
@@ -271,6 +276,7 @@ export default function AdminSettingsPageContent() {
                   updateSetting("wechat_merchant_id", e.target.value)
                 }
                 placeholder="请输入微信商户 ID"
+                maxLength={64}
               />
             </div>
           </div>
@@ -380,6 +386,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.smtp_server}
                 onChange={(e) => updateSetting("smtp_server", e.target.value)}
                 placeholder="smtp.example.com"
+                maxLength={253}
               />
             </div>
             <div className="space-y-2">
@@ -389,6 +396,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.smtp_port}
                 onChange={(e) => updateSetting("smtp_port", e.target.value)}
                 placeholder="465"
+                maxLength={5}
               />
             </div>
           </div>
@@ -400,6 +408,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.smtp_username}
                 onChange={(e) => updateSetting("smtp_username", e.target.value)}
                 placeholder="noreply@example.com"
+                maxLength={254}
               />
             </div>
             <div className="space-y-2">
@@ -410,6 +419,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.smtp_password}
                 onChange={(e) => updateSetting("smtp_password", e.target.value)}
                 placeholder="SMTP 密码"
+                maxLength={128}
               />
             </div>
           </div>
@@ -421,6 +431,7 @@ export default function AdminSettingsPageContent() {
                 value={settings.sender_name}
                 onChange={(e) => updateSetting("sender_name", e.target.value)}
                 placeholder="站点通知"
+                maxLength={50}
               />
             </div>
           </div>
@@ -472,6 +483,7 @@ export default function AdminSettingsPageContent() {
               value={settings.seo_title}
               onChange={(e) => updateSetting("seo_title", e.target.value)}
               placeholder="首页 Title 标签"
+              maxLength={70}
             />
           </div>
           <div className="space-y-2">
@@ -484,6 +496,7 @@ export default function AdminSettingsPageContent() {
                 updateSetting("seo_description", e.target.value)
               }
               placeholder="首页 Meta Description"
+              maxLength={300}
             />
           </div>
           <div className="space-y-2">
@@ -493,6 +506,7 @@ export default function AdminSettingsPageContent() {
               value={settings.seo_keywords}
               onChange={(e) => updateSetting("seo_keywords", e.target.value)}
               placeholder="关键词1,关键词2,关键词3"
+              maxLength={300}
             />
             <p className="text-xs text-[var(--muted-foreground)]">
               多个关键词用英文逗号分隔

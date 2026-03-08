@@ -869,6 +869,7 @@ export default function DashboardSettingsPageContent() {
                 placeholder="请输入当前密码"
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
+                autoFocus
               />
             </div>
             <div className="space-y-2">
@@ -879,6 +880,7 @@ export default function DashboardSettingsPageContent() {
                 placeholder="输入 DELETE"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
+                maxLength={6}
               />
             </div>
           </div>

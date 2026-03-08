@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
       lowStockCount,
       totalProducts,
       totalUsers,
+      pendingRefunds,
     ] = await Promise.all([
       db.order.aggregate({
         _sum: { payAmount: true },
@@ -122,6 +123,7 @@ export async function GET(request: NextRequest) {
       }),
       db.product.count({ where: { isActive: true } }),
       db.user.count(),
+      db.refundRequest.count({ where: { status: "PENDING" } }),
     ]);
 
     const todaySales = Number(todaySalesResult._sum.payAmount ?? 0);
@@ -253,6 +255,7 @@ export async function GET(request: NextRequest) {
         totalProducts,
         totalUsers,
         totalRevenue,
+        pendingRefunds,
       },
       recentOrders,
       hotProducts,

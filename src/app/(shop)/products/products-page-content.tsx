@@ -128,6 +128,17 @@ export default function ProductsPageContent() {
         );
         setTotalPages(data.pagination.totalPages);
         setTotal(data.pagination.total);
+
+        // If current page exceeds total pages, redirect to last valid page
+        if (data.pagination.totalPages > 0 && page > data.pagination.totalPages) {
+          const params = new URLSearchParams(searchParams?.toString() ?? "");
+          if (data.pagination.totalPages <= 1) {
+            params.delete("page");
+          } else {
+            params.set("page", String(data.pagination.totalPages));
+          }
+          router.replace(`/products${params.toString() ? `?${params.toString()}` : ""}`);
+        }
       }
     } catch {
       toast.error("商品加载失败，请刷新重试");
