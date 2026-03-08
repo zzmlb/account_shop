@@ -72,6 +72,8 @@ export default function Pagination({
                 size="sm"
                 onClick={() => onPageChange(item)}
                 className="h-8 w-8 p-0"
+                aria-label={`第 ${item} 页`}
+                aria-current={item === page ? "page" : undefined}
               >
                 {item}
               </Button>

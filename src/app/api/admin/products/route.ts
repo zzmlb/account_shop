@@ -460,3 +460,72 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+// PATCH - Reconcile stock counts (admin only)
+export async function PATCH(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { action } = body;
+
+    if (action !== "reconcile-stock") {
+      return NextResponse.json(
+        { success: false, message: "无效操作" },
+        { status: 400 }
+      );
+    }
+
+    // Find all active products with stock mismatches
+    const products = await db.product.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, stockCount: true },
+    });
+
+    let fixedCount = 0;
+    const fixes: Array<{ name: string; oldStock: number; newStock: number }> = [];
+
+    for (const product of products) {
+      const actualAvailable = await db.cardKey.count({
+        where: { productId: product.id, status: "AVAILABLE" },
+      });
+
+      if (product.stockCount !== actualAvailable) {
+        await db.product.update({
+          where: { id: product.id },
+          data: { stockCount: actualAvailable },
+        });
+        fixes.push({
+          name: product.name,
+          oldStock: product.stockCount,
+          newStock: actualAvailable,
+        });
+        fixedCount++;
+      }
+    }
+
+    log.info(
+      { adminId: session.id, fixedCount, fixes },
+      "Admin reconciled stock counts"
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: fixedCount > 0
+        ? `已修复 ${fixedCount} 个商品的库存数据`
+        : "所有商品库存数据一致，无需修复",
+      fixedCount,
+      fixes,
+    });
+  } catch (error) {
+    log.error({ err: error }, "Admin products PATCH error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}

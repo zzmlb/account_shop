@@ -68,7 +68,28 @@ export async function GET(request: NextRequest) {
       db.contactMessage.count({ where: { status: "PENDING" } }),
     ]);
 
+    // Stock reconciliation: check if stockCount matches actual AVAILABLE card keys
+    const stockMismatch = await db.$queryRaw<Array<{ cnt: bigint }>>`
+      SELECT COUNT(*) as cnt FROM products p
+      WHERE p."isActive" = true
+      AND p."stockCount" != (
+        SELECT COUNT(*) FROM card_keys ck
+        WHERE ck."productId" = p.id AND ck.status = 'AVAILABLE'
+      )
+    `;
+    const mismatchCount = Number(stockMismatch[0]?.cnt ?? 0);
+
     const notifications = [];
+
+    if (mismatchCount > 0) {
+      notifications.push({
+        id: "stock-mismatch",
+        type: "alert",
+        title: `${mismatchCount} 个商品库存数据不一致`,
+        description: "商品的库存计数与实际可用卡密数量不匹配，请检查",
+        href: "/admin/products",
+      });
+    }
 
     if (outOfStockProducts > 0) {
       notifications.push({

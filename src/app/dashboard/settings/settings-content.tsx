@@ -369,6 +369,7 @@ export default function DashboardSettingsPageContent() {
                 onMouseLeave={() => setAvatarHover(false)}
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
+                aria-label="上传头像"
               >
                 <div
                   className={cn(

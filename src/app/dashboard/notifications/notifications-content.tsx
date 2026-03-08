@@ -191,8 +191,10 @@ export default function NotificationsContent() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2" role="tablist" aria-label="通知筛选">
         <button
+          role="tab"
+          aria-selected={activeFilter === "all"}
           onClick={() => {
             setActiveFilter("all");
             setPagination((p) => ({ ...p, page: 1 }));
@@ -207,6 +209,8 @@ export default function NotificationsContent() {
           全部
         </button>
         <button
+          role="tab"
+          aria-selected={activeFilter === "unread"}
           onClick={() => {
             setActiveFilter("unread");
             setPagination((p) => ({ ...p, page: 1 }));
@@ -229,8 +233,17 @@ export default function NotificationsContent() {
 
       {/* Notification list */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+        <div className="animate-pulse space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
+              <div className="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-[var(--muted)]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-2/3 rounded bg-[var(--muted)]" />
+                <div className="h-3 w-full rounded bg-[var(--muted)]" />
+                <div className="h-3 w-20 rounded bg-[var(--muted)]" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -250,6 +263,7 @@ export default function NotificationsContent() {
               <button
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
+                aria-label={`${n.isRead ? "" : "未读 - "}${n.title}`}
                 className={cn(
                   "flex w-full items-start gap-3 rounded-[var(--radius-lg)] border p-4 text-left transition-all",
                   n.isRead

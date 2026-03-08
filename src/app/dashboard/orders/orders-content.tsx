@@ -8,7 +8,6 @@ import {
   Download,
   Search,
   Calendar,
-  Loader2,
   AlertCircle,
   Key,
   Copy,
@@ -305,16 +304,18 @@ export default function OrdersPageContent() {
               type="date"
               value={dateFrom}
               onChange={(e) => handleDateChange(e.target.value, dateTo)}
-              className="h-8 w-[130px] text-xs"
+              className="h-8 w-full sm:w-[130px] text-xs"
               placeholder="开始日期"
+              aria-label="开始日期"
             />
             <span className="text-xs text-[var(--muted-foreground)]">~</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(e) => handleDateChange(dateFrom, e.target.value)}
-              className="h-8 w-[130px] text-xs"
+              className="h-8 w-full sm:w-[130px] text-xs"
               placeholder="结束日期"
+              aria-label="结束日期"
             />
             {(dateFrom || dateTo) && (
               <button
@@ -339,9 +340,20 @@ export default function OrdersPageContent() {
 
       {/* Loading state */}
       {loading && (
-        <div className="flex flex-col items-center py-16 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-          <p className="mt-4 text-sm text-[var(--muted-foreground)]">加载订单中...</p>
+        <div className="animate-pulse space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-32 rounded bg-[var(--muted)]" />
+                <div className="h-5 w-16 rounded-full bg-[var(--muted)]" />
+              </div>
+              <div className="h-3 w-2/3 rounded bg-[var(--muted)]" />
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-20 rounded bg-[var(--muted)]" />
+                <div className="h-3 w-24 rounded bg-[var(--muted)]" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
