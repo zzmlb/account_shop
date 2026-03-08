@@ -14,6 +14,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
@@ -478,6 +479,15 @@ export default function OrdersPageContent() {
                             <ChevronDown className="h-3.5 w-3.5" />
                           )}
                         </button>
+                      )}
+                      {order.status === "DELIVERED" && order.items.length > 0 && (
+                        <Link
+                          href={`/products/${order.items[0].productSlug}`}
+                          className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-3 py-1.5 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/10"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">再次购买</span>
+                        </Link>
                       )}
                       <Link
                         href={`/order/${order.orderNo}`}

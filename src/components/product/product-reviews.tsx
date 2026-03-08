@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Star, Loader2, MessageSquare, Send, ArrowUpDown, Shield } from "lucide-react";
+import { Star, Loader2, MessageSquare, Send, ArrowUpDown, Shield, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
@@ -415,9 +415,15 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                     </div>
                   )}
                   <div>
-                    <span className="text-sm font-medium text-[var(--foreground)]">
-                      {review.username}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium text-[var(--foreground)]">
+                        {review.username}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-600">
+                        <BadgeCheck className="h-3 w-3" />
+                        已购买
+                      </span>
+                    </div>
                     <Stars rating={review.rating} size="sm" />
                   </div>
                 </div>
