@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("coupons/validate");
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
     const body = await request.json();
     const { code, amount } = body as { code?: string; amount?: number };
 

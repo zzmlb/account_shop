@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("products");
 
 export async function GET(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get("category");
     const search = searchParams.get("search");

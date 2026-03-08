@@ -3,6 +3,7 @@ import Footer from "@/components/layout/footer";
 import MobileNav from "@/components/layout/mobile-nav";
 import CommandMenu from "@/components/search/command-menu";
 import ScrollToTop from "@/components/shared/scroll-to-top";
+import AnnouncementBanner from "@/components/home/announcement-banner";
 
 export default function ShopLayout({
   children,
@@ -11,6 +12,7 @@ export default function ShopLayout({
 }) {
   return (
     <div className="relative flex min-h-screen flex-col">
+      <AnnouncementBanner />
       <Header />
       <main id="main-content" className="flex-1 pt-16 pb-16 md:pb-0">{children}</main>
       <Footer />

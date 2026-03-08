@@ -53,33 +53,77 @@ export async function GET(request: NextRequest) {
 
     // ---------- Stats ----------
 
-    // todaySales: sum of totalAmount from orders with status PAID or DELIVERED created today
-    const todaySalesResult = await db.order.aggregate({
-      _sum: { totalAmount: true },
-      where: {
-        status: { in: ["PAID", "DELIVERED"] },
-        createdAt: { gte: todayStart },
-      },
-    });
-    const todaySales = Number(todaySalesResult._sum.totalAmount ?? 0);
+    const yesterdayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 1
+    );
 
-    // todayOrders: count of orders created today
-    const todayOrders = await db.order.count({
-      where: { createdAt: { gte: todayStart } },
-    });
+    // Parallel fetch for efficiency
+    const [
+      todaySalesResult,
+      yesterdaySalesResult,
+      todayOrders,
+      yesterdayOrders,
+      todayPaidOrders,
+      yesterdayPaidOrders,
+      newUsers,
+      yesterdayUsers,
+      lowStockCount,
+      totalProducts,
+      totalUsers,
+    ] = await Promise.all([
+      db.order.aggregate({
+        _sum: { payAmount: true },
+        where: {
+          status: { in: ["PAID", "DELIVERED"] },
+          createdAt: { gte: todayStart },
+        },
+      }),
+      db.order.aggregate({
+        _sum: { payAmount: true },
+        where: {
+          status: { in: ["PAID", "DELIVERED"] },
+          createdAt: { gte: yesterdayStart, lt: todayStart },
+        },
+      }),
+      db.order.count({
+        where: { createdAt: { gte: todayStart } },
+      }),
+      db.order.count({
+        where: { createdAt: { gte: yesterdayStart, lt: todayStart } },
+      }),
+      db.order.count({
+        where: {
+          status: { in: ["PAID", "DELIVERED"] },
+          createdAt: { gte: todayStart },
+        },
+      }),
+      db.order.count({
+        where: {
+          status: { in: ["PAID", "DELIVERED"] },
+          createdAt: { gte: yesterdayStart, lt: todayStart },
+        },
+      }),
+      db.user.count({
+        where: { createdAt: { gte: todayStart } },
+      }),
+      db.user.count({
+        where: { createdAt: { gte: yesterdayStart, lt: todayStart } },
+      }),
+      db.product.count({
+        where: { isActive: true, stockCount: { lt: 10 } },
+      }),
+      db.product.count({ where: { isActive: true } }),
+      db.user.count(),
+    ]);
 
-    // newUsers: count of users created today
-    const newUsers = await db.user.count({
-      where: { createdAt: { gte: todayStart } },
-    });
+    const todaySales = Number(todaySalesResult._sum.payAmount ?? 0);
+    const yesterdaySales = Number(yesterdaySalesResult._sum.payAmount ?? 0);
 
-    // lowStockCount: count of active products with stockCount < 10
-    const lowStockCount = await db.product.count({
-      where: {
-        isActive: true,
-        stockCount: { lt: 10 },
-      },
-    });
+    // Conversion rate: paid orders / total orders
+    const todayConversion = todayOrders > 0 ? todayPaidOrders / todayOrders : 0;
+    const yesterdayConversion = yesterdayOrders > 0 ? yesterdayPaidOrders / yesterdayOrders : 0;
 
     // ---------- Recent Orders ----------
 
@@ -127,36 +171,39 @@ export async function GET(request: NextRequest) {
 
     // ---------- Sales Chart (last 7 days) ----------
 
-    // Build array of last 7 days
-    const salesChart: { date: string; amount: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const dayStart = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - i
-      );
-      const dayEnd = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - i + 1
-      );
+    // Build array of last 7 days — parallel queries
+    const chartDays = Array.from({ length: 7 }, (_, i) => {
+      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
+      const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i) + 1);
+      return { dayStart, dayEnd };
+    });
 
-      const dayResult = await db.order.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          status: { in: ["PAID", "DELIVERED"] },
-          createdAt: { gte: dayStart, lt: dayEnd },
-        },
-      });
+    const chartResults = await Promise.all(
+      chartDays.map(({ dayStart, dayEnd }) =>
+        Promise.all([
+          db.order.aggregate({
+            _sum: { payAmount: true },
+            where: {
+              status: { in: ["PAID", "DELIVERED"] },
+              createdAt: { gte: dayStart, lt: dayEnd },
+            },
+          }),
+          db.order.count({
+            where: { createdAt: { gte: dayStart, lt: dayEnd } },
+          }),
+        ])
+      )
+    );
 
+    const salesChart = chartDays.map(({ dayStart }, idx) => {
       const mm = String(dayStart.getMonth() + 1).padStart(2, "0");
       const dd = String(dayStart.getDate()).padStart(2, "0");
-
-      salesChart.push({
+      return {
         date: `${mm}/${dd}`,
-        amount: Number(dayResult._sum.totalAmount ?? 0),
-      });
-    }
+        amount: Number(chartResults[idx][0]._sum.payAmount ?? 0),
+        orders: chartResults[idx][1],
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -165,6 +212,15 @@ export async function GET(request: NextRequest) {
         todayOrders,
         newUsers,
         lowStockCount,
+        // Comparison metrics
+        yesterdaySales,
+        yesterdayOrders,
+        yesterdayUsers,
+        todayConversion: Math.round(todayConversion * 10000) / 100, // percentage
+        yesterdayConversion: Math.round(yesterdayConversion * 10000) / 100,
+        // Totals
+        totalProducts,
+        totalUsers,
       },
       recentOrders,
       hotProducts,

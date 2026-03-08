@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   metadataBase: new URL(SITE_URL),
+  manifest: "/manifest.json",
   keywords: ["数字商品", "虚拟商品", "卡密", "自动发货", "PJ37"],
   authors: [{ name: "PJ37 Digital" }],
   openGraph: {

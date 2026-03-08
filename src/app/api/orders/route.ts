@@ -118,7 +118,13 @@ export async function POST(request: NextRequest) {
 
       if (product.stockCount < item.quantity) {
         return NextResponse.json(
-          { success: false, message: `${product.name} 库存不足` },
+          {
+            success: false,
+            message: product.stockCount === 0
+              ? `${product.name} 已售罄`
+              : `${product.name} 库存不足，仅剩 ${product.stockCount} 件`,
+            code: "STOCK_INSUFFICIENT",
+          },
           { status: 400 }
         );
       }

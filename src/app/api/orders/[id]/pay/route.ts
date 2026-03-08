@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { sendOrderConfirmation, sendCardKeyDelivery } from "@/server/services/email";
+import { paymentLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("orders/pay");
 
@@ -12,6 +13,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = paymentLimiter(ip);
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { id } = await params;
     const session = decodeSession(
       request.cookies.get("session")?.value || ""

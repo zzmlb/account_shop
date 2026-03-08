@@ -4,6 +4,7 @@ import { existsSync } from "fs";
 import path from "path";
 import { decodeSession } from "@/lib/auth";
 import { createLogger } from "@/lib/logger";
+import { uploadLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("upload");
 
@@ -30,6 +31,10 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Rate limit
+    const rl = uploadLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
 
     const role = session.role.toUpperCase();
     if (role !== "ADMIN" && role !== "SUPER_ADMIN") {

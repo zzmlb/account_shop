@@ -117,3 +117,38 @@ export const apiLimiter = rateLimit({ max: 30, windowSeconds: 60 });
 
 /** Registration endpoint: 3 requests per 300 seconds (5 minutes). */
 export const registerLimiter = rateLimit({ max: 3, windowSeconds: 300 });
+
+/** File upload endpoint: 10 uploads per 60 seconds. */
+export const uploadLimiter = rateLimit({ max: 10, windowSeconds: 60 });
+
+/** Payment endpoint: 5 requests per 60 seconds. */
+export const paymentLimiter = rateLimit({ max: 5, windowSeconds: 60 });
+
+/**
+ * Extract client IP from a Next.js request.
+ */
+export function getClientIp(request: { headers: { get(name: string): string | null } }): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+/**
+ * Build a standard 429 JSON response with Retry-After header.
+ */
+export function rateLimitResponse(result: RateLimitResult) {
+  const retryAfterSec = Math.ceil((result.reset - Date.now()) / 1000);
+  return Response.json(
+    { success: false, message: "请求过于频繁，请稍后再试" },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.max(retryAfterSec, 1)),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": String(result.reset),
+      },
+    }
+  );
+}
