@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -82,6 +82,7 @@ export default function CheckoutContent() {
   const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("balance");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const idempotencyKeyRef = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const [mounted, setMounted] = useState(false);
   const [priceChecked, setPriceChecked] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponState | null>(null);
@@ -189,10 +190,13 @@ export default function CheckoutContent() {
     setIsSubmitting(true);
 
     try {
-      // Create order via API
+      // Create order via API (with idempotency key to prevent duplicate submissions)
       const orderRes = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKeyRef.current,
+        },
         body: JSON.stringify({
           items: items.map((item) => ({
             productId: item.productId,

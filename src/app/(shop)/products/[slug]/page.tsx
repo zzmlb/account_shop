@@ -99,6 +99,7 @@ export default async function ProductDetailPage({
     price: Number(product.price),
     originalPrice: product.originalPrice ? Number(product.originalPrice) : undefined,
     image: product.image || undefined,
+    images: product.images || [],
     stockCount: product.stockCount,
     soldCount: product.soldCount,
     categoryName: product.category.name,

@@ -8,6 +8,9 @@ import { createOrderSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("orders");
 
+// Simple in-memory idempotency cache to prevent duplicate order creation
+const idempotencyCache = new Map<string, { orderNo: string; expiresAt: number }>();
+
 function generateOrderNo(): string {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, "");
@@ -79,6 +82,31 @@ export async function POST(request: NextRequest) {
         { success: false, message: "请求过于频繁，请稍后再试" },
         { status: 429 }
       );
+    }
+
+    // Idempotency check: prevent duplicate orders from double-clicks / retries
+    const idempotencyKey = request.headers.get("x-idempotency-key");
+    if (idempotencyKey) {
+      const cached = idempotencyCache.get(idempotencyKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        log.info({ idempotencyKey, orderNo: cached.orderNo }, "Duplicate order creation prevented");
+        const existingOrder = await db.order.findUnique({
+          where: { orderNo: cached.orderNo },
+          include: { items: { include: { product: { select: { name: true } } } } },
+        });
+        if (existingOrder) {
+          return NextResponse.json({
+            success: true,
+            order: {
+              id: existingOrder.id,
+              orderNo: existingOrder.orderNo,
+              totalAmount: Number(existingOrder.totalAmount),
+              payAmount: Number(existingOrder.payAmount),
+              status: existingOrder.status,
+            },
+          });
+        }
+      }
     }
 
     const session = decodeSession(
@@ -219,6 +247,21 @@ export async function POST(request: NextRequest) {
     });
 
     log.info({ orderNo: order.orderNo, userId: session?.id, total: Number(order.totalAmount), payAmount: Number(order.payAmount), discount, couponId }, "Order created");
+
+    // Cache idempotency key for 60 seconds
+    if (idempotencyKey) {
+      idempotencyCache.set(idempotencyKey, {
+        orderNo: order.orderNo,
+        expiresAt: Date.now() + 60_000,
+      });
+      // Cleanup expired entries periodically
+      if (idempotencyCache.size > 1000) {
+        const now = Date.now();
+        for (const [k, v] of idempotencyCache) {
+          if (v.expiresAt < now) idempotencyCache.delete(k);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

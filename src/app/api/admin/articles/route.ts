@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { createArticleSchema, updateArticleSchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 const log = createLogger("admin/articles");
 
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         slug: articleSlug,
-        content,
+        content: sanitizeHtml(content),
         category,
         tags: tags ?? [],
         isPublished: isPublished ?? false,
@@ -237,7 +238,7 @@ export async function PUT(request: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (title !== undefined) updateData.title = title;
     if (slug !== undefined) updateData.slug = slug;
-    if (content !== undefined) updateData.content = content;
+    if (content !== undefined) updateData.content = sanitizeHtml(content);
     if (category !== undefined) updateData.category = category;
     if (tags !== undefined) updateData.tags = tags;
     if (isPublished !== undefined) updateData.isPublished = isPublished;

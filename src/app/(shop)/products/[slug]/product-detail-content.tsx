@@ -33,6 +33,7 @@ interface Product {
   price: number;
   originalPrice?: number;
   image?: string;
+  images?: string[];
   stockCount: number;
   soldCount: number;
   categoryName: string;
@@ -62,10 +63,24 @@ export default function ProductDetailContent({
   product,
   relatedProducts,
 }: ProductDetailContentProps) {
+  // Build gallery: combine primary image + additional images, deduped
+  const allImages = (() => {
+    const imgs: string[] = [];
+    if (product.image) imgs.push(product.image);
+    if (product.images) {
+      for (const img of product.images) {
+        if (!imgs.includes(img)) imgs.push(img);
+      }
+    }
+    return imgs;
+  })();
+
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const currentImage = allImages[selectedImageIdx] || null;
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem);
@@ -146,51 +161,85 @@ export default function ProductDetailContent({
 
       {/* Product main section */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Left: Product image */}
-        <div
-          ref={imageContainerRef}
-          className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] cursor-zoom-in"
-          onMouseEnter={() => product.image && setIsZoomed(true)}
-          onMouseLeave={() => setIsZoomed(false)}
-          onMouseMove={handleImageMouseMove}
-        >
-          {product.image ? (
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              className={`object-cover transition-transform duration-200 ${
-                isZoomed ? "scale-[2]" : ""
-              }`}
-              style={
-                isZoomed
-                  ? { transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }
-                  : undefined
-              }
-              sizes="(max-width: 768px) 100vw, 50vw"
-              priority
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
-              <div className="text-center">
-                <div className="text-7xl font-bold text-[var(--primary)]/20">
-                  {product.name.charAt(0)}
+        {/* Left: Product image gallery */}
+        <div className="space-y-3">
+          {/* Main image */}
+          <div
+            ref={imageContainerRef}
+            className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] cursor-zoom-in"
+            onMouseEnter={() => currentImage && setIsZoomed(true)}
+            onMouseLeave={() => setIsZoomed(false)}
+            onMouseMove={handleImageMouseMove}
+          >
+            {currentImage ? (
+              <Image
+                src={currentImage}
+                alt={`${product.name} - ${selectedImageIdx + 1}`}
+                fill
+                className={`object-cover transition-transform duration-200 ${
+                  isZoomed ? "scale-[2]" : ""
+                }`}
+                style={
+                  isZoomed
+                    ? { transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }
+                    : undefined
+                }
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
+                <div className="text-center">
+                  <div className="text-7xl font-bold text-[var(--primary)]/20">
+                    {product.name.charAt(0)}
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                    {product.categoryName}
+                  </p>
                 </div>
-                <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                  {product.categoryName}
-                </p>
               </div>
-            </div>
-          )}
-          {product.originalPrice && product.originalPrice > product.price && (
-            <div className="absolute right-4 top-4 rounded-[var(--radius-sm)] bg-[var(--destructive)] px-2 py-1 text-sm font-bold text-[var(--destructive-foreground)]">
-              -
-              {Math.round(
-                ((product.originalPrice - product.price) /
-                  product.originalPrice) *
-                  100
-              )}
-              %
+            )}
+            {product.originalPrice && product.originalPrice > product.price && (
+              <div className="absolute right-4 top-4 rounded-[var(--radius-sm)] bg-[var(--destructive)] px-2 py-1 text-sm font-bold text-[var(--destructive-foreground)]">
+                -
+                {Math.round(
+                  ((product.originalPrice - product.price) /
+                    product.originalPrice) *
+                    100
+                )}
+                %
+              </div>
+            )}
+            {/* Image counter */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-3 left-3 rounded-[var(--radius-sm)] bg-black/60 px-2 py-1 text-xs font-medium text-white">
+                {selectedImageIdx + 1} / {allImages.length}
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {allImages.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {allImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedImageIdx(idx)}
+                  className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] border-2 transition-all ${
+                    idx === selectedImageIdx
+                      ? "border-[var(--primary)] ring-1 ring-[var(--primary)]/30"
+                      : "border-[var(--border)] hover:border-[var(--primary)]/50"
+                  }`}
+                >
+                  <Image
+                    src={img}
+                    alt={`${product.name} 缩略图 ${idx + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
+                </button>
+              ))}
             </div>
           )}
         </div>

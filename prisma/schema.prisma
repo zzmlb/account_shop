@@ -86,6 +86,7 @@ model Product {
   categoryId    String
   category      Category     @relation(fields: [categoryId], references: [id])
   image         String?
+  images        String[]   @default([])
   tags          String[]
   stockCount    Int          @default(0)
   soldCount     Int          @default(0)
