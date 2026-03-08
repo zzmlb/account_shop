@@ -87,6 +87,8 @@ function getIconBg(type: LogType) {
 export default function BalancePageContent() {
   const { user } = useAuthStore();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState("");
+  const [filterType, setFilterType] = useState<LogType | "ALL">("ALL");
   const [logs, setLogs] = useState<BalanceLog[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,6 +124,7 @@ export default function BalancePageContent() {
   }, [fetchBalanceLogs]);
 
   const displayBalance = balance !== null ? balance : (user?.balance ?? 0);
+  const filteredLogs = filterType === "ALL" ? logs : logs.filter((l) => l.type === filterType);
 
   const [showRechargeGuide, setShowRechargeGuide] = useState(false);
 
@@ -199,10 +202,10 @@ export default function BalancePageContent() {
             {RECHARGE_AMOUNTS.map((amount) => (
               <button
                 key={amount}
-                onClick={() => setSelectedAmount(amount)}
+                onClick={() => { setSelectedAmount(amount); setCustomAmount(""); }}
                 className={cn(
                   "flex flex-col items-center rounded-[var(--radius-md)] border-2 p-4 transition-all",
-                  selectedAmount === amount
+                  selectedAmount === amount && !customAmount
                     ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-[0_0_12px_rgba(108,92,231,0.15)]"
                     : "border-[var(--border)] hover:border-[var(--primary)]/50"
                 )}
@@ -210,6 +213,30 @@ export default function BalancePageContent() {
                 <span className="text-2xl font-bold">¥{amount}</span>
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--muted-foreground)] whitespace-nowrap">自定义金额</span>
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]">¥</span>
+              <input
+                type="number"
+                min="10"
+                max="10000"
+                step="1"
+                placeholder="10 ~ 10000"
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value);
+                  const val = parseFloat(e.target.value);
+                  if (val >= 10 && val <= 10000) {
+                    setSelectedAmount(val);
+                  } else {
+                    setSelectedAmount(null);
+                  }
+                }}
+                className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 pl-8 text-sm focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+              />
+            </div>
           </div>
           <Button
             className="w-full"
@@ -228,9 +255,22 @@ export default function BalancePageContent() {
 
       {/* Transaction history */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader className="flex-row items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-lg">交易记录</CardTitle>
           <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mr-2">
+              {(["ALL", "RECHARGE", "PURCHASE", "REFUND", "ADMIN_ADJUST"] as const).map((type) => (
+                <Button
+                  key={type}
+                  variant={filterType === type ? "default" : "ghost"}
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setFilterType(type)}
+                >
+                  {type === "ALL" ? "全部" : TYPE_CONFIG[type].label}
+                </Button>
+              ))}
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -279,7 +319,7 @@ export default function BalancePageContent() {
               </div>
 
               <div className="space-y-3">
-                {logs.map((log) => {
+                {filteredLogs.map((log) => {
                   const isPositive = log.amount > 0;
                   const config = TYPE_CONFIG[log.type] ?? TYPE_CONFIG.RECHARGE;
                   const amountStr = isPositive
