@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Star, Loader2, MessageSquare, Send, ArrowUpDown, Shield, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import Pagination from "@/components/shared/pagination";
 
 /* ---------- types ---------- */
@@ -81,11 +82,13 @@ function Stars({
               : { "aria-hidden": true, tabIndex: -1 })}
           >
             <Star
-              className={`${cls} ${
+              className={cn(
+                cls,
+                "transition-colors",
                 filled
                   ? "fill-amber-400 text-amber-400"
                   : "fill-transparent text-[var(--border)]"
-              } transition-colors`}
+              )}
             />
           </button>
         );
@@ -237,7 +240,10 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
               <button
                 key={r}
                 type="button"
-                className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 text-sm transition-colors hover:bg-[var(--muted)] ${ratingFilter === r ? "bg-[var(--primary)]/10" : ""}`}
+                className={cn(
+                  "flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 text-sm transition-colors hover:bg-[var(--muted)]",
+                  ratingFilter === r && "bg-[var(--primary)]/10"
+                )}
                 onClick={() => {
                   setRatingFilter(ratingFilter === r ? null : r);
                   setPage(1);
@@ -245,14 +251,14 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                 aria-label={`筛选${r}星评价`}
                 aria-pressed={ratingFilter === r}
               >
-                <span className={`w-8 text-right ${ratingFilter === r ? "font-semibold text-[var(--primary)]" : "text-[var(--muted-foreground)]"}`}>
+                <span className={cn("w-8 text-right", ratingFilter === r ? "font-semibold text-[var(--primary)]" : "text-[var(--muted-foreground)]")}>
                   {r}星
                 </span>
                 <RatingBar
                   count={stats.ratingCounts[r] || 0}
                   total={stats.total}
                 />
-                <span className={`w-8 text-xs ${ratingFilter === r ? "font-semibold text-[var(--primary)]" : "text-[var(--muted-foreground)]"}`}>
+                <span className={cn("w-8 text-xs", ratingFilter === r ? "font-semibold text-[var(--primary)]" : "text-[var(--muted-foreground)]")}>
                   {stats.ratingCounts[r] || 0}
                 </span>
               </button>
@@ -350,11 +356,12 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             <button
               key={opt.value}
               onClick={() => { setSortBy(opt.value); setPage(1); }}
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
                 sortBy === opt.value
                   ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                   : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
+              )}
             >
               {opt.label}
             </button>
