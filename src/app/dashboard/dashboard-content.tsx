@@ -203,13 +203,13 @@ export default function DashboardPageContent() {
       border: "border-[var(--success)]/20",
     },
     {
-      label: "待处理订单",
+      label: pendingOrders > 0 ? "待支付订单" : "待处理订单",
       value: String(pendingOrders),
       icon: Clock,
       href: "/dashboard/orders?status=pending",
-      color: "text-[var(--warning)]",
-      bg: "bg-[var(--warning)]/10",
-      border: "border-[var(--warning)]/20",
+      color: pendingOrders > 0 ? "text-[var(--destructive)]" : "text-[var(--warning)]",
+      bg: pendingOrders > 0 ? "bg-[var(--destructive)]/10" : "bg-[var(--warning)]/10",
+      border: pendingOrders > 0 ? "border-[var(--destructive)]/20" : "border-[var(--warning)]/20",
     },
     {
       label: "优惠券",
@@ -346,55 +346,63 @@ export default function DashboardPageContent() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[220px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={spendingData}
-                margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `¥${v}`}
-                  width={60}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "13px",
-                  }}
-                  formatter={(value: number) => [`¥${value.toFixed(2)}`, "消费金额"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="amount"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                  fill="url(#spendingGradient)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {spendingData.every((d) => d.amount === 0) ? (
+            <div className="flex flex-col items-center justify-center py-10 text-[var(--muted-foreground)]">
+              <TrendingUp className="mb-2 h-8 w-8 opacity-20" />
+              <p className="text-sm">暂无消费记录</p>
+              <p className="mt-1 text-xs">购买商品后将显示消费趋势</p>
+            </div>
+          ) : (
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={spendingData}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `¥${v}`}
+                    width={60}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius-md)",
+                      fontSize: "13px",
+                    }}
+                    formatter={(value: number) => [`¥${value.toFixed(2)}`, "消费金额"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="var(--primary)"
+                    strokeWidth={2}
+                    fill="url(#spendingGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -486,17 +494,17 @@ export default function DashboardPageContent() {
           })}
 
           {/* Recent Notifications */}
-          {notifications.length > 0 && (
+          <h3 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider flex items-center gap-2">
+            <Bell className="h-3.5 w-3.5" />
+            最新通知
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--primary-foreground)]">
+                {unreadCount}
+              </span>
+            )}
+          </h3>
+          {notifications.length > 0 ? (
             <>
-              <h3 className="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider flex items-center gap-2">
-                <Bell className="h-3.5 w-3.5" />
-                最新通知
-                {unreadCount > 0 && (
-                  <span className="rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--primary-foreground)]">
-                    {unreadCount}
-                  </span>
-                )}
-              </h3>
               <div className="space-y-2">
                 {notifications.slice(0, 3).map((n) => {
                   const iconMap: Record<string, typeof Package> = {
@@ -536,6 +544,11 @@ export default function DashboardPageContent() {
                 </Link>
               </Button>
             </>
+          ) : (
+            <div className="flex flex-col items-center py-4 text-[var(--muted-foreground)]">
+              <Bell className="mb-1 h-6 w-6 opacity-20" />
+              <p className="text-xs">暂无新通知</p>
+            </div>
           )}
         </div>
       </div>
