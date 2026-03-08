@@ -60,6 +60,7 @@ export default function AdminLoginLogsContent() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -70,7 +71,7 @@ export default function AdminLoginLogsContent() {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       params.set("page", String(page));
       params.set("pageSize", "20");
 
@@ -88,11 +89,20 @@ export default function AdminLoginLogsContent() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search, page]);
+  }, [statusFilter, debouncedSearch, page]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   return (
     <div className="space-y-6">
@@ -123,7 +133,7 @@ export default function AdminLoginLogsContent() {
           <Input
             placeholder="搜索用户名、IP..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9 sm:w-64"
           />
         </div>

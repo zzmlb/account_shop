@@ -151,8 +151,9 @@ export default function CartSummary({
                   handleApplyCoupon();
                 }
               }}
-              className="flex-1"
+              className={`flex-1${couponError ? " border-[var(--destructive)] focus-visible:ring-[var(--destructive)]" : ""}`}
               aria-label="优惠码"
+              aria-invalid={!!couponError}
               aria-describedby={couponError ? "coupon-error" : undefined}
             />
             <Button

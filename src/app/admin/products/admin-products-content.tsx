@@ -38,6 +38,7 @@ import {
   AlertTriangle,
   Loader2,
   Download,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -349,6 +350,41 @@ export default function AdminProductsPageContent() {
     });
   }
 
+  const [reconciling, setReconciling] = useState(false);
+
+  async function reconcileStock() {
+    setReconciling(true);
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reconcile-stock" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "校准失败");
+      }
+      if (data.fixedCount > 0) {
+        toast.success(data.message, {
+          description: data.fixes
+            .map((f: { name: string; oldStock: number; newStock: number }) =>
+              `${f.name}: ${f.oldStock} → ${f.newStock}`
+            )
+            .join("\n"),
+        });
+        await fetchProducts();
+      } else {
+        toast.success(data.message);
+      }
+    } catch (err) {
+      toast.error("库存校准失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setReconciling(false);
+    }
+  }
+
   async function toggleStatus(id: string) {
     const product = products.find((p) => p.id === id);
     if (!product) return;
@@ -462,6 +498,16 @@ export default function AdminProductsPageContent() {
 
     if (isNaN(priceVal) || priceVal < 0) {
       toast.error("请输入有效的价格");
+      return;
+    }
+
+    if (isNaN(stockVal) || stockVal < 0) {
+      toast.error("请输入有效的库存数量");
+      return;
+    }
+
+    if (originalPriceVal !== undefined && !isNaN(originalPriceVal) && originalPriceVal < priceVal) {
+      toast.error("原价不能低于现价");
       return;
     }
 
@@ -1054,6 +1100,18 @@ export default function AdminProductsPageContent() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Stock reconciliation button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={reconcileStock}
+                disabled={reconciling}
+                className="shrink-0"
+              >
+                <RefreshCw className={cn("h-4 w-4", reconciling && "animate-spin")} />
+                库存校准
+              </Button>
 
               {/* Export button */}
               <Button

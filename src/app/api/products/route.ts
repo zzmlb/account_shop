@@ -55,6 +55,10 @@ export async function GET(request: NextRequest) {
       const v = parseFloat(maxPrice);
       if (Number.isFinite(v) && v >= 0) priceFilter.lte = v;
     }
+    if (priceFilter.gte !== undefined && priceFilter.lte !== undefined && priceFilter.gte > priceFilter.lte) {
+      // Swap if min > max
+      [priceFilter.gte, priceFilter.lte] = [priceFilter.lte, priceFilter.gte];
+    }
     if (Object.keys(priceFilter).length > 0) {
       where.price = priceFilter;
     }

@@ -179,10 +179,17 @@ export async function POST(
 
       // Increment coupon usage count atomically (only at payment time)
       if (order.couponId) {
-        await tx.coupon.update({
+        // Re-validate coupon is still usable at payment time
+        const coupon = await tx.coupon.findUnique({
           where: { id: order.couponId },
-          data: { usedCount: { increment: 1 } },
         });
+        if (coupon && coupon.isActive && new Date() <= coupon.expireAt &&
+            (coupon.maxUses === null || coupon.usedCount < coupon.maxUses)) {
+          await tx.coupon.update({
+            where: { id: order.couponId },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
 
         // Track user-coupon association
         if (session) {

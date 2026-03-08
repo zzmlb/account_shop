@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (!coupon) {
       return NextResponse.json(
         { success: false, message: "无效的优惠券" },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!coupon.isActive) {
       return NextResponse.json(
         { success: false, message: "该优惠券已停用" },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (now < coupon.startAt) {
       return NextResponse.json(
         { success: false, message: "该优惠券尚未生效" },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (now > coupon.expireAt) {
       return NextResponse.json(
         { success: false, message: "该优惠券已过期" },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
       return NextResponse.json(
         { success: false, message: "该优惠券已达到使用上限" },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           success: false,
           message: `订单金额不满足最低要求 ¥${minAmount.toFixed(2)}`,
         },
-        { status: 200 }
+        { status: 400 }
       );
     }
 

@@ -81,6 +81,7 @@ export default function AdminReviewsContent() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
   const [visibleFilter, setVisibleFilter] = useState("");
   const limit = 20;
@@ -99,7 +100,7 @@ export default function AdminReviewsContent() {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("limit", String(limit));
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       if (ratingFilter) params.set("rating", ratingFilter);
       if (visibleFilter) params.set("visible", visibleFilter);
 
@@ -116,11 +117,20 @@ export default function AdminReviewsContent() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, ratingFilter, visibleFilter]);
+  }, [page, debouncedSearch, ratingFilter, visibleFilter]);
 
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const handleToggleVisibility = async (review: AdminReview) => {
     setActionLoading(review.id);
@@ -247,10 +257,7 @@ export default function AdminReviewsContent() {
           <Input
             placeholder="搜索评价内容、用户名或商品..."
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
