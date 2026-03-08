@@ -212,19 +212,19 @@ export async function middleware(request: NextRequest) {
     "camera=(), microphone=(), geolocation=(), payment=(self)"
   );
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
+  response.headers.set("X-DNS-Prefetch-Control", "on");
 
   return response;
 }
 
 export const config = {
   matcher: [
-    "/api/:path*",
-    "/dashboard/:path*",
-    "/admin/:path*",
-    "/login",
-    "/register",
-    "/checkout",
-    "/products/:path*",
-    "/order/:path*",
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, icon-*, robots.txt, sitemap.xml (static assets)
+     */
+    "/((?!_next/static|_next/image|favicon\\.ico|icon-.*|robots\\.txt|sitemap\\.xml).*)",
   ],
 };
