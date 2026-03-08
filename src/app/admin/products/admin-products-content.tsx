@@ -37,6 +37,7 @@ import {
   EyeOff,
   AlertTriangle,
   Loader2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -303,6 +304,37 @@ export default function AdminProductsPageContent() {
         return next;
       });
     }
+  }
+
+  function exportProductsCSV() {
+    const header = "商品名称,分类,价格,原价,库存,销量,状态,Slug\n";
+    const rows = filtered
+      .map((p) =>
+        [
+          `"${p.name.replace(/"/g, '""')}"`,
+          `"${p.category}"`,
+          p.price,
+          p.originalPrice,
+          p.stock,
+          p.sales,
+          p.status,
+          p.slug,
+        ].join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob(["\uFEFF" + header + rows], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `products_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("导出成功", {
+      description: `已导出 ${filtered.length} 件商品`,
+    });
   }
 
   async function toggleStatus(id: string) {
@@ -907,6 +939,17 @@ export default function AdminProductsPageContent() {
                   <SelectItem value="下架">下架</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Export button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportProductsCSV}
+                className="shrink-0"
+              >
+                <Download className="h-4 w-4" />
+                导出
+              </Button>
             </div>
           </CardContent>
         </Card>

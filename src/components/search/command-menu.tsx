@@ -37,7 +37,7 @@ interface ApiCategory {
   productCount: number;
 }
 
-const HOT_SEARCHES = ["Gmail", "Netflix", "ChatGPT", "Spotify", "Steam"];
+const FALLBACK_HOT_SEARCHES = ["Gmail", "Netflix", "ChatGPT", "Spotify", "Steam"];
 
 const typeIcons = {
   product: Package,
@@ -57,6 +57,7 @@ export default function CommandMenu() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [hotSearches, setHotSearches] = useState<string[]>(FALLBACK_HOT_SEARCHES);
   const [loading, setLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const categoriesCacheRef = useRef<ApiCategory[] | null>(null);
@@ -71,6 +72,15 @@ export default function CommandMenu() {
         // ignore
       }
     }
+    // Fetch trending product names for hot searches
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.trending && data.trending.length > 0) {
+          setHotSearches(data.trending);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -257,7 +267,7 @@ export default function CommandMenu() {
                   热门搜索
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {HOT_SEARCHES.map((s) => (
+                  {hotSearches.map((s) => (
                     <button
                       key={s}
                       onClick={() => {

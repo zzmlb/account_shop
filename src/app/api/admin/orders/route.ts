@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const pageSize = Math.max(1, Math.min(50, parseInt(searchParams.get("pageSize") || "20", 10)));
 
@@ -65,6 +67,17 @@ export async function GET(request: NextRequest) {
         { user: { email: { contains: search, mode: "insensitive" } } },
         { user: { username: { contains: search, mode: "insensitive" } } },
       ];
+    }
+
+    if (dateFrom || dateTo) {
+      const createdAt: Record<string, Date> = {};
+      if (dateFrom) createdAt.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setDate(end.getDate() + 1);
+        createdAt.lt = end;
+      }
+      where.createdAt = createdAt;
     }
 
     const [orders, total] = await Promise.all([

@@ -33,9 +33,9 @@ export default function HeroSection() {
   }, []);
 
   const displayStats = [
-    { value: stats ? stats.products : "---", label: "商品" },
-    { value: stats ? stats.users : "---", label: "用户" },
-    { value: "99.9%", label: "好评率" },
+    { value: stats ? stats.products : "---", label: "精选商品" },
+    { value: stats ? stats.users : "---", label: "注册用户" },
+    { value: stats ? stats.orders : "---", label: "成功交易" },
   ];
 
   const handleSearch = (e: React.FormEvent) => {

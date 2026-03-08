@@ -22,15 +22,18 @@ function formatCount(count: number): string {
 
 export async function GET() {
   try {
-    const [productsCount, usersCount, ordersCount] = await Promise.all([
-      db.product.count({
-        where: { isActive: true },
-      }),
-      db.user.count(),
-      db.order.count({
-        where: { status: "DELIVERED" },
-      }),
-    ]);
+    const [productsCount, usersCount, ordersCount, trending] =
+      await Promise.all([
+        db.product.count({ where: { isActive: true } }),
+        db.user.count(),
+        db.order.count({ where: { status: "DELIVERED" } }),
+        db.product.findMany({
+          where: { isActive: true, soldCount: { gt: 0 } },
+          orderBy: { soldCount: "desc" },
+          take: 6,
+          select: { name: true, slug: true },
+        }),
+      ]);
 
     return NextResponse.json({
       success: true,
@@ -39,6 +42,7 @@ export async function GET() {
         users: formatCount(usersCount),
         orders: formatCount(ordersCount),
       },
+      trending: trending.map((p) => p.name),
     });
   } catch (error) {
     log.error({ err: error }, "Public stats GET error");

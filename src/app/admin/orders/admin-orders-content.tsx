@@ -164,6 +164,9 @@ export default function AdminOrdersPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showDateFilter, setShowDateFilter] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -182,7 +185,7 @@ export default function AdminOrdersPageContent() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchOrders = useCallback(
-    async (page: number, status: string, search: string) => {
+    async (page: number, status: string, search: string, from?: string, to?: string) => {
       setLoading(true);
       try {
         const params = new URLSearchParams();
@@ -194,6 +197,8 @@ export default function AdminOrdersPageContent() {
         if (search) {
           params.set("search", search);
         }
+        if (from) params.set("dateFrom", from);
+        if (to) params.set("dateTo", to);
 
         const res = await fetch(`/api/admin/orders?${params.toString()}`);
         const data = await res.json();
@@ -215,8 +220,8 @@ export default function AdminOrdersPageContent() {
   );
 
   useEffect(() => {
-    fetchOrders(currentPage, activeTab, searchQuery);
-  }, [currentPage, activeTab, searchQuery, fetchOrders]);
+    fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo);
+  }, [currentPage, activeTab, searchQuery, dateFrom, dateTo, fetchOrders]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -283,6 +288,8 @@ export default function AdminOrdersPageContent() {
       if (searchQuery) {
         params.set("search", searchQuery);
       }
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
 
       const res = await fetch(`/api/admin/orders?${params.toString()}`);
       const data = await res.json();
@@ -388,14 +395,73 @@ export default function AdminOrdersPageContent() {
             className="pl-9"
           />
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 text-[var(--muted-foreground)]"
-        >
-          <CalendarDays className="h-4 w-4" />
-          日期范围
-        </Button>
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-2 ${dateFrom || dateTo ? "text-[var(--primary)] border-[var(--primary)]/50" : "text-[var(--muted-foreground)]"}`}
+            onClick={() => setShowDateFilter(!showDateFilter)}
+          >
+            <CalendarDays className="h-4 w-4" />
+            {dateFrom || dateTo ? `${dateFrom || "..."}~${dateTo || "..."}` : "日期范围"}
+          </Button>
+          {showDateFilter && (
+            <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg">
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                    开始日期
+                  </label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => {
+                      setDateFrom(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                    结束日期
+                  </label>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => {
+                      setDateTo(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                      setCurrentPage(1);
+                      setShowDateFilter(false);
+                    }}
+                  >
+                    清除
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setShowDateFilter(false)}
+                  >
+                    确认
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Orders Table */}
