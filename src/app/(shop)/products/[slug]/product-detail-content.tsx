@@ -80,7 +80,7 @@ export default function ProductDetailContent({
   const handleAddToCart = () => {
     addItem({
       id: product.slug,
-      productId: product.slug,
+      productId: product.id,
       name: product.name,
       slug: product.slug,
       price: product.price,
@@ -96,7 +96,7 @@ export default function ProductDetailContent({
   const handleBuyNow = () => {
     addItem({
       id: product.slug,
-      productId: product.slug,
+      productId: product.id,
       name: product.name,
       slug: product.slug,
       price: product.price,

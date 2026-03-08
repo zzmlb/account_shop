@@ -2,6 +2,7 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import MobileNav from "@/components/layout/mobile-nav";
 import CommandMenu from "@/components/search/command-menu";
+import ScrollToTop from "@/components/shared/scroll-to-top";
 
 export default function ShopLayout({
   children,
@@ -15,6 +16,7 @@ export default function ShopLayout({
       <Footer />
       <MobileNav />
       <CommandMenu />
+      <ScrollToTop />
     </div>
   );
 }

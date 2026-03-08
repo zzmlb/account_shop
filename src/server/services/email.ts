@@ -91,20 +91,26 @@ function orderConfirmationHtml(data: OrderEmailData): string {
 }
 
 function cardKeyDeliveryHtml(data: CardKeyEmailData): string {
+  const totalKeys = data.items.reduce((sum, item) => sum + item.cardKeys.length, 0);
   const sections = data.items
     .map(
       (item) =>
-        `<div style="margin-bottom:20px;">
-          <h3 style="color:#333;font-size:16px;margin:0 0 10px;">${item.productName}</h3>
+        `<div style="margin-bottom:20px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+          <div style="background:#f8f9fa;padding:10px 14px;border-bottom:1px solid #e0e0e0;">
+            <h3 style="color:#333;font-size:15px;margin:0;">${item.productName} <span style="color:#999;font-size:13px;">(${item.cardKeys.length}个)</span></h3>
+          </div>
+          <div style="padding:10px 14px;">
           ${item.cardKeys
             .map(
-              (key) =>
-                `<div style="background:#f0f0f0;border-radius:6px;padding:10px 14px;margin-bottom:6px;font-family:monospace;font-size:14px;color:#333;word-break:break-all;">${key}</div>`
+              (key, idx) =>
+                `<div style="background:#f0f7ff;border:1px solid #d0e3ff;border-radius:6px;padding:10px 14px;margin-bottom:6px;font-family:'Courier New',monospace;font-size:14px;color:#1a1a1a;word-break:break-all;line-height:1.5;">${idx + 1}. ${key}</div>`
             )
             .join("")}
+          </div>
         </div>`
     )
     .join("");
+  void totalKeys;
 
   return `
 <!DOCTYPE html>
