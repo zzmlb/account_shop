@@ -17,6 +17,7 @@ import {
   Copy,
   XCircle,
   Download,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 
@@ -41,6 +43,7 @@ interface OrderItem {
 }
 
 interface OrderData {
+  id: string;
   orderNo: string;
   status: "PENDING" | "PAID" | "DELIVERED" | "CANCELLED" | "REFUNDED" | "EXPIRED";
   email: string;
@@ -149,6 +152,10 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundStatus, setRefundStatus] = useState<string | null>(null);
   const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
@@ -222,6 +229,54 @@ export default function OrderDetailContent({ id }: { id: string }) {
       toast.error("网络错误，请稍后重试");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  // Check if there's already a refund request for this order
+  useEffect(() => {
+    if (!order || order.status !== "DELIVERED") return;
+    async function checkRefund() {
+      try {
+        const res = await fetch("/api/refunds");
+        const data = await res.json();
+        if (data.success && data.refunds) {
+          const match = data.refunds.find(
+            (r: { orderNo: string; status: string }) => r.orderNo === order!.orderNo
+          );
+          if (match) setRefundStatus(match.status);
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    checkRefund();
+  }, [order]);
+
+  const handleRefundRequest = async () => {
+    if (!order || refundReason.trim().length < 5) return;
+    setRefundSubmitting(true);
+    try {
+      const res = await fetch("/api/refunds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          reason: refundReason.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("退款申请已提交");
+        setRefundDialogOpen(false);
+        setRefundReason("");
+        setRefundStatus("PENDING");
+      } else {
+        toast.error(data.message || "提交失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setRefundSubmitting(false);
     }
   };
 
@@ -580,6 +635,92 @@ export default function OrderDetailContent({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* Refund request section */}
+      {order.status === "DELIVERED" && (
+        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                售后服务
+              </h3>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                如卡密存在问题，可在售后时限内申请退款
+              </p>
+            </div>
+            {refundStatus === "PENDING" ? (
+              <Badge variant="outline" className="gap-1.5">
+                <Clock className="h-3 w-3" />
+                退款审核中
+              </Badge>
+            ) : refundStatus === "APPROVED" ? (
+              <Badge variant="success" className="gap-1.5">
+                <CheckCircle2 className="h-3 w-3" />
+                退款已通过
+              </Badge>
+            ) : refundStatus === "REJECTED" ? (
+              <Badge variant="destructive" className="gap-1.5">
+                <XCircle className="h-3 w-3" />
+                退款被拒绝
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRefundDialogOpen(true)}
+                className="gap-1.5"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                申请退款
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Refund request dialog */}
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-[var(--primary)]" />
+              申请退款
+            </DialogTitle>
+            <DialogDescription>
+              请详细描述退款原因，我们将在24小时内审核处理。
+              退款金额：¥{order.payAmount?.toFixed(2) ?? order.totalAmount.toFixed(2)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="请描述退款原因，至少5个字符..."
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              rows={4}
+              maxLength={500}
+            />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {refundReason.length}/500
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={handleRefundRequest}
+              disabled={refundSubmitting || refundReason.trim().length < 5}
+            >
+              {refundSubmitting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" />
+              )}
+              提交申请
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pending payment notice */}
       {order.status === "PENDING" && (

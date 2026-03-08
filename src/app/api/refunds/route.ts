@@ -1,0 +1,196 @@
+import { NextRequest, NextResponse } from "next/server";
+import { decodeSession } from "@/lib/auth";
+import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("refunds");
+
+// GET - List user's refund requests
+export async function GET(request: NextRequest) {
+  try {
+    const session = decodeSession(request.cookies.get("session")?.value || "");
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
+    const refunds = await db.refundRequest.findMany({
+      where: { userId: session.id },
+      include: {
+        order: {
+          select: {
+            orderNo: true,
+            totalAmount: true,
+            payAmount: true,
+            status: true,
+            items: {
+              include: {
+                product: { select: { name: true, slug: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({
+      success: true,
+      refunds: refunds.map((r) => ({
+        id: r.id,
+        orderId: r.orderId,
+        orderNo: r.order.orderNo,
+        reason: r.reason,
+        status: r.status,
+        adminNote: r.adminNote,
+        amount: Number(r.amount),
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+        orderStatus: r.order.status,
+        products: r.order.items.map((i) => i.product.name).join(", "),
+      })),
+    });
+  } catch (error) {
+    log.error({ err: error }, "获取退款列表失败");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Submit a refund request
+export async function POST(request: NextRequest) {
+  try {
+    const session = decodeSession(request.cookies.get("session")?.value || "");
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { orderId, reason } = body;
+
+    if (!orderId || !reason) {
+      return NextResponse.json(
+        { success: false, message: "缺少必要参数" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof reason !== "string" || reason.trim().length < 5) {
+      return NextResponse.json(
+        { success: false, message: "退款原因至少需要5个字符" },
+        { status: 400 }
+      );
+    }
+
+    if (reason.length > 500) {
+      return NextResponse.json(
+        { success: false, message: "退款原因不能超过500字" },
+        { status: 400 }
+      );
+    }
+
+    // Find the order and verify ownership
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            product: { select: { afterSaleHours: true } },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { success: false, message: "订单不存在" },
+        { status: 404 }
+      );
+    }
+
+    if (order.userId !== session.id) {
+      return NextResponse.json(
+        { success: false, message: "无权操作此订单" },
+        { status: 403 }
+      );
+    }
+
+    // Only DELIVERED orders can request refund
+    if (order.status !== "DELIVERED") {
+      return NextResponse.json(
+        { success: false, message: "只有已发货的订单才能申请退款" },
+        { status: 400 }
+      );
+    }
+
+    // Check after-sale window (use max afterSaleHours from items)
+    const maxAfterSaleHours = Math.max(
+      ...order.items.map((i) => i.product.afterSaleHours)
+    );
+    const deliveredHoursAgo =
+      (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (deliveredHoursAgo > maxAfterSaleHours) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `已超过售后时限（${maxAfterSaleHours}小时），无法申请退款`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if there's already a pending refund request for this order
+    const existing = await db.refundRequest.findFirst({
+      where: {
+        orderId,
+        status: "PENDING",
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { success: false, message: "该订单已有待处理的退款申请" },
+        { status: 400 }
+      );
+    }
+
+    const refund = await db.refundRequest.create({
+      data: {
+        orderId,
+        userId: session.id,
+        reason: reason.trim(),
+        amount: order.payAmount,
+      },
+    });
+
+    log.info(
+      { refundId: refund.id, orderId, userId: session.id },
+      "退款申请已提交"
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "退款申请已提交，请等待审核",
+      refund: {
+        id: refund.id,
+        status: refund.status,
+        amount: Number(refund.amount),
+        createdAt: refund.createdAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    log.error({ err: error }, "提交退款申请失败");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
       todayRevenue,
       newUsers,
       expiringCoupons,
+      pendingRefunds,
     ] = await Promise.all([
       db.order.count({ where: { status: "PENDING" } }),
       db.product.count({
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
+      db.refundRequest.count({ where: { status: "PENDING" } }),
     ]);
 
     const notifications = [];
@@ -89,6 +91,16 @@ export async function GET(request: NextRequest) {
         title: `${lowStockProducts} 个商品库存不足`,
         description: "库存低于5件，建议及时补充卡密",
         href: "/admin/card-keys",
+      });
+    }
+
+    if (pendingRefunds > 0) {
+      notifications.push({
+        id: "pending-refunds",
+        type: "alert",
+        title: `${pendingRefunds} 个待处理退款申请`,
+        description: "用户提交了退款申请，请尽快审核",
+        href: "/admin/refunds",
       });
     }
 

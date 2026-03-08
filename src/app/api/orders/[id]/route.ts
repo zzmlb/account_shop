@@ -63,6 +63,7 @@ export async function GET(
     const discount = Math.round((totalAmount - payAmount) * 100) / 100;
 
     const formatted = {
+      id: order.id,
       orderNo: order.orderNo,
       status: order.status,
       email: order.email,

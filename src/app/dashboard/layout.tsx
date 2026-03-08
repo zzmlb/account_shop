@@ -8,6 +8,7 @@ import {
   Wallet,
   Heart,
   Ticket,
+  RotateCcw,
   Settings,
   LogOut,
   ChevronRight,
@@ -25,6 +26,7 @@ const sidebarLinks = [
   { label: "余额管理", href: "/dashboard/balance", icon: Wallet },
   { label: "我的收藏", href: "/dashboard/favorites", icon: Heart },
   { label: "优惠券", href: "/dashboard/coupons", icon: Ticket },
+  { label: "退款申请", href: "/dashboard/refunds", icon: RotateCcw },
   { label: "账户设置", href: "/dashboard/settings", icon: Settings },
 ];
 

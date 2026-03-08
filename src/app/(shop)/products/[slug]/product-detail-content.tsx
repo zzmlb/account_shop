@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -61,9 +61,19 @@ export default function ProductDetailContent({
   relatedProducts,
 }: ProductDetailContentProps) {
   const [quantity, setQuantity] = useState(1);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem);
+
+  const handleImageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPos({ x, y });
+  }, []);
 
   // Track recently viewed
   useEffect(() => {
@@ -135,13 +145,26 @@ export default function ProductDetailContent({
       {/* Product main section */}
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Left: Product image */}
-        <div className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)]">
+        <div
+          ref={imageContainerRef}
+          className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] cursor-zoom-in"
+          onMouseEnter={() => product.image && setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+          onMouseMove={handleImageMouseMove}
+        >
           {product.image ? (
             <Image
               src={product.image}
               alt={product.name}
               fill
-              className="object-cover"
+              className={`object-cover transition-transform duration-200 ${
+                isZoomed ? "scale-[2]" : ""
+              }`}
+              style={
+                isZoomed
+                  ? { transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }
+                  : undefined
+              }
               sizes="(max-width: 768px) 100vw, 50vw"
               priority
             />

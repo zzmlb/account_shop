@@ -14,6 +14,7 @@ import {
   Ticket,
   MessageSquare,
   Settings,
+  RotateCcw,
   LogOut,
   Bell,
   Menu,
@@ -61,6 +62,7 @@ const sidebarLinks = [
   { label: "文章管理", href: "/admin/articles", icon: BookOpen },
   { label: "优惠券管理", href: "/admin/coupons", icon: Ticket },
   { label: "评价管理", href: "/admin/reviews", icon: MessageSquare },
+  { label: "退款管理", href: "/admin/refunds", icon: RotateCcw },
   { label: "系统设置", href: "/admin/settings", icon: Settings },
 ];
 

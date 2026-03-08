@@ -312,7 +312,7 @@ export default function ProductsPageContent() {
               ))}
             </div>
           ) : (
-            <ProductGrid products={products} />
+            <ProductGrid products={products} searchQuery={search} />
           )}
 
           {/* Pagination */}

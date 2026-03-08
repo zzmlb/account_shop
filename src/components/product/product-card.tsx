@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -27,7 +27,24 @@ interface ProductCardProps {
   categoryName: string;
   avgRating?: number;
   reviewCount?: number;
+  searchQuery?: string;
   className?: string;
+}
+
+function highlightText(text: string, query?: string): ReactNode {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  if (parts.length <= 1) return text;
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={i} className="bg-[var(--primary)]/20 text-[var(--primary)] rounded-sm px-0.5">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
 }
 
 function ProductCard({
@@ -42,6 +59,7 @@ function ProductCard({
   categoryName,
   avgRating,
   reviewCount,
+  searchQuery,
   className,
 }: ProductCardProps) {
   const router = useRouter();
@@ -130,7 +148,7 @@ function ProductCard({
         <div className="p-4">
           {/* Product name */}
           <h3 className="mb-2 line-clamp-2 text-sm font-medium leading-snug text-[var(--card-foreground)] transition-colors group-hover:text-[var(--primary)]">
-            {name}
+            {highlightText(name, searchQuery)}
           </h3>
 
           {/* Price + Rating */}

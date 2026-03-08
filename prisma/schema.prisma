@@ -26,6 +26,7 @@ model User {
   coupons        UserCoupon[]
   passwordResets PasswordReset[]
   reviews        Review[]
+  refundRequests RefundRequest[]
 
   @@map("users")
 }
@@ -149,7 +150,8 @@ model Order {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  items OrderItem[]
+  items          OrderItem[]
+  refundRequests RefundRequest[]
 
   @@index([userId])
   @@index([orderNo])
@@ -287,6 +289,32 @@ model Article {
   updatedAt   DateTime @updatedAt
 
   @@map("articles")
+}
+
+// ==================== 退款申请 ====================
+model RefundRequest {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     Order        @relation(fields: [orderId], references: [id])
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  reason    String       @db.Text
+  status    RefundStatus @default(PENDING)
+  adminNote String?      @db.Text
+  amount    Decimal      @db.Decimal(10, 2)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+  @@map("refund_requests")
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ==================== 系统配置 ====================
