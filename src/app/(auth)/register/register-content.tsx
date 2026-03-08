@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
+import { Eye, EyeOff, Loader2, UserPlus, CheckCircle2, XCircle } from "lucide-react";
 
 import { registerSchema, type RegisterInput } from "@/lib/validators";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,9 @@ export default function RegisterContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const usernameTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
   const {
     register,
     handleSubmit,
@@ -83,7 +86,30 @@ export default function RegisterContent() {
     },
   });
 
+  const watchedUsername = watch("username");
   const watchedPassword = watch("password");
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (!watchedUsername || watchedUsername.length < 2) {
+      setUsernameStatus("idle");
+      return;
+    }
+    setUsernameStatus("checking");
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(watchedUsername)}`);
+        const data = await res.json();
+        setUsernameStatus(data.available ? "available" : "taken");
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 500);
+    return () => {
+      if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+    };
+  }, [watchedUsername]);
   const watchedConfirmPassword = watch("confirmPassword");
   const passwordStrength = useMemo(
     () => getPasswordStrength(watchedPassword),
@@ -163,6 +189,24 @@ export default function RegisterContent() {
           {errors.username && (
             <p role="alert" className="text-xs text-[var(--destructive)]">
               {errors.username.message}
+            </p>
+          )}
+          {!errors.username && usernameStatus === "checking" && (
+            <p className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              检查用户名是否可用...
+            </p>
+          )}
+          {!errors.username && usernameStatus === "available" && (
+            <p className="flex items-center gap-1 text-xs text-[var(--success)]">
+              <CheckCircle2 className="h-3 w-3" />
+              用户名可用
+            </p>
+          )}
+          {!errors.username && usernameStatus === "taken" && (
+            <p className="flex items-center gap-1 text-xs text-[var(--destructive)]">
+              <XCircle className="h-3 w-3" />
+              用户名已被占用
             </p>
           )}
         </div>
