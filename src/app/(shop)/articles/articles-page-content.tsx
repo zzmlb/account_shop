@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, ChevronRight, Eye, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import AnimatedSection from "@/components/shared/animated-section";
 
 export interface ArticleItem {
   id: string;
@@ -56,14 +57,14 @@ export default function ArticlesPageContent({
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8 text-center">
+      <AnimatedSection className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
           帮助中心
         </h1>
         <p className="mt-3 text-[var(--muted-foreground)]">
           浏览公告、教程和常见问题，快速找到您需要的帮助
         </p>
-      </div>
+      </AnimatedSection>
 
       {/* Search bar */}
       <div className="mx-auto mb-8 max-w-xl">
@@ -108,49 +109,50 @@ export default function ArticlesPageContent({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {filteredArticles.map((article) => (
-            <Link
-              key={article.id}
-              href={`/articles/${article.slug}`}
-              className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6 transition-all hover:border-[var(--primary)]/30 hover:shadow-md"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  {/* Category badge */}
-                  <Badge
-                    variant="secondary"
-                    className={`mb-3 ${categoryColorMap[article.category] || ""}`}
-                  >
-                    {article.category}
-                  </Badge>
+          {filteredArticles.map((article, index) => (
+            <AnimatedSection key={article.id} delay={index * 0.1}>
+              <Link
+                href={`/articles/${article.slug}`}
+                className="group block rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6 transition-all hover:border-[var(--primary)]/30 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    {/* Category badge */}
+                    <Badge
+                      variant="secondary"
+                      className={`mb-3 ${categoryColorMap[article.category] || ""}`}
+                    >
+                      {article.category}
+                    </Badge>
 
-                  {/* Title */}
-                  <h2 className="mb-2 text-lg font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors line-clamp-2">
-                    {article.title}
-                  </h2>
+                    {/* Title */}
+                    <h2 className="mb-2 text-lg font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors line-clamp-2">
+                      {article.title}
+                    </h2>
 
-                  {/* Excerpt */}
-                  <p className="mb-4 text-sm leading-relaxed text-[var(--muted-foreground)] line-clamp-2">
-                    {article.excerpt}
-                  </p>
+                    {/* Excerpt */}
+                    <p className="mb-4 text-sm leading-relaxed text-[var(--muted-foreground)] line-clamp-2">
+                      {article.excerpt}
+                    </p>
 
-                  {/* Meta info */}
-                  <div className="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {article.date}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-3.5 w-3.5" />
-                      {article.readCount.toLocaleString()} 阅读
-                    </span>
+                    {/* Meta info */}
+                    <div className="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {article.date}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" />
+                        {article.readCount.toLocaleString()} 阅读
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Arrow */}
-                <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-[var(--muted-foreground)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--primary)]" />
-              </div>
-            </Link>
+                  {/* Arrow */}
+                  <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-[var(--muted-foreground)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--primary)]" />
+                </div>
+              </Link>
+            </AnimatedSection>
           ))}
         </div>
       )}

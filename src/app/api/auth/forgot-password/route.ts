@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forgotPasswordSchema } from "@/lib/validators";
 import { db } from "@/server/db";
+import { loginLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: same as login (5 per 60s)
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = loginLimiter(ip + ":forgot");
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, message: "请求过于频繁，请稍后再试" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     const body = await request.json();
 
     const parsed = forgotPasswordSchema.safeParse(body);

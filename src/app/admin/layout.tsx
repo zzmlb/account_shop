@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Package,
+  FolderTree,
   Key,
   FileText,
   Users,
@@ -35,6 +36,7 @@ import {
 const sidebarLinks = [
   { label: "概览", href: "/admin", icon: LayoutDashboard },
   { label: "商品管理", href: "/admin/products", icon: Package },
+  { label: "分类管理", href: "/admin/categories", icon: FolderTree },
   { label: "卡密管理", href: "/admin/card-keys", icon: Key },
   { label: "订单管理", href: "/admin/orders", icon: FileText },
   { label: "用户管理", href: "/admin/users", icon: Users },

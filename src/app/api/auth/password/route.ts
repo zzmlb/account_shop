@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSessionFromRequest, verifyPassword, hashPassword } from "@/lib/auth";
+import { loginLimiter } from "@/lib/rate-limit";
 
 export async function PUT(request: NextRequest) {
   try {
+    // Rate limit password changes
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = loginLimiter(ip + ":passwd");
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, message: "操作过于频繁，请稍后再试" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     // Verify authentication
     const session = getSessionFromRequest(request);
     if (!session) {

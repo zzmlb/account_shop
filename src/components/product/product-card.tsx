@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
+import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +59,12 @@ export default function ProductCard({
 
   return (
     <Link href={`/products/${slug}`} className={cn("group block", className)}>
-      <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/50 hover:shadow-[0_8px_30px_rgba(108,92,231,0.15)]">
+      <motion.div
+        whileHover={{ y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-colors duration-300 hover:border-[var(--primary)]/50 hover:shadow-[0_8px_30px_rgba(108,92,231,0.15)]"
+      >
         {/* Image area */}
         <div className="relative aspect-[4/3] overflow-hidden">
           {image ? (
@@ -131,7 +137,7 @@ export default function ProductCard({
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </Link>
   );
 }
