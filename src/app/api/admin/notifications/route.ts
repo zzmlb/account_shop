@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("admin/notifications");
 
 export const dynamic = "force-dynamic";
 
@@ -180,6 +183,97 @@ export async function GET(request: NextRequest) {
   } catch {
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST - Send a system notification to all users or specific users
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const session = decodeSession(
+      request.cookies.get("session")?.value || ""
+    );
+
+    if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
+      return NextResponse.json(
+        { success: false, message: "无权限" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { title, content, href, userIds } = body as {
+      title?: string;
+      content?: string;
+      href?: string;
+      userIds?: string[];
+    };
+
+    if (!title || !content) {
+      return NextResponse.json(
+        { success: false, message: "标题和内容不能为空" },
+        { status: 400 }
+      );
+    }
+
+    if (title.length > 200 || content.length > 2000) {
+      return NextResponse.json(
+        { success: false, message: "标题不超过200字，内容不超过2000字" },
+        { status: 400 }
+      );
+    }
+
+    let targetUserIds: string[];
+
+    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+      // Send to specific users
+      targetUserIds = userIds;
+    } else {
+      // Broadcast to all active users
+      const allUsers = await db.user.findMany({
+        where: { status: "ACTIVE" },
+        select: { id: true },
+      });
+      targetUserIds = allUsers.map((u) => u.id);
+    }
+
+    if (targetUserIds.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "没有可发送的目标用户" },
+        { status: 400 }
+      );
+    }
+
+    await db.notification.createMany({
+      data: targetUserIds.map((userId) => ({
+        userId,
+        type: "SYSTEM" as const,
+        title,
+        content,
+        href: href || null,
+      })),
+    });
+
+    log.info(
+      { adminId: session.id, count: targetUserIds.length, title },
+      "System notification sent"
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: `已发送给 ${targetUserIds.length} 个用户`,
+      count: targetUserIds.length,
+    });
+  } catch (error) {
+    log.error({ err: error }, "Admin send notification error");
+    return NextResponse.json(
+      { success: false, message: "发送失败" },
       { status: 500 }
     );
   }

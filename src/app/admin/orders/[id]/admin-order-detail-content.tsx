@@ -305,10 +305,26 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
           {/* Order items */}
           <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
             <div className="border-b border-[var(--border)] px-5 py-4">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-                <Package className="h-4 w-4 text-[var(--primary)]" />
-                商品明细
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                  <Package className="h-4 w-4 text-[var(--primary)]" />
+                  商品明细
+                </h2>
+                {order.items.some((item) => item.cardKeys.length > 0) && (
+                  <button
+                    onClick={() => {
+                      const allKeys = order.items
+                        .flatMap((item) => item.cardKeys.map((ck) => ck.content))
+                        .join("\n");
+                      copyToClipboard(allKeys);
+                    }}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors"
+                  >
+                    <Copy className="h-3 w-3" />
+                    复制全部卡密
+                  </button>
+                )}
+              </div>
             </div>
             <div className="divide-y divide-[var(--border)]">
               {order.items.map((item) => (
@@ -349,9 +365,23 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                   {/* Card keys for this item */}
                   {item.cardKeys.length > 0 && (
                     <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--muted)]/50 p-3">
-                      <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)]">
-                        <Key className="h-3.5 w-3.5" />
-                        卡密 ({item.cardKeys.length})
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)]">
+                          <Key className="h-3.5 w-3.5" />
+                          卡密 ({item.cardKeys.length})
+                        </div>
+                        {item.cardKeys.length > 1 && (
+                          <button
+                            onClick={() => {
+                              const keys = item.cardKeys.map((ck) => ck.content).join("\n");
+                              copyToClipboard(keys);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-medium text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                          >
+                            <Copy className="h-3 w-3" />
+                            复制全部
+                          </button>
+                        )}
                       </div>
                       <div className="space-y-1.5">
                         {item.cardKeys.map((ck) => (

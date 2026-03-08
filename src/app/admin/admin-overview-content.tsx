@@ -17,6 +17,8 @@ import {
   RotateCcw,
   Shield,
   Download,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -28,6 +30,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Area,
   Bar,
@@ -207,6 +218,10 @@ export default function AdminOverviewPageContent() {
   const [monthlyComparison, setMonthlyComparison] = useState<ApiResponse["monthlyComparison"]>(undefined);
   const [chartLoading, setChartLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastContent, setBroadcastContent] = useState("");
+  const [broadcastSending, setBroadcastSending] = useState(false);
 
   const periodRef = useRef(chartPeriod);
   periodRef.current = chartPeriod;
@@ -273,6 +288,37 @@ export default function AdminOverviewPageContent() {
 
   const handleManualRefresh = () => {
     fetchStats(chartPeriod, false, true);
+  };
+
+  const handleSendBroadcast = async () => {
+    if (!broadcastTitle.trim() || !broadcastContent.trim()) {
+      toast.error("请填写标题和内容");
+      return;
+    }
+    setBroadcastSending(true);
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: broadcastTitle.trim(),
+          content: broadcastContent.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "发送成功");
+        setShowBroadcast(false);
+        setBroadcastTitle("");
+        setBroadcastContent("");
+      } else {
+        toast.error(data.message || "发送失败");
+      }
+    } catch {
+      toast.error("网络错误，发送失败");
+    } finally {
+      setBroadcastSending(false);
+    }
   };
 
   const handleExportReport = () => {
@@ -427,7 +473,16 @@ export default function AdminOverviewPageContent() {
             欢迎回来，以下是今日平台运营数据概览
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBroadcast(true)}
+            className="gap-1.5"
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">发送通知</span>
+          </Button>
           {lastRefresh && (
             <span className="hidden text-xs text-[var(--muted-foreground)] sm:inline">
               {lastRefresh.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} 更新
@@ -1120,6 +1175,60 @@ export default function AdminOverviewPageContent() {
           </CardContent>
         </Card>
       )}
+
+      {/* Broadcast Notification Dialog */}
+      <Dialog open={showBroadcast} onOpenChange={setShowBroadcast}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>发送系统通知</DialogTitle>
+            <DialogDescription>
+              向所有活跃用户发送系统通知
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">通知标题</label>
+              <Input
+                placeholder="例如: 系统维护通知"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">通知内容</label>
+              <textarea
+                placeholder="输入通知内容..."
+                value={broadcastContent}
+                onChange={(e) => setBroadcastContent(e.target.value)}
+                maxLength={2000}
+                rows={4}
+                className="w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-transparent px-3 py-2 text-sm placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              />
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                {broadcastContent.length}/2000
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBroadcast(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={handleSendBroadcast}
+              disabled={broadcastSending || !broadcastTitle.trim() || !broadcastContent.trim()}
+              className="gap-1.5"
+            >
+              {broadcastSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              发送给所有用户
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

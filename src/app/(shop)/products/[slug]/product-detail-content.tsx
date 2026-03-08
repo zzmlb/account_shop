@@ -12,6 +12,7 @@ import {
   Lock,
   Clock,
   CheckCircle,
+  BellRing,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ export default function ProductDetailContent({
   const recentlyViewedItems = useRecentlyViewedStore((s) => s.items);
   const inCartItem = cartItems.find((i) => i.productId === product.id);
   const inCartQty = inCartItem?.quantity ?? 0;
+  const [stockNotifyDone, setStockNotifyDone] = useState(false);
 
   const handleImageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -392,6 +394,42 @@ export default function ProductDetailContent({
               加入购物车
             </Button>
           </div>
+
+          {/* Out of stock notification */}
+          {product.stockCount <= 0 && (
+            <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--warning)]/30 bg-[var(--warning)]/5 px-4 py-3">
+              {stockNotifyDone ? (
+                <div className="flex items-center gap-2 text-sm text-[var(--success)]">
+                  <CheckCircle className="h-4 w-4" />
+                  已记录，补货后将优先通知您
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+                    <BellRing className="h-4 w-4 text-[var(--warning)]" />
+                    该商品暂时缺货
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    onClick={() => {
+                      const stored = JSON.parse(localStorage.getItem("stock-notify") || "[]");
+                      if (!stored.includes(product.slug)) {
+                        stored.push(product.slug);
+                        localStorage.setItem("stock-notify", JSON.stringify(stored));
+                      }
+                      setStockNotifyDone(true);
+                      toast.success("已订阅补货通知");
+                    }}
+                  >
+                    <BellRing className="h-3.5 w-3.5" />
+                    到货提醒
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Already in cart indicator */}
           {inCartQty > 0 && (
