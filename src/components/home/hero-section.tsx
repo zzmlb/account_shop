@@ -3,20 +3,40 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const STATS = [
-  { value: "10,000+", label: "商品" },
-  { value: "50,000+", label: "用户" },
-  { value: "99.9%", label: "好评率" },
-] as const;
+interface StatsData {
+  products: string;
+  users: string;
+  orders: string;
+}
 
 export default function HeroSection() {
   const [query, setQuery] = useState("");
   const router = useRouter();
+  const [stats, setStats] = useState<StatsData | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setStats(data.stats);
+        }
+      })
+      .catch(() => {
+        // silently fail — keep showing placeholders
+      });
+  }, []);
+
+  const displayStats = [
+    { value: stats ? stats.products : "---", label: "商品" },
+    { value: stats ? stats.users : "---", label: "用户" },
+    { value: "99.9%", label: "好评率" },
+  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +183,7 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
             className="mt-16 flex items-center gap-8 sm:gap-16"
           >
-            {STATS.map((stat, i) => (
+            {displayStats.map((stat, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
                 <span
                   className="text-2xl font-bold sm:text-3xl"

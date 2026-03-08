@@ -27,18 +27,30 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  const onSubmit = async () => {
+  const onSubmit = async (data: ForgotPasswordInput) => {
     try {
-      // Mock: simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error("发送失败", {
+          description: result.message || "请稍后重试",
+        });
+        return;
+      }
 
       setEmailSent(true);
       toast.success("邮件已发送", {
-        description: "重置链接已发送到您的邮箱",
+        description: result.message || "重置链接已发送到您的邮箱",
       });
     } catch {
       toast.error("发送失败", {
-        description: "请稍后重试",
+        description: "网络错误，请稍后重试",
       });
     }
   };
