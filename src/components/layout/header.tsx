@@ -3,21 +3,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingCart, User, Menu, Sun, Moon, X } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
 import { useTheme } from "@/components/providers/theme-provider";
+import { useAuthStore } from "@/stores/auth-store";
+import { useCartStore } from "@/stores/cart-store";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const cartCount = 0; // TODO: connect to cart store
+  const { user, logout } = useAuthStore();
+  const cartCount = useCartStore((s) => s.getItemCount());
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
+
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
   return (
     <header
@@ -73,7 +78,6 @@ export default function Header() {
           {/* Search (Cmd+K) */}
           <button
             onClick={() => {
-              // Dispatch Cmd+K event for command palette
               document.dispatchEvent(
                 new KeyboardEvent("keydown", { key: "k", metaKey: true })
               );
@@ -113,9 +117,21 @@ export default function Header() {
             )}
           </button>
 
+          {/* Admin link */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors md:flex"
+              aria-label="Admin"
+              title="管理后台"
+            >
+              <Shield className="h-5 w-5" />
+            </Link>
+          )}
+
           {/* Cart */}
           <Link
-            href="/cart"
+            href="/checkout"
             className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
             aria-label="Cart"
           >
@@ -127,14 +143,36 @@ export default function Header() {
             )}
           </Link>
 
-          {/* User avatar / login */}
-          <Link
-            href="/login"
-            className="hidden h-9 items-center gap-2 rounded-lg bg-[var(--primary)] px-4 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition-colors md:flex"
-          >
-            <User className="h-4 w-4" />
-            <span>登录</span>
-          </Link>
+          {/* User: logged in state */}
+          {user ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-[var(--primary)]/10 text-xs font-semibold text-[var(--primary)]">
+                    {user.username?.charAt(0).toUpperCase() ?? "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-[var(--foreground)]">
+                  {user.username}
+                </span>
+              </Link>
+              <button
+                onClick={logout}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--destructive)] hover:bg-[var(--destructive)]/10 transition-colors"
+                title="退出登录"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="hidden h-9 items-center gap-2 rounded-lg bg-[var(--primary)] px-4 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition-colors md:flex"
+            >
+              <User className="h-4 w-4" />
+              <span>登录</span>
+            </Link>
+          )}
 
           {/* Mobile hamburger */}
           <button
@@ -176,14 +214,41 @@ export default function Header() {
                 </Link>
               );
             })}
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition-colors"
-            >
-              <User className="h-4 w-4" />
-              <span>登录 / 注册</span>
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-4 py-3 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                >
+                  个人中心
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-4 py-3 text-sm font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
+                  >
+                    管理后台
+                  </Link>
+                )}
+                <button
+                  onClick={() => { logout(); setMobileMenuOpen(false); }}
+                  className="rounded-lg px-4 py-3 text-left text-sm font-medium text-[var(--destructive)] hover:bg-[var(--destructive)]/10 transition-colors"
+                >
+                  退出登录
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-medium text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition-colors"
+              >
+                <User className="h-4 w-4" />
+                <span>登录 / 注册</span>
+              </Link>
+            )}
           </nav>
         </div>
       )}

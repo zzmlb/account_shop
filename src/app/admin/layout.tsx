@@ -77,7 +77,7 @@ export default function AdminLayout({
   }
 
   /* ---------- Not admin ---------- */
-  if (user.role !== "admin") {
+  if (user.role !== "admin" && user.role !== "super_admin") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
         <div className="mx-auto max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-8 text-center shadow-lg">
