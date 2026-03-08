@@ -32,6 +32,8 @@ function QuantitySelectorInner({
 
   return (
     <div
+      role="group"
+      aria-label="购买数量选择"
       className={cn(
         "inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border)]",
         className

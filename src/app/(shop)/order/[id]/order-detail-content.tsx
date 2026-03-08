@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   Package,
@@ -20,6 +21,8 @@ import {
   Download,
   RotateCcw,
   Printer,
+  ShoppingCart,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -163,6 +166,18 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      price: number;
+      originalPrice?: number;
+      image?: string;
+      soldCount: number;
+      stockCount: number;
+    }>
+  >([]);
   const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
@@ -183,6 +198,33 @@ export default function OrderDetailContent({ id }: { id: string }) {
     }
     fetchOrder();
   }, [id]);
+
+  // Fetch recommended products after order loads
+  useEffect(() => {
+    if (!order) return;
+    const slugsInOrder = new Set(order.items.map((i) => i.slug));
+    fetch("/api/products?sort=popular&limit=8")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.products) {
+          const filtered = data.products
+            .filter((p: { slug: string }) => !slugsInOrder.has(p.slug))
+            .slice(0, 4)
+            .map((p: { id: string; name: string; slug: string; price: number; originalPrice?: number; image?: string; soldCount: number; stockCount: number }) => ({
+              id: p.id,
+              name: p.name,
+              slug: p.slug,
+              price: p.price,
+              originalPrice: p.originalPrice,
+              image: p.image,
+              soldCount: p.soldCount,
+              stockCount: p.stockCount,
+            }));
+          setRecommendedProducts(filtered);
+        }
+      })
+      .catch(() => {});
+  }, [order]);
 
   // Poll for status updates when order is PENDING or PAID
   const isPolling = !!(order && (order.status === "PENDING" || order.status === "PAID"));
@@ -990,6 +1032,72 @@ export default function OrderDetailContent({ id }: { id: string }) {
           </Button>
         )}
       </div>
+
+      {/* Recommended Products */}
+      {recommendedProducts.length > 0 && (
+        <div className="no-print mt-10">
+          <Separator className="mb-8" />
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-[var(--primary)]" />
+              猜你喜欢
+            </h2>
+            <Link
+              href="/products"
+              className="text-sm text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center gap-1 transition-colors"
+            >
+              查看更多
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {recommendedProducts.map((product) => (
+              <Link
+                key={product.id}
+                href={`/products/${product.slug}`}
+                className="group rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 transition-all hover:border-[var(--primary)]/40 hover:shadow-md"
+              >
+                <div className="relative mb-3 aspect-square overflow-hidden rounded-md bg-[var(--muted)]">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                      sizes="(max-width: 640px) 45vw, 20vw"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Package className="h-8 w-8 text-[var(--muted-foreground)]" />
+                    </div>
+                  )}
+                  {product.stockCount === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <span className="text-xs font-medium text-white">已售罄</span>
+                    </div>
+                  )}
+                </div>
+                <h3 className="mb-1.5 line-clamp-2 text-sm font-medium leading-snug group-hover:text-[var(--primary)] transition-colors">
+                  {product.name}
+                </h3>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-bold text-[var(--primary)]">
+                    {formatPrice(product.price)}
+                  </span>
+                  {product.originalPrice && product.originalPrice > product.price && (
+                    <span className="text-xs text-[var(--muted-foreground)] line-through">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  已售 {product.soldCount}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

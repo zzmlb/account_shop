@@ -379,6 +379,7 @@ export default function ProductDetailContent({
               className="flex-1 text-base"
               disabled={product.stockCount <= 0}
               onClick={handleBuyNow}
+              aria-label={product.stockCount <= 0 ? "暂时缺货" : `立即购买 ${product.name}`}
             >
               <Zap className="mr-2 h-5 w-5" />
               {product.stockCount <= 0 ? "暂时缺货" : "立即购买"}
@@ -389,6 +390,7 @@ export default function ProductDetailContent({
               className="flex-1 text-base"
               disabled={product.stockCount <= 0}
               onClick={handleAddToCart}
+              aria-label={`将 ${product.name} 加入购物车`}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
               加入购物车
@@ -488,7 +490,7 @@ export default function ProductDetailContent({
       {/* Tabs section */}
       <div className="mt-12">
         <Tabs defaultValue="description">
-          <TabsList className="w-full justify-start">
+          <TabsList className="w-full justify-start" aria-label="商品详情">
             <TabsTrigger value="description" className="flex-1 sm:flex-none">
               商品描述
             </TabsTrigger>
