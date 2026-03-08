@@ -29,6 +29,7 @@ import {
 import Pagination from "@/components/shared/pagination";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 interface Message {
   id: string;
@@ -83,18 +84,13 @@ export default function AdminMessagesContent() {
       if (activeTab !== "all") params.set("status", activeTab);
       if (debouncedSearch) params.set("search", debouncedSearch);
 
-      const res = await fetch(`/api/admin/messages?${params.toString()}`);
-      const data = await res.json();
-      if (data.success) {
-        setMessages(data.messages);
-        setTotalPages(data.pagination.totalPages);
-        setTotal(data.pagination.total);
-        setError("");
-      } else {
-        setError(data.message || "获取留言列表失败");
-      }
-    } catch {
-      setError("网络错误，获取留言列表失败");
+      const data = await apiFetch<{ messages: Message[]; pagination: { totalPages: number; total: number } }>(`/api/admin/messages?${params.toString()}`);
+      setMessages(data.messages);
+      setTotalPages(data.pagination.totalPages);
+      setTotal(data.pagination.total);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "获取留言列表失败");
     } finally {
       setLoading(false);
     }
@@ -121,22 +117,13 @@ export default function AdminMessagesContent() {
   const handleStatusUpdate = async (id: string, status: string) => {
     setUpdating(true);
     try {
-      const res = await fetch("/api/admin/messages", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status, adminNote: adminNote || undefined }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(status === "REPLIED" ? "已标记为已回复" : "留言已关闭");
-        setSelectedMessage(null);
-        setAdminNote("");
-        fetchMessages();
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("网络错误，操作失败");
+      await apiMutate("/api/admin/messages", "PUT", { id, status, adminNote: adminNote || undefined });
+      toast.success(status === "REPLIED" ? "已标记为已回复" : "留言已关闭");
+      setSelectedMessage(null);
+      setAdminNote("");
+      fetchMessages();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setUpdating(false);
     }
@@ -146,21 +133,12 @@ export default function AdminMessagesContent() {
     if (selectedIds.size === 0) return;
     setBatchLoading(true);
     try {
-      const res = await fetch("/api/admin/messages", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds), status }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setSelectedIds(new Set());
-        fetchMessages();
-      } else {
-        toast.error(data.message || "批量操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiMutate<{ message: string }>("/api/admin/messages", "PATCH", { ids: Array.from(selectedIds), status });
+      toast.success(data.message);
+      setSelectedIds(new Set());
+      fetchMessages();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "批量操作失败");
     } finally {
       setBatchLoading(false);
     }

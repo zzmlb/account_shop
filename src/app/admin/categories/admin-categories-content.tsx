@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,11 +69,8 @@ export default function AdminCategoriesContent() {
   // ----- Fetch categories -----
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/categories");
-      const data = await res.json();
-      if (data.success) {
-        setCategories(data.categories);
-      }
+      const data = await apiFetch<{ categories: Category[] }>("/api/admin/categories");
+      setCategories(data.categories);
     } catch {
       toast.error("加载分类失败");
     } finally {
@@ -113,50 +111,19 @@ export default function AdminCategoriesContent() {
 
     setIsMutating(true);
     try {
-      if (editingCategory) {
-        // Update
-        const res = await fetch("/api/admin/categories", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: editingCategory.id,
-            name: formName.trim(),
-            description: formDescription.trim(),
-            icon: formIcon.trim(),
-            sortOrder: formSortOrder,
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          toast.success("分类更新成功");
-          setDialogOpen(false);
-          fetchCategories();
-        } else {
-          toast.error(data.message || "更新失败");
-        }
-      } else {
-        // Create
-        const res = await fetch("/api/admin/categories", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formName.trim(),
-            description: formDescription.trim(),
-            icon: formIcon.trim(),
-            sortOrder: formSortOrder,
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          toast.success("分类创建成功");
-          setDialogOpen(false);
-          fetchCategories();
-        } else {
-          toast.error(data.message || "创建失败");
-        }
-      }
-    } catch {
-      toast.error("操作失败，请重试");
+      const payload = {
+        ...(editingCategory ? { id: editingCategory.id } : {}),
+        name: formName.trim(),
+        description: formDescription.trim(),
+        icon: formIcon.trim(),
+        sortOrder: formSortOrder,
+      };
+      await apiMutate("/api/admin/categories", editingCategory ? "PUT" : "POST", payload);
+      toast.success(editingCategory ? "分类更新成功" : "分类创建成功");
+      setDialogOpen(false);
+      fetchCategories();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setIsMutating(false);
     }
@@ -165,24 +132,15 @@ export default function AdminCategoriesContent() {
   // ----- Toggle active status -----
   const toggleActive = async (cat: Category) => {
     try {
-      const res = await fetch("/api/admin/categories", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: cat.id, isActive: !cat.isActive }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCategories((prev) =>
-          prev.map((c) =>
-            c.id === cat.id ? { ...c, isActive: !c.isActive } : c
-          )
-        );
-        toast.success(cat.isActive ? "分类已隐藏" : "分类已启用");
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("操作失败");
+      await apiMutate("/api/admin/categories", "PUT", { id: cat.id, isActive: !cat.isActive });
+      setCategories((prev) =>
+        prev.map((c) =>
+          c.id === cat.id ? { ...c, isActive: !c.isActive } : c
+        )
+      );
+      toast.success(cat.isActive ? "分类已隐藏" : "分类已启用");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     }
   };
 
@@ -192,21 +150,13 @@ export default function AdminCategoriesContent() {
 
     setIsMutating(true);
     try {
-      const res = await fetch(
-        `/api/admin/categories?id=${deletingCategory.id}`,
-        { method: "DELETE" }
-      );
-      const data = await res.json();
-      if (data.success) {
-        toast.success("分类已删除");
-        setDeleteDialogOpen(false);
-        setDeletingCategory(null);
-        fetchCategories();
-      } else {
-        toast.error(data.message || "删除失败");
-      }
-    } catch {
-      toast.error("删除失败，请重试");
+      await apiMutate(`/api/admin/categories?id=${deletingCategory.id}`, "DELETE");
+      toast.success("分类已删除");
+      setDeleteDialogOpen(false);
+      setDeletingCategory(null);
+      fetchCategories();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除失败");
     } finally {
       setIsMutating(false);
     }

@@ -428,9 +428,24 @@ export default function NotificationsContent() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--muted)]">
             <Inbox className="h-8 w-8 text-[var(--muted-foreground)]" />
           </div>
-          <p className="mt-4 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-4 text-sm font-medium text-[var(--foreground)]">
             {activeFilter === "unread" ? "没有未读通知" : "暂无通知"}
           </p>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            {activeFilter === "unread"
+              ? "所有通知已读，保持关注新动态"
+              : "下单后您将在此收到订单状态和系统通知"}
+          </p>
+          {activeFilter === "unread" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={() => setActiveFilter("all")}
+            >
+              查看所有通知
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

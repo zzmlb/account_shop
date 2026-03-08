@@ -14,6 +14,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -109,16 +110,11 @@ export default function AdminReviewsContent() {
       if (ratingFilter) params.set("rating", ratingFilter);
       if (visibleFilter) params.set("visible", visibleFilter);
 
-      const res = await fetch(`/api/admin/reviews?${params.toString()}`);
-      const data = await res.json();
-      if (data.success) {
-        setReviews(data.reviews);
-        setTotal(data.total);
-      } else {
-        toast.error(data.message || "获取评价失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiFetch<{ reviews: AdminReview[]; total: number }>(`/api/admin/reviews?${params.toString()}`);
+      setReviews(data.reviews);
+      setTotal(data.total);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取评价失败");
     } finally {
       setLoading(false);
     }
@@ -140,22 +136,15 @@ export default function AdminReviewsContent() {
   const handleToggleVisibility = async (review: AdminReview) => {
     setActionLoading(review.id);
     try {
-      const res = await fetch(`/api/admin/reviews?id=${review.id}`, {
-        method: "PUT",
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setReviews((prev) =>
-          prev.map((r) =>
-            r.id === review.id ? { ...r, isVisible: data.isVisible } : r
-          )
-        );
-      } else {
-        toast.error(data.message);
-      }
-    } catch {
-      toast.error("操作失败");
+      const data = await apiMutate<{ message: string; isVisible: boolean }>(`/api/admin/reviews?id=${review.id}`, "PUT");
+      toast.success(data.message);
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === review.id ? { ...r, isVisible: data.isVisible } : r
+        )
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setActionLoading(null);
     }
@@ -165,19 +154,12 @@ export default function AdminReviewsContent() {
     if (!deleteTarget) return;
     setActionLoading(deleteTarget.id);
     try {
-      const res = await fetch(`/api/admin/reviews?id=${deleteTarget.id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("评价已删除");
-        setDeleteTarget(null);
-        fetchReviews();
-      } else {
-        toast.error(data.message);
-      }
-    } catch {
-      toast.error("删除失败");
+      await apiMutate(`/api/admin/reviews?id=${deleteTarget.id}`, "DELETE");
+      toast.success("评价已删除");
+      setDeleteTarget(null);
+      fetchReviews();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除失败");
     } finally {
       setActionLoading(null);
     }
@@ -192,28 +174,19 @@ export default function AdminReviewsContent() {
     if (!replyTarget) return;
     setReplySubmitting(true);
     try {
-      const res = await fetch("/api/admin/reviews", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: replyTarget.id, reply: replyText }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setReviews((prev) =>
-          prev.map((r) =>
-            r.id === replyTarget.id
-              ? { ...r, adminReply: data.adminReply, repliedAt: data.repliedAt }
-              : r
-          )
-        );
-        setReplyTarget(null);
-        setReplyText("");
-      } else {
-        toast.error(data.message);
-      }
-    } catch {
-      toast.error("操作失败");
+      const data = await apiMutate<{ message: string; adminReply: string | null; repliedAt: string | null }>("/api/admin/reviews", "PATCH", { id: replyTarget.id, reply: replyText });
+      toast.success(data.message);
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === replyTarget.id
+            ? { ...r, adminReply: data.adminReply, repliedAt: data.repliedAt }
+            : r
+        )
+      );
+      setReplyTarget(null);
+      setReplyText("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setReplySubmitting(false);
     }
@@ -242,21 +215,12 @@ export default function AdminReviewsContent() {
     if (selectedIds.size === 0) return;
     setBatchLoading(true);
     try {
-      const res = await fetch("/api/admin/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds), visible }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setSelectedIds(new Set());
-        fetchReviews();
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiMutate<{ message: string }>("/api/admin/reviews", "POST", { ids: Array.from(selectedIds), visible });
+      toast.success(data.message);
+      setSelectedIds(new Set());
+      fetchReviews();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setBatchLoading(false);
     }

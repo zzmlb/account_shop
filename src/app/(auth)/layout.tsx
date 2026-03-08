@@ -30,7 +30,7 @@ export default function AuthLayout({
         }}
       />
 
-      <div className="relative z-10 flex w-full max-w-md flex-col items-center px-4 py-8">
+      <main id="main-content" className="relative z-10 flex w-full max-w-md flex-col items-center px-4 py-8">
         {/* Logo */}
         <Link
           href="/"
@@ -60,7 +60,7 @@ export default function AuthLayout({
             帮助中心
           </Link>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

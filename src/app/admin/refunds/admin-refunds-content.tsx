@@ -17,6 +17,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -110,18 +111,13 @@ export default function AdminRefundsContent() {
       params.set("page", String(page));
       params.set("pageSize", "15");
 
-      const res = await fetch(`/api/admin/refunds?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setRefunds(data.refunds);
-        setTotalPages(data.pagination.totalPages);
-        setTotal(data.pagination.total);
-        if (data.stats) setStats(data.stats);
-      } else {
-        setError(data.message || "加载失败");
-      }
-    } catch {
-      setError("网络错误");
+      const data = await apiFetch<{ refunds: RefundItem[]; pagination: { totalPages: number; total: number }; stats?: RefundStats }>(`/api/admin/refunds?${params}`);
+      setRefunds(data.refunds);
+      setTotalPages(data.pagination.totalPages);
+      setTotal(data.pagination.total);
+      if (data.stats) setStats(data.stats);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "网络错误");
     } finally {
       setLoading(false);
     }
@@ -165,25 +161,16 @@ export default function AdminRefundsContent() {
     if (!actionRefund) return;
     setProcessing(true);
     try {
-      const res = await fetch("/api/admin/refunds", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: actionRefund.id,
-          action: actionType,
-          adminNote: adminNote.trim() || undefined,
-        }),
+      const data = await apiMutate<{ message: string }>("/api/admin/refunds", "PUT", {
+        id: actionRefund.id,
+        action: actionType,
+        adminNote: adminNote.trim() || undefined,
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setActionDialogOpen(false);
-        fetchRefunds();
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      toast.success(data.message);
+      setActionDialogOpen(false);
+      fetchRefunds();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     } finally {
       setProcessing(false);
     }
@@ -218,24 +205,15 @@ export default function AdminRefundsContent() {
     if (selectedRefunds.size === 0) return;
     setBatchRejecting(true);
     try {
-      const res = await fetch("/api/admin/refunds", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ids: Array.from(selectedRefunds),
-          action: "reject",
-        }),
+      const data = await apiMutate<{ message: string }>("/api/admin/refunds", "PATCH", {
+        ids: Array.from(selectedRefunds),
+        action: "reject",
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setSelectedRefunds(new Set());
-        fetchRefunds();
-      } else {
-        toast.error(data.message || "批量操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      toast.success(data.message);
+      setSelectedRefunds(new Set());
+      fetchRefunds();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "批量操作失败");
     } finally {
       setBatchRejecting(false);
     }
