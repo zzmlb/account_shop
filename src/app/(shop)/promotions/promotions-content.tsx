@@ -32,11 +32,6 @@ interface AvailableCoupon {
   isClaimed: boolean;
 }
 
-function formatDiscount(type: string, value: number): string {
-  if (type === "FIXED") return `¥${value}`;
-  return `${value}%`;
-}
-
 function formatCondition(minAmount: number | null): string {
   if (!minAmount) return "无门槛";
   return `满¥${minAmount}可用`;

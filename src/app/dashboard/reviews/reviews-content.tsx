@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Package,
   Clock,
-  Eye,
   EyeOff,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
