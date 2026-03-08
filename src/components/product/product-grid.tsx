@@ -3,6 +3,7 @@ import ProductCard from "@/components/product/product-card";
 import EmptyState from "@/components/shared/empty-state";
 
 export interface ProductItem {
+  productId?: string;
   name: string;
   slug: string;
   price: number;

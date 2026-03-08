@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/product/product-card";
 
 interface Product {
+  productId?: string;
   name: string;
   slug: string;
   price: number;

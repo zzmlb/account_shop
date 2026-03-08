@@ -101,6 +101,7 @@ export default async function ProductDetailPage({
   };
 
   const relatedData = relatedProducts.map((p) => ({
+    productId: p.id,
     name: p.name,
     slug: p.slug,
     price: Number(p.price),

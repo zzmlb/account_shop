@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import PriceTag from "@/components/shared/price-tag";
 import StockBadge from "@/components/shared/stock-badge";
+import FavoriteButton from "@/components/product/favorite-button";
 import { useCartStore } from "@/stores/cart-store";
 
 interface ProductCardProps {
+  productId?: string;
   name: string;
   slug: string;
   price: number;
@@ -26,6 +28,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({
+  productId,
   name,
   slug,
   price,
@@ -95,14 +98,21 @@ export default function ProductCard({
               {categoryName}
             </Badge>
           </div>
-          {/* Discount badge */}
-          {originalPrice && originalPrice > price && (
-            <div className="absolute right-3 top-3">
+          {/* Top-right: discount badge + favorite */}
+          <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+            {originalPrice && originalPrice > price && (
               <Badge className="bg-[var(--destructive)] text-[var(--destructive-foreground)]">
                 -{Math.round(((originalPrice - price) / originalPrice) * 100)}%
               </Badge>
-            </div>
-          )}
+            )}
+            {productId && (
+              <FavoriteButton
+                productId={productId}
+                size="sm"
+                className="bg-[var(--background)]/70 backdrop-blur-sm hover:bg-[var(--background)]/90"
+              />
+            )}
+          </div>
         </div>
 
         {/* Content */}

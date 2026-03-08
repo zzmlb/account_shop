@@ -14,7 +14,9 @@ import {
   CreditCard,
   Loader2,
   AlertCircle,
+  Copy,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -502,9 +504,23 @@ export default function OrderDetailContent({ id }: { id: string }) {
             })}
           </div>
 
-          <p className="mt-4 text-xs text-[var(--muted-foreground)]">
-            卡密信息已同步发送至您的邮箱。请妥善保管卡密，避免泄露。
-          </p>
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-xs text-[var(--muted-foreground)]">
+              卡密信息已同步发送至您的邮箱。请妥善保管卡密，避免泄露。
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(order.cardKeys.join("\n"));
+                toast.success("已复制全部卡密");
+              }}
+              className="gap-1.5 shrink-0"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              复制全部
+            </Button>
+          </div>
         </div>
       )}
 

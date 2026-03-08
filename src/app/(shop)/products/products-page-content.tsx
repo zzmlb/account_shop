@@ -79,6 +79,7 @@ export default function ProductsPageContent() {
       if (data.success) {
         setProducts(
           data.products.map((p) => ({
+            productId: p.id,
             name: p.name,
             slug: p.slug,
             price: p.price,

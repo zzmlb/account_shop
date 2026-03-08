@@ -13,6 +13,9 @@ import {
   Shield,
   Bell,
   Loader2,
+  Mail,
+  Pencil,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,6 +58,11 @@ export default function DashboardSettingsPageContent() {
   const [orderNotifications, setOrderNotifications] = useState(true);
   const [promoEmails, setPromoEmails] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
+
+  /* ---- Email editing state ---- */
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailValue, setEmailValue] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
 
   /* ---- Avatar state ---- */
   const [avatarHover, setAvatarHover] = useState(false);
@@ -160,6 +168,40 @@ export default function DashboardSettingsPageContent() {
     }
   };
 
+  const handleEmailUpdate = async () => {
+    const trimmed = emailValue.trim();
+    if (!trimmed) {
+      toast.error("请输入邮箱地址");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast.error("请输入有效的邮箱地址");
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      const res = await fetch("/api/auth/email", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("邮箱已更新");
+        setEditingEmail(false);
+        // Refresh auth state
+        const { checkAuth } = useAuthStore.getState();
+        checkAuth();
+      } else {
+        toast.error(data.message || "更新失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
   const displayEmail = user?.email ?? "user@example.com";
   const displayUsername = user?.username ?? "user";
 
@@ -256,9 +298,60 @@ export default function DashboardSettingsPageContent() {
                   <Label className="text-xs text-[var(--muted-foreground)]">
                     邮箱
                   </Label>
-                  <div className="flex h-9 items-center rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--muted)]/50 px-3 text-sm text-[var(--muted-foreground)]">
-                    {displayEmail}
-                  </div>
+                  {editingEmail ? (
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        value={emailValue}
+                        onChange={(e) => setEmailValue(e.target.value)}
+                        placeholder="输入新邮箱"
+                        className="h-9 text-sm"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleEmailUpdate();
+                          if (e.key === "Escape") setEditingEmail(false);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 px-3"
+                        onClick={handleEmailUpdate}
+                        disabled={emailSaving}
+                      >
+                        {emailSaving ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Save className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-9 px-2"
+                        onClick={() => setEditingEmail(false)}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 flex-1 items-center rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--muted)]/50 px-3 text-sm text-[var(--muted-foreground)]">
+                        <Mail className="mr-2 h-3.5 w-3.5" />
+                        {displayEmail}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-9 px-2 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+                        onClick={() => {
+                          setEmailValue(user?.email || "");
+                          setEditingEmail(true);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

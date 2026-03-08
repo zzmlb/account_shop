@@ -10,6 +10,7 @@ export const ITEMS_PER_PAGE = 12;
 export const NAV_LINKS = [
   { label: "首页", href: "/" },
   { label: "全部商品", href: "/products" },
+  { label: "商品分类", href: "/categories" },
   { label: "帮助中心", href: "/articles" },
 ] as const;
 

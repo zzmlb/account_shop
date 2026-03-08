@@ -10,7 +10,9 @@ import {
   Package,
   KeyRound,
   Loader2,
+  Copy,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +74,8 @@ export default function OrderSearchPageContent() {
     setRevealedKeys(new Set());
 
     try {
-      const res = await fetch(`/api/orders/${orderNo.trim()}`);
+      const emailParam = email.trim() ? `?email=${encodeURIComponent(email.trim())}` : "";
+      const res = await fetch(`/api/orders/${orderNo.trim()}${emailParam}`);
       const data = await res.json();
 
       if (data.success && data.order) {
@@ -315,9 +318,23 @@ export default function OrderSearchPageContent() {
                 })}
               </div>
 
-              <p className="mt-4 text-xs text-[var(--muted-foreground)]">
-                请妥善保管卡密信息，避免截图或分享给他人。如有问题请联系客服。
-              </p>
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  请妥善保管卡密信息，避免截图或分享给他人。
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(result.cardKeys.join("\n"));
+                    toast.success("已复制全部卡密");
+                  }}
+                  className="gap-1.5 shrink-0"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  复制全部
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6 text-center">

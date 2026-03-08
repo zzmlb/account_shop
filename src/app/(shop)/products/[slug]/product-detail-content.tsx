@@ -18,6 +18,7 @@ import PriceTag from "@/components/shared/price-tag";
 import StockBadge from "@/components/shared/stock-badge";
 import QuantitySelector from "@/components/product/quantity-selector";
 import ProductCard from "@/components/product/product-card";
+import FavoriteButton from "@/components/product/favorite-button";
 import { useCartStore } from "@/stores/cart-store";
 
 interface Product {
@@ -36,6 +37,7 @@ interface Product {
 }
 
 interface RelatedProduct {
+  productId?: string;
   name: string;
   slug: string;
   price: number;
@@ -153,11 +155,12 @@ export default function ProductDetailContent({
 
         {/* Right: Product info */}
         <div className="flex flex-col">
-          {/* Category */}
-          <div className="mb-2">
+          {/* Category + Favorite */}
+          <div className="mb-2 flex items-center justify-between">
             <span className="inline-block rounded-full bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
               {product.categoryName}
             </span>
+            <FavoriteButton productId={product.id} size="md" />
           </div>
 
           {/* Name */}

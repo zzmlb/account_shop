@@ -54,6 +54,7 @@ export default async function CategoryPage({ params }: Props) {
   });
 
   const formattedProducts = products.map((p) => ({
+    productId: p.id,
     name: p.name,
     slug: p.slug,
     price: Number(p.price),
