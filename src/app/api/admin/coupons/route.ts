@@ -1,41 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { getAdminSession } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 import { createCouponSchema, updateCouponSchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("admin/coupons");
-
-function isAdmin(role: string): boolean {
-  const upper = role.toUpperCase();
-  return upper === "ADMIN" || upper === "SUPER_ADMIN";
-}
-
-function getAdminSession(request: NextRequest) {
-  const session = decodeSession(
-    request.cookies.get("session")?.value || ""
-  );
-  if (!session) {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      ),
-    };
-  }
-  if (!isAdmin(session.role)) {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "无管理员权限" },
-        { status: 403 }
-      ),
-    };
-  }
-  return { session, error: null };
-}
 
 // GET - List all coupons
 export async function GET(request: NextRequest) {

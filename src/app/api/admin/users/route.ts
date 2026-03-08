@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
@@ -7,39 +8,6 @@ import { sendBalanceAdjustment, sendAccountStatusChange } from "@/server/service
 import { logAdminAction } from "@/lib/audit";
 
 const log = createLogger("admin/users");
-
-function isAdmin(role: string): boolean {
-  const upper = role.toUpperCase();
-  return upper === "ADMIN" || upper === "SUPER_ADMIN";
-}
-
-function getAdminSession(request: NextRequest) {
-  const session = decodeSession(
-    request.cookies.get("session")?.value || ""
-  );
-
-  if (!session) {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      ),
-    };
-  }
-
-  if (!isAdmin(session.role)) {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "无管理员权限" },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return { session, error: null };
-}
 
 // GET - List all users (admin only)
 export async function GET(request: NextRequest) {
@@ -52,10 +20,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.slice(0, 200);
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-    const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
-    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
+    const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
 
     const role = searchParams.get("role");
     const status = searchParams.get("status");
@@ -152,12 +117,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       users: formatted,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      pagination: paginationMeta(total, page, pageSize),
     });
   } catch (error) {
     log.error({ err: error }, "Admin users GET error");

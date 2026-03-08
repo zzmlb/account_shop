@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { getAdminSession } from "@/lib/admin-auth";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/audit";
@@ -15,16 +15,8 @@ export async function GET(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
-      return NextResponse.json(
-        { success: false, message: "无权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
 
@@ -198,16 +190,8 @@ export async function POST(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
-      return NextResponse.json(
-        { success: false, message: "无权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const parsed = broadcastNotificationSchema.safeParse(body);

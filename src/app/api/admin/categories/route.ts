@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { getSessionFromRequest } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 import { createCategorySchema, updateCategorySchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("admin/categories");
-
-function isAdmin(role: string): boolean {
-  const r = role.toUpperCase();
-  return r === "ADMIN" || r === "SUPER_ADMIN";
-}
 
 function slugify(text: string): string {
   return text
@@ -25,13 +20,8 @@ export async function GET(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = getSessionFromRequest(request);
-    if (!session || !isAdmin(session.role)) {
-      return NextResponse.json(
-        { success: false, message: "无权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const categories = await db.category.findMany({
       orderBy: { sortOrder: "asc" },
@@ -68,13 +58,8 @@ export async function POST(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = getSessionFromRequest(request);
-    if (!session || !isAdmin(session.role)) {
-      return NextResponse.json(
-        { success: false, message: "无权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const parsed = createCategorySchema.safeParse(body);
@@ -107,7 +92,7 @@ export async function POST(request: NextRequest) {
     });
 
     log.info(
-      { adminId: session.id, categoryId: category.id, categoryName: name.trim(), slug },
+      { adminId: session!.id, categoryId: category.id, categoryName: name.trim(), slug },
       "Admin created category"
     );
 
@@ -127,13 +112,8 @@ export async function PUT(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = getSessionFromRequest(request);
-    if (!session || !isAdmin(session.role)) {
-      return NextResponse.json(
-        { success: false, message: "无权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const parsed = updateCategorySchema.safeParse(body);
@@ -194,13 +174,8 @@ export async function DELETE(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = getSessionFromRequest(request);
-    if (!session || !isAdmin(session.role)) {
-      return NextResponse.json(
-        { success: false, message: "无权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

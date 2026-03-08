@@ -40,12 +40,16 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    fetch("/api/categories")
+    const controller = new AbortController();
+    fetch("/api/categories", { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setCategories(data.categories);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      });
+    return () => controller.abort();
   }, []);
 
   const createQueryString = useCallback(
@@ -127,13 +131,14 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
         <h4 className="mb-3 text-sm font-semibold text-[var(--foreground)]">
           商品分类
         </h4>
-        <div className="space-y-2">
+        <div className="space-y-2" role="radiogroup" aria-label="商品分类">
           {/* All categories option */}
           <label className="flex cursor-pointer items-center gap-2">
             <button
               type="button"
               role="radio"
               aria-checked={!selectedCategory}
+              aria-label="全部分类"
               onClick={() => updateFilter({ category: null })}
               className={cn(
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[var(--input)] transition-colors",
@@ -158,6 +163,7 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
                   type="button"
                   role="radio"
                   aria-checked={isSelected}
+                  aria-label={cat.name}
                   onClick={() =>
                     updateFilter({
                       category: isSelected ? null : cat.name,

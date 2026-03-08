@@ -7,6 +7,7 @@ import { safeDecryptCardKey } from "@/lib/crypto";
 import { createOrderSchema, formatZodError } from "@/lib/validators";
 import { notifyAdminsNewOrder } from "@/server/services/notification";
 import { maybeCleanupExpiredOrders } from "@/server/services/order-cleanup";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 const log = createLogger("orders");
 
@@ -39,10 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-    const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
-    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
+    const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
     const status = searchParams.get("status");
 
     const where: Record<string, unknown> = { userId: session.id };
@@ -93,7 +91,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       orders: formatted,
-      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      pagination: paginationMeta(total, page, pageSize),
     });
   } catch (error) {
     log.error({ err: error }, "Orders fetch error");

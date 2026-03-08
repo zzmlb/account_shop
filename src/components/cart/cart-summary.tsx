@@ -44,9 +44,10 @@ export default function CartSummary({
 
   // Fetch user's available coupons for quick-apply
   useEffect(() => {
+    const controller = new AbortController();
     async function fetchCoupons() {
       try {
-        const res = await fetch("/api/coupons");
+        const res = await fetch("/api/coupons", { signal: controller.signal });
         const data = await res.json();
         if (data.success && Array.isArray(data.coupons)) {
           const now = new Date();
@@ -62,11 +63,12 @@ export default function CartSummary({
             }));
           setAvailableCoupons(usable);
         }
-      } catch {
-        // Silent - coupons are optional
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
       }
     }
     fetchCoupons();
+    return () => controller.abort();
   }, []);
 
   const subtotal = getTotal();

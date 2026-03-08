@@ -1,36 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("admin/users/[id]");
-
-function getAdminSession(request: NextRequest) {
-  const session = decodeSession(
-    request.cookies.get("session")?.value || ""
-  );
-  if (!session) {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      ),
-    };
-  }
-  const role = session.role.toUpperCase();
-  if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "无管理员权限" },
-        { status: 403 }
-      ),
-    };
-  }
-  return { session, error: null };
-}
 
 // GET - Get user detail with orders, balance logs, login logs
 export async function GET(

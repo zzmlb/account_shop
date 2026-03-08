@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 const log = createLogger("articles");
 
@@ -15,11 +16,11 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category");
     const tag = searchParams.get("tag");
     const search = searchParams.get("search");
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-    const pageSize = searchParams.get("pageSize");
-    const rawLimit = parseInt(pageSize || searchParams.get("limit") || "20", 10);
-    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : 20;
+    // Accept "limit" as an alias for "pageSize"
+    if (searchParams.get("limit") && !searchParams.has("pageSize")) {
+      searchParams.set("pageSize", searchParams.get("limit")!);
+    }
+    const { page, pageSize: limit } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
 
     const where: Record<string, unknown> = { isPublished: true };
 
@@ -76,12 +77,7 @@ export async function GET(request: NextRequest) {
       total,
       page,
       limit,
-      pagination: {
-        page,
-        pageSize: limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: paginationMeta(total, page, limit),
     });
     response.headers.set(
       "Cache-Control",

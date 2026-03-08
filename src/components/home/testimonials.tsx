@@ -54,15 +54,18 @@ export default function Testimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(FALLBACK_TESTIMONIALS);
 
   useEffect(() => {
-    // Fetch real reviews from API
-    fetch("/api/reviews/featured")
+    const controller = new AbortController();
+    fetch("/api/reviews/featured", { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.reviews?.length >= 3) {
           setTestimonials(data.reviews);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      });
+    return () => controller.abort();
   }, []);
 
   // Show 6 testimonials in 2 rows of 3

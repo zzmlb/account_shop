@@ -202,8 +202,9 @@ export default function OrderDetailContent({ id }: { id: string }) {
   // Fetch recommended products after order loads
   useEffect(() => {
     if (!order) return;
+    const controller = new AbortController();
     const slugsInOrder = new Set(order.items.map((i) => i.slug));
-    fetch("/api/products?sort=popular&limit=8")
+    fetch("/api/products?sort=popular&limit=8", { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.products) {
@@ -223,7 +224,10 @@ export default function OrderDetailContent({ id }: { id: string }) {
           setRecommendedProducts(filtered);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      });
+    return () => controller.abort();
   }, [order]);
 
   // Poll for status updates when order is PENDING or PAID
@@ -287,9 +291,10 @@ export default function OrderDetailContent({ id }: { id: string }) {
   // Check if there's already a refund request for this order
   useEffect(() => {
     if (!order || order.status !== "DELIVERED") return;
+    const controller = new AbortController();
     async function checkRefund() {
       try {
-        const res = await fetch("/api/refunds");
+        const res = await fetch("/api/refunds", { signal: controller.signal });
         const data = await res.json();
         if (data.success && data.refunds) {
           const match = data.refunds.find(
@@ -297,11 +302,12 @@ export default function OrderDetailContent({ id }: { id: string }) {
           );
           if (match) setRefundStatus(match.status);
         }
-      } catch {
-        // Ignore
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
       }
     }
     checkRefund();
+    return () => controller.abort();
   }, [order]);
 
   const handleRefundRequest = async () => {

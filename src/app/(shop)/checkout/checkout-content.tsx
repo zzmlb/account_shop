@@ -128,12 +128,15 @@ export default function CheckoutContent() {
   // Validate cart prices and stock against server on mount and periodically
   useEffect(() => {
     if (!mounted || items.length === 0 || priceChecked) return;
+    const controller = new AbortController();
 
     async function validateCart() {
       try {
         setStockValidating(true);
         const slugs = items.map((i) => i.slug);
-        const res = await fetch(`/api/products?slugs=${slugs.join(",")}&limit=50`);
+        const res = await fetch(`/api/products?slugs=${slugs.join(",")}&limit=50`, {
+          signal: controller.signal,
+        });
         const data = await res.json();
         if (!data.success || !Array.isArray(data.products)) return;
 
@@ -165,13 +168,14 @@ export default function CheckoutContent() {
         if (!changed) {
           setPriceChecked(true);
         }
-      } catch {
-        // Silent fail — server will validate on submit
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
       } finally {
-        setStockValidating(false);
+        if (!controller.signal.aborted) setStockValidating(false);
       }
     }
     validateCart();
+    return () => controller.abort();
   }, [mounted, items, priceChecked, removeItem, updateQuantity]);
 
   // Periodic stock re-validation while on checkout page (every 2 minutes)

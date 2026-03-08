@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 const log = createLogger("products");
 
@@ -17,11 +18,12 @@ export async function GET(request: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const slugs = searchParams.get("slugs");
+    // Accept "limit" as an alias for "pageSize"
     const limit = searchParams.get("limit");
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-    const rawSize = limit ? parseInt(limit, 10) : parseInt(searchParams.get("pageSize") || "12", 10);
-    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 100) : 12;
+    if (limit && !searchParams.has("pageSize")) {
+      searchParams.set("pageSize", limit);
+    }
+    const { page, pageSize } = parsePagination(searchParams, { pageSize: 12, maxPageSize: 100 });
 
     // Build where clause
     const where: Record<string, unknown> = { isActive: true };
@@ -127,12 +129,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       products: formatted,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      pagination: paginationMeta(total, page, pageSize),
     });
     // Cache public product listings for 60s, allow stale for 5min while revalidating
     response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");

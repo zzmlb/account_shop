@@ -18,14 +18,18 @@ export default function LiveActivity() {
   const [visible, setVisible] = useState(0);
 
   useEffect(() => {
-    fetch("/api/activity")
+    const controller = new AbortController();
+    fetch("/api/activity", { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.activity?.length > 0) {
           setItems(data.activity);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      });
+    return () => controller.abort();
   }, []);
 
   // Rotate visible item every 4 seconds

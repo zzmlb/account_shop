@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") || "20", 10)));
+    const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
     const action = searchParams.get("action");
 
     const where: Record<string, unknown> = {};
@@ -61,10 +61,7 @@ export async function GET(request: NextRequest) {
         ip: l.ip,
         createdAt: l.createdAt.toISOString(),
       })),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      ...paginationMeta(total, page, pageSize),
     });
   } catch {
     return NextResponse.json(

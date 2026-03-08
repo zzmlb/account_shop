@@ -143,14 +143,21 @@ export default function DashboardSettingsPageContent() {
 
   /* ---- Fetch login history ---- */
   useEffect(() => {
-    fetch("/api/auth/login-history")
+    const controller = new AbortController();
+    fetch("/api/auth/login-history", { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setLoginHistory(data.logs);
         else setLoginHistoryError(true);
       })
-      .catch(() => setLoginHistoryError(true))
-      .finally(() => setLoginHistoryLoading(false));
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setLoginHistoryError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoginHistoryLoading(false);
+      });
+    return () => controller.abort();
   }, []);
 
   /* ---- Handlers ---- */

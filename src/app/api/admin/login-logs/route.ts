@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 const log = createLogger("admin/login-logs");
 
@@ -32,10 +33,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.slice(0, 200);
     const status = searchParams.get("status"); // "success" | "failed"
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-    const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
-    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
+    const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
 
     const where: Record<string, unknown> = {};
 
@@ -105,12 +103,7 @@ export async function GET(request: NextRequest) {
             }
           : null,
       })),
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      pagination: paginationMeta(total, page, pageSize),
     });
   } catch (error) {
     log.error({ err: error }, "获取登录日志失败");

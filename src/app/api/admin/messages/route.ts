@@ -1,26 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
 import { sendContactReply } from "@/server/services/email";
+import { getAdminSession } from "@/lib/admin-auth";
+import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 const log = createLogger("admin/messages");
-
-function getAdminSession(request: NextRequest) {
-  const session = decodeSession(
-    request.cookies.get("session")?.value || ""
-  );
-  if (!session) {
-    return { session: null, error: NextResponse.json({ success: false, message: "未登录" }, { status: 401 }) };
-  }
-  const role = session.role.toUpperCase();
-  if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
-    return { session: null, error: NextResponse.json({ success: false, message: "无管理员权限" }, { status: 403 }) };
-  }
-  return { session, error: null };
-}
 
 // GET - List contact messages
 export async function GET(request: NextRequest) {
@@ -33,10 +20,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-    const rawSize = parseInt(searchParams.get("pageSize") || "20", 10);
-    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 50) : 20;
+    const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
 
     const search = searchParams.get("search")?.slice(0, 200);
 
@@ -75,7 +59,7 @@ export async function GET(request: NextRequest) {
         adminNote: m.adminNote,
         createdAt: m.createdAt.toISOString(),
       })),
-      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      pagination: paginationMeta(total, page, pageSize),
     });
   } catch (error) {
     log.error({ err: error }, "获取留言列表失败");
