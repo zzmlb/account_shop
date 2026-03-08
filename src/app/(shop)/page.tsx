@@ -5,6 +5,7 @@ import HeroSection from "@/components/home/hero-section";
 import CategoryGrid from "@/components/home/category-grid";
 import FeaturedProducts from "@/components/home/featured-products";
 import TrustSection from "@/components/home/trust-section";
+import RecentlyViewed from "@/components/home/recently-viewed";
 import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,7 @@ export default function HomePage() {
       <Suspense fallback={<FeaturedProductsSkeleton />}>
         <FeaturedProducts />
       </Suspense>
+      <RecentlyViewed />
       <TrustSection />
     </>
   );

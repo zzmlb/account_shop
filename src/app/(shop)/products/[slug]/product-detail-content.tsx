@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -20,6 +20,7 @@ import QuantitySelector from "@/components/product/quantity-selector";
 import ProductCard from "@/components/product/product-card";
 import FavoriteButton from "@/components/product/favorite-button";
 import { useCartStore } from "@/stores/cart-store";
+import { useRecentlyViewedStore } from "@/stores/recently-viewed-store";
 
 interface Product {
   id: string;
@@ -60,6 +61,20 @@ export default function ProductDetailContent({
   const [quantity, setQuantity] = useState(1);
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem);
+
+  // Track recently viewed
+  useEffect(() => {
+    addRecentlyViewed({
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.image,
+      categoryName: product.categoryName,
+      productId: product.id,
+    });
+  }, [product.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddToCart = () => {
     addItem({

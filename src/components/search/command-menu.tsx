@@ -101,11 +101,14 @@ export default function CommandMenu() {
     setLoading(true);
 
     try {
-      // Fetch products from API and categories (cached after first load)
-      const [productsRes, categories] = await Promise.all([
+      // Fetch products, articles, and categories (cached) in parallel
+      const [productsRes, articlesRes, categories] = await Promise.all([
         fetch(`/api/products?search=${encodeURIComponent(q)}&pageSize=6`, {
           signal: controller.signal,
         }).then((res) => res.json()),
+        fetch(`/api/articles?search=${encodeURIComponent(q)}&pageSize=5`, {
+          signal: controller.signal,
+        }).then((res) => res.json()).catch(() => ({ success: false, articles: [] })),
         categoriesCacheRef.current
           ? Promise.resolve(categoriesCacheRef.current)
           : fetch("/api/categories", { signal: controller.signal })
@@ -132,6 +135,19 @@ export default function CommandMenu() {
         description: `¥${p.price.toFixed(2)}`,
       }));
 
+      // Map articles to SearchResult format
+      const articleResults: SearchResult[] = (
+        articlesRes.success && Array.isArray(articlesRes.articles)
+          ? articlesRes.articles as { id: string; title: string; slug: string; category: string }[]
+          : []
+      ).map((a) => ({
+        id: a.slug,
+        title: a.title,
+        type: "article" as const,
+        href: `/articles/${a.slug}`,
+        description: a.category,
+      }));
+
       // Filter categories client-side by query
       const categoryResults: SearchResult[] = categories
         .filter((c: ApiCategory) => c.name.toLowerCase().includes(lower))
@@ -142,7 +158,7 @@ export default function CommandMenu() {
           href: `/products?category=${encodeURIComponent(c.name)}`,
         }));
 
-      setResults([...productResults, ...categoryResults]);
+      setResults([...productResults, ...categoryResults, ...articleResults]);
       setSelectedIndex(0);
     } catch (err) {
       // Ignore abort errors; show empty results for other errors

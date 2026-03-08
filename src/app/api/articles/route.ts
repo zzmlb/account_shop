@@ -7,8 +7,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const tag = searchParams.get("tag");
+    const search = searchParams.get("search");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get("limit") || "20", 10)));
+    const pageSize = searchParams.get("pageSize");
+    const limit = Math.max(1, Math.min(50, parseInt(pageSize || searchParams.get("limit") || "20", 10)));
 
     const where: Record<string, unknown> = { isPublished: true };
 
@@ -18,6 +20,13 @@ export async function GET(request: NextRequest) {
 
     if (tag) {
       where.tags = { has: tag };
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { content: { contains: search, mode: "insensitive" } },
+      ];
     }
 
     const [articles, total] = await Promise.all([

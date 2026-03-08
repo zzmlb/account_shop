@@ -15,6 +15,7 @@ const footerSections = [
     title: "快速链接",
     links: [
       { label: "全部商品", href: "/products" },
+      { label: "商品分类", href: "/categories" },
       { label: "卡密查询", href: "/order/search" },
       { label: "使用教程", href: "/articles" },
     ],
