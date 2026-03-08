@@ -354,14 +354,18 @@ export default function AdminUsersPageContent() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12">
-                      <Loader2 className="h-8 w-8 mx-auto text-[var(--muted-foreground)] mb-3 animate-spin" />
-                      <p className="text-sm text-[var(--muted-foreground)]">
-                        加载中...
-                      </p>
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse border-b border-[var(--border)]">
+                      <td className="px-4 py-3"><div className="h-4 w-8 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-32 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-5 w-14 rounded-full bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-5 w-12 rounded-full bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-16 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3 text-right"><div className="ml-auto h-8 w-8 rounded bg-[var(--muted)]" /></td>
+                    </tr>
+                  ))
                 ) : users.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-12">

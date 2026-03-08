@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Loader2 } from "lucide-react";
 import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
@@ -64,7 +63,21 @@ export default async function ArticlesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={<div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" /></div>}>
+      <Suspense fallback={
+        <div className="mx-auto max-w-4xl animate-pulse space-y-4 px-4 py-8">
+          <div className="h-7 w-32 rounded bg-[var(--muted)]" />
+          <div className="h-4 w-56 rounded bg-[var(--muted)]" />
+          <div className="mt-6 space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--border)] p-5 space-y-2">
+                <div className="h-5 w-2/3 rounded bg-[var(--muted)]" />
+                <div className="h-3 w-full rounded bg-[var(--muted)]" />
+                <div className="h-3 w-1/3 rounded bg-[var(--muted)]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      }>
         <ArticlesPageContent articles={articles} />
       </Suspense>
     </>

@@ -9,7 +9,6 @@ import {
   Plus,
   RefreshCw,
   Settings,
-  Loader2,
   Download,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -298,11 +297,16 @@ export default function BalancePageContent() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
-              <span className="ml-2 text-sm text-[var(--muted-foreground)]">
-                加载中...
-              </span>
+            <div className="animate-pulse space-y-3 py-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between px-1">
+                  <div className="space-y-1.5">
+                    <div className="h-3.5 w-32 rounded bg-[var(--muted)]" />
+                    <div className="h-3 w-20 rounded bg-[var(--muted)]" />
+                  </div>
+                  <div className="h-4 w-16 rounded bg-[var(--muted)]" />
+                </div>
+              ))}
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">

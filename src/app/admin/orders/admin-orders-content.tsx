@@ -503,14 +503,18 @@ export default function AdminOrdersPageContent() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12">
-                      <Loader2 className="h-8 w-8 mx-auto text-[var(--muted-foreground)] mb-3 animate-spin" />
-                      <p className="text-sm text-[var(--muted-foreground)]">
-                        加载中...
-                      </p>
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse border-b border-[var(--border)]">
+                      <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-28 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-5 w-14 rounded-full bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-14 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-5 w-12 rounded-full bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3 text-right"><div className="ml-auto h-8 w-8 rounded bg-[var(--muted)]" /></td>
+                    </tr>
+                  ))
                 ) : orders.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-12">
@@ -692,11 +696,23 @@ export default function AdminOrdersPageContent() {
       {/* Orders Cards - Mobile */}
       <div className="md:hidden space-y-3">
         {loading ? (
-          <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 text-[var(--muted-foreground)] animate-spin" />
-            </CardContent>
-          </Card>
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="animate-pulse space-y-3 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-24 rounded bg-[var(--muted)]" />
+                    <div className="h-5 w-14 rounded-full bg-[var(--muted)]" />
+                  </div>
+                  <div className="h-3 w-2/3 rounded bg-[var(--muted)]" />
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-16 rounded bg-[var(--muted)]" />
+                    <div className="h-8 w-8 rounded bg-[var(--muted)]" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : orders.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
