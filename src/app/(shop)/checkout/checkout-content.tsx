@@ -387,6 +387,7 @@ export default function CheckoutContent() {
               required
               maxLength={100}
               className="max-w-md"
+              aria-required="true"
               aria-describedby={email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "email-error" : undefined}
               aria-invalid={email ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : undefined}
             />

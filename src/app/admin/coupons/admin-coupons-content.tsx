@@ -467,10 +467,25 @@ export default function AdminCouponsContent() {
                 </Badge>
               </div>
 
-              {/* Usage */}
-              <div className="w-24 text-center text-sm text-[var(--muted-foreground)]">
-                {coupon.usedCount}
-                {coupon.maxUses ? `/${coupon.maxUses}` : ""} 次
+              {/* Usage & claimed */}
+              <div className="w-28 text-center">
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  {coupon.usedCount}
+                  {coupon.maxUses ? `/${coupon.maxUses}` : ""} 次
+                </div>
+                {coupon.claimedCount > 0 && (
+                  <div className="flex items-center justify-center gap-1 text-xs text-[var(--muted-foreground)]/70">
+                    <Users className="h-3 w-3" />
+                    {coupon.claimedCount} 领取
+                  </div>
+                )}
+              </div>
+
+              {/* Creation date */}
+              <div className="w-24 text-center">
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  {new Date(coupon.createdAt).toLocaleDateString("zh-CN")}
+                </span>
               </div>
 
               {/* Expiry */}
