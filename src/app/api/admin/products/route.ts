@@ -480,19 +480,28 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Find all active products with stock mismatches
-    const products = await db.product.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, stockCount: true },
-    });
+    // Find all active products and batch-count available card keys
+    const [products, availableCounts] = await Promise.all([
+      db.product.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, stockCount: true },
+      }),
+      db.cardKey.groupBy({
+        by: ["productId"],
+        where: { status: "AVAILABLE" },
+        _count: { id: true },
+      }),
+    ]);
+
+    const countMap = new Map(
+      availableCounts.map((c) => [c.productId, c._count.id])
+    );
 
     let fixedCount = 0;
     const fixes: Array<{ name: string; oldStock: number; newStock: number }> = [];
 
     for (const product of products) {
-      const actualAvailable = await db.cardKey.count({
-        where: { productId: product.id, status: "AVAILABLE" },
-      });
+      const actualAvailable = countMap.get(product.id) ?? 0;
 
       if (product.stockCount !== actualAvailable) {
         await db.product.update({

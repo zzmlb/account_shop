@@ -408,7 +408,13 @@ export default function AdminCardKeysPageContent() {
       if (!res.ok || !data.success) {
         throw new Error(data.message || "导入失败");
       }
-      toast.success(data.message || `成功导入 ${data.count} 个卡密`);
+      const dupInfo = data.duplicates;
+      const dupDesc = dupInfo && (dupInfo.batch > 0 || dupInfo.existing > 0)
+        ? `跳过 ${dupInfo.batch > 0 ? `${dupInfo.batch} 个批内重复` : ""}${dupInfo.batch > 0 && dupInfo.existing > 0 ? "、" : ""}${dupInfo.existing > 0 ? `${dupInfo.existing} 个已存在` : ""}`
+        : undefined;
+      toast.success(data.message || `成功导入 ${data.count} 个卡密`, {
+        ...(dupDesc && { description: dupDesc }),
+      });
       setImportProduct("");
       setImportContent("");
       setImportOpen(false);
