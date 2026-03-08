@@ -42,7 +42,7 @@ export default function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className={`flex items-center justify-between pt-2 ${className ?? ""}`}>
+    <nav aria-label="分页导航" className={`flex items-center justify-between pt-2 ${className ?? ""}`}>
       <p className="text-sm text-[var(--muted-foreground)]">
         共 {total} {totalLabel}，第 {page}/{totalPages} 页
       </p>
@@ -52,6 +52,7 @@ export default function Pagination({
           size="sm"
           disabled={page <= 1}
           onClick={() => onPageChange(Math.max(1, page - 1))}
+          aria-label="上一页"
         >
           <ChevronLeft className="h-4 w-4" />
           上一页
@@ -84,11 +85,12 @@ export default function Pagination({
           size="sm"
           disabled={page >= totalPages}
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          aria-label="下一页"
         >
           下一页
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </nav>
   );
 }
