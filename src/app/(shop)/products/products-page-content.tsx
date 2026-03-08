@@ -197,7 +197,7 @@ export default function ProductsPageContent() {
           <h1 className="text-3xl font-bold text-[var(--foreground)]">
             {search ? `搜索: "${search}"` : "全部商品"}
           </h1>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]" aria-live="polite" aria-atomic="true">
             {search
               ? `找到 ${total} 件相关商品`
               : `共 ${total} 件商品`}
@@ -214,17 +214,19 @@ export default function ProductsPageContent() {
                   : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               }`}
               aria-label="网格视图"
+              aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode("list")}
+              aria-label="列表视图"
+              aria-pressed={viewMode === "list"}
               className={`flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] transition-colors ${
                 viewMode === "list"
                   ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                   : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               }`}
-              aria-label="列表视图"
             >
               <List className="h-4 w-4" />
             </button>

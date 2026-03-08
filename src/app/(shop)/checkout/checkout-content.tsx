@@ -8,7 +8,6 @@ import {
   CreditCard,
   Smartphone,
   Bitcoin,
-  ArrowLeft,
   Mail,
   ShieldCheck,
   ShoppingBag,

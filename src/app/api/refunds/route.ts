@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Limit to 50 refunds to prevent unbounded queries
     const refunds = await db.refundRequest.findMany({
       where: { userId: session.id },
       include: {
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
     return NextResponse.json({

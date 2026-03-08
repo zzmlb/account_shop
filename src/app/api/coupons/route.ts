@@ -22,12 +22,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Limit to 100 coupons max to prevent unbounded queries
     const userCoupons = await db.userCoupon.findMany({
       where: { userId: session.id },
       include: {
         coupon: true,
       },
       orderBy: { coupon: { expireAt: "desc" } },
+      take: 100,
     });
 
     const formatted = userCoupons.map((uc) => ({

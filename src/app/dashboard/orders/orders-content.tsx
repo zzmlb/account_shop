@@ -370,6 +370,11 @@ export default function OrdersPageContent() {
         </div>
       )}
 
+      {/* Screen reader announcement for filter results */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {!loading && !error && `显示 ${filtered.length} 个订单`}
+      </div>
+
       {/* Order list */}
       {!loading && !error && (
         <div className="space-y-3">
@@ -461,6 +466,8 @@ export default function OrdersPageContent() {
                       {hasCardKeys && (
                         <button
                           onClick={() => toggleOrderExpand(order.id)}
+                          aria-expanded={isExpanded}
+                          aria-label={isExpanded ? "收起卡密信息" : "展开卡密信息"}
                           className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-3 py-1.5 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/10"
                         >
                           <Key className="h-3.5 w-3.5" />
@@ -508,6 +515,7 @@ export default function OrdersPageContent() {
                                     </code>
                                     <button
                                       onClick={() => handleCopyKey(key)}
+                                      aria-label={copiedKey === key ? "已复制" : "复制卡密"}
                                       className="shrink-0 rounded-[var(--radius-sm)] p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
                                       title="复制"
                                     >
