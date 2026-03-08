@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { sendCardKeyDelivery } from "@/server/services/email";
+import { createNotification } from "@/server/services/notification";
 import { decryptCardKey } from "@/lib/crypto";
 
 const log = createLogger("admin/orders");
@@ -314,6 +315,15 @@ export async function PUT(request: NextRequest) {
         return updatedOrder;
       });
 
+      // In-app notification
+      createNotification({
+        userId: existing.userId!,
+        type: "BALANCE",
+        title: "订单已退款",
+        content: `您的订单 ${existing.orderNo} 已退款，¥${refundAmount.toFixed(2)} 已退还至账户余额。`,
+        href: `/order/${existing.orderNo}`,
+      });
+
       return NextResponse.json({
         success: true,
         message: `订单已退款，已退还 ${refundAmount} 至用户余额`,
@@ -426,6 +436,18 @@ export async function PUT(request: NextRequest) {
 
       if (result.allKeysAllocated) {
         log.info({ orderNo: existing.orderNo, keys: result.allocatedKeys.length }, "Admin manual delivery completed");
+
+        // In-app notification for delivery
+        if (existing.userId) {
+          createNotification({
+            userId: existing.userId,
+            type: "ORDER",
+            title: "订单已发货",
+            content: `您的订单 ${existing.orderNo} 已完成发货，请前往订单详情查看卡密。`,
+            href: `/order/${existing.orderNo}`,
+          });
+        }
+
         return NextResponse.json({
           success: true,
           message: `已发货，分配了 ${result.allocatedKeys.length} 个卡密`,

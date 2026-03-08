@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { sendOrderConfirmation, sendCardKeyDelivery } from "@/server/services/email";
+import { createNotification } from "@/server/services/notification";
 import { paymentLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { decryptCardKey } from "@/lib/crypto";
 
@@ -200,6 +201,28 @@ export async function POST(
           items: Object.values(keysByProduct),
         }).catch((err) => {
           log.error({ err, orderNo: order.orderNo }, "Failed to send card key delivery email");
+        });
+      }
+    }
+
+    // Send in-app notification (fire-and-forget)
+    if (session) {
+      const productNames = order.items.map((i) => i.product.name).join("、");
+      if (result.allKeysAllocated) {
+        createNotification({
+          userId: session.id,
+          type: "ORDER",
+          title: "订单已发货",
+          content: `您的订单 ${order.orderNo} 已完成支付并发货，包含: ${productNames}。请前往订单详情查看卡密。`,
+          href: `/order/${order.orderNo}`,
+        });
+      } else {
+        createNotification({
+          userId: session.id,
+          type: "ORDER",
+          title: "支付成功，等待发货",
+          content: `您的订单 ${order.orderNo} 已成功支付，包含: ${productNames}。卡密库存不足，待管理员处理后发货。`,
+          href: `/order/${order.orderNo}`,
         });
       }
     }

@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { sendRefundNotification } from "@/server/services/email";
+import { createNotification } from "@/server/services/notification";
 
 const log = createLogger("admin/refunds");
 
@@ -256,6 +257,15 @@ export async function PUT(request: NextRequest) {
         });
       }
 
+      // In-app notification
+      createNotification({
+        userId: refund.userId,
+        type: "REFUND",
+        title: "退款申请已通过",
+        content: `您的订单 ${refund.order.orderNo} 退款申请已通过，¥${Number(refund.amount).toFixed(2)} 已退还至账户余额。${adminNote ? `管理员备注: ${adminNote}` : ""}`,
+        href: "/dashboard/refunds",
+      });
+
       return NextResponse.json({
         success: true,
         message: `退款已批准，¥${Number(refund.amount).toFixed(2)} 已退还至用户余额`,
@@ -292,6 +302,15 @@ export async function PUT(request: NextRequest) {
           log.warn({ err, orderNo: refund.order.orderNo }, "Failed to send refund rejection email");
         });
       }
+
+      // In-app notification
+      createNotification({
+        userId: refund.userId,
+        type: "REFUND",
+        title: "退款申请被拒绝",
+        content: `您的订单 ${refund.order.orderNo} 退款申请未通过。${adminNote ? `管理员备注: ${adminNote}` : "如有疑问请联系客服。"}`,
+        href: "/dashboard/refunds",
+      });
 
       return NextResponse.json({
         success: true,

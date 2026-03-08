@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, LogOut } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/constants";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -19,10 +19,25 @@ export default function Header() {
   const { user, logout } = useAuthStore();
   const cartCount = useCartStore((s) => s.getItemCount());
   const { siteName, load: loadSettings } = useSiteSettingsStore();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  const fetchNotifCount = useCallback(() => {
+    if (!user) return;
+    fetch("/api/notifications/unread-count")
+      .then((r) => r.json())
+      .then((d) => setUnreadNotifications(d.count ?? 0))
+      .catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    fetchNotifCount();
+    const interval = setInterval(fetchNotifCount, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchNotifCount]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -132,6 +147,22 @@ export default function Header() {
               title="管理后台"
             >
               <Shield className="h-5 w-5" />
+            </Link>
+          )}
+
+          {/* Notification bell (logged in users only) */}
+          {user && (
+            <Link
+              href="/dashboard/notifications"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+              aria-label="通知"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-[var(--primary-foreground)]">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
             </Link>
           )}
 

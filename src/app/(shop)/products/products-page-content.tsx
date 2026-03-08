@@ -66,6 +66,7 @@ export default function ProductsPageContent() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -129,6 +130,49 @@ export default function ProductsPageContent() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  const loadMore = useCallback(async () => {
+    if (page >= totalPages) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const params = new URLSearchParams();
+      params.set("page", String(nextPage));
+      params.set("pageSize", String(perPage));
+      if (category) params.set("category", category);
+      if (sort) params.set("sort", sort);
+      if (search) params.set("search", search);
+      if (minPrice) params.set("minPrice", minPrice);
+      if (maxPrice) params.set("maxPrice", maxPrice);
+      if (inStock === "true") params.set("inStock", "true");
+
+      const res = await fetch(`/api/products?${params.toString()}`);
+      const data: ApiResponse = await res.json();
+      if (data.success) {
+        setProducts((prev) => [
+          ...prev,
+          ...data.products.map((p) => ({
+            productId: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: p.price,
+            originalPrice: p.originalPrice,
+            image: p.image || undefined,
+            stockCount: p.stock,
+            soldCount: p.salesCount,
+            categoryName: p.category,
+            avgRating: p.avgRating,
+            reviewCount: p.reviewCount,
+          })),
+        ]);
+        setPage(nextPage);
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [page, totalPages, perPage, category, sort, search, minPrice, maxPrice, inStock]);
 
   const hasActiveFilters = !!(search || category || minPrice || maxPrice || inStock);
 
@@ -315,28 +359,26 @@ export default function ProductsPageContent() {
             <ProductGrid products={products} searchQuery={search} />
           )}
 
-          {/* Pagination */}
+          {/* Load more / Pagination */}
           {totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-              >
-                上一页
-              </Button>
-              <span className="px-4 text-sm text-[var(--muted-foreground)]">
-                第 {page} / {totalPages} 页
+            <div className="mt-8 flex flex-col items-center gap-4">
+              {page < totalPages && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full max-w-xs"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {loadingMore ? "加载中..." : "加载更多"}
+                </Button>
+              )}
+              <span className="text-xs text-[var(--muted-foreground)]">
+                已显示 {products.length} / {total} 件商品
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-              >
-                下一页
-              </Button>
             </div>
           )}
         </div>

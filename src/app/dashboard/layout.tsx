@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,6 +10,7 @@ import {
   Heart,
   Ticket,
   RotateCcw,
+  Bell,
   Settings,
   LogOut,
   ChevronRight,
@@ -27,6 +29,7 @@ const sidebarLinks = [
   { label: "我的收藏", href: "/dashboard/favorites", icon: Heart },
   { label: "优惠券", href: "/dashboard/coupons", icon: Ticket },
   { label: "退款申请", href: "/dashboard/refunds", icon: RotateCcw },
+  { label: "我的通知", href: "/dashboard/notifications", icon: Bell },
   { label: "账户设置", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -46,6 +49,20 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCount = () => {
+      fetch("/api/notifications/unread-count")
+        .then((r) => r.json())
+        .then((d) => setUnreadCount(d.count ?? 0))
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60_000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   /* ---------- Not logged in ---------- */
   if (!user) {
@@ -110,6 +127,20 @@ export default function DashboardLayout({
             </Link>
 
             <Separator orientation="vertical" className="hidden h-5 sm:block" />
+
+            {/* Notification bell */}
+            <Link
+              href="/dashboard/notifications"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+              aria-label="通知"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-[var(--primary-foreground)]">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
 
             {/* Avatar + username */}
             <div className="flex items-center gap-2">

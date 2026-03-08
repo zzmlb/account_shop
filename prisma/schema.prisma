@@ -28,6 +28,7 @@ model User {
   reviews        Review[]
   refundRequests RefundRequest[]
   loginLogs      LoginLog[]
+  notifications  Notification[]
 
   @@map("users")
 }
@@ -334,6 +335,31 @@ model LoginLog {
   @@index([createdAt])
   @@index([ip])
   @@map("login_logs")
+}
+
+// ==================== 用户通知 ====================
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  content   String           @db.Text
+  href      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ORDER
+  REFUND
+  BALANCE
+  SYSTEM
+  COUPON
 }
 
 // ==================== 系统配置 ====================

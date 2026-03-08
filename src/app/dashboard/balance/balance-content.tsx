@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Settings,
   Loader2,
+  Download,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,38 @@ export default function BalancePageContent() {
     });
   };
 
+  const exportTransactions = () => {
+    if (logs.length === 0) {
+      toast.error("暂无交易记录可导出");
+      return;
+    }
+    const header = "日期,类型,描述,金额\n";
+    const rows = logs
+      .map((log) => {
+        const config = TYPE_CONFIG[log.type] ?? TYPE_CONFIG.RECHARGE;
+        return [
+          formatDate(log.createdAt),
+          config.label,
+          `"${log.description.replace(/"/g, '""')}"`,
+          log.amount.toFixed(2),
+        ].join(",");
+      })
+      .join("\n");
+
+    const blob = new Blob(["\uFEFF" + header + rows], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `balance_history_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("导出成功", {
+      description: `已导出 ${logs.length} 条交易记录`,
+    });
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -189,20 +222,31 @@ export default function BalancePageContent() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="text-lg">交易记录</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={refreshing}
-            onClick={() => fetchBalanceLogs(true)}
-          >
-            <RefreshCw
-              className={cn(
-                "mr-1.5 h-3.5 w-3.5",
-                refreshing && "animate-spin"
-              )}
-            />
-            刷新
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={logs.length === 0}
+              onClick={exportTransactions}
+            >
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              导出
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={refreshing}
+              onClick={() => fetchBalanceLogs(true)}
+            >
+              <RefreshCw
+                className={cn(
+                  "mr-1.5 h-3.5 w-3.5",
+                  refreshing && "animate-spin"
+                )}
+              />
+              刷新
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (

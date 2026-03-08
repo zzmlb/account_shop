@@ -12,6 +12,7 @@ const CRON_SECRET = process.env.CRON_SECRET;
  * Cleans up old data:
  * - Login logs older than 90 days
  * - Expired/used password reset tokens older than 7 days
+ * - Read notifications older than 30 days
  *
  * Call this from a cron job (e.g. daily):
  *   curl -X POST http://localhost:3001/api/cron/cleanup-data \
@@ -48,10 +49,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Delete read notifications older than 30 days
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const deletedNotifications = await db.notification.deleteMany({
+      where: { isRead: true, createdAt: { lt: thirtyDaysAgo } },
+    });
+
     log.info(
       {
         loginLogs: deletedLogs.count,
         passwordResets: deletedTokens.count,
+        notifications: deletedNotifications.count,
       },
       "Data cleanup completed"
     );
@@ -62,6 +70,7 @@ export async function POST(request: NextRequest) {
       cleaned: {
         loginLogs: deletedLogs.count,
         passwordResets: deletedTokens.count,
+        notifications: deletedNotifications.count,
       },
     });
   } catch (error) {
