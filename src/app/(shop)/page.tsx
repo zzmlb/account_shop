@@ -15,6 +15,22 @@ export const revalidate = 60; // ISR: revalidate every 60 seconds
 export const metadata: Metadata = {
   title: `${SITE_NAME} — ${SITE_DESCRIPTION}`,
   description: SITE_DESCRIPTION,
+  openGraph: {
+    title: `${SITE_NAME} — ${SITE_DESCRIPTION}`,
+    description: "安全可靠的数字商品交易平台，即时交付、AES-256加密保护、7×24客服支持",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    type: "website",
+    locale: "zh_CN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — ${SITE_DESCRIPTION}`,
+    description: "安全可靠的数字商品交易平台，即时交付、AES-256加密保护、7×24客服支持",
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
 };
 
 /* ------------------------------------------------------------------ */

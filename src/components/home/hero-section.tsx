@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,17 @@ interface StatsData {
   users: string;
   orders: string;
 }
+
+// Pre-generated particle positions to avoid hydration mismatch from Math.random() in render
+const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
+  width: (((i * 7 + 3) % 11) / 11) * 4 + 2,
+  left: ((i * 37 + 13) % 100),
+  top: ((i * 53 + 7) % 100),
+  opacity: (((i * 17 + 5) % 10) / 10) * 0.6 + 0.2,
+  duration: (((i * 11 + 2) % 6) + 4),
+  delay: ((i * 23 + 1) % 4),
+  colorType: i % 3,
+}));
 
 export default function HeroSection() {
   const [query, setQuery] = useState("");
@@ -56,26 +67,26 @@ export default function HeroSection() {
         }}
       />
 
-      {/* Floating particles */}
+      {/* Floating particles (pre-generated to avoid hydration mismatch) */}
       <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {PARTICLES.map((p, i) => (
           <div
             key={i}
             className="absolute rounded-full"
             style={{
-              width: `${Math.random() * 4 + 2}px`,
-              height: `${Math.random() * 4 + 2}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: `${p.width}px`,
+              height: `${p.width}px`,
+              left: `${p.left}%`,
+              top: `${p.top}%`,
               background:
-                i % 3 === 0
+                p.colorType === 0
                   ? "var(--primary)"
-                  : i % 3 === 1
+                  : p.colorType === 1
                     ? "var(--accent)"
                     : "rgba(255,255,255,0.3)",
-              opacity: Math.random() * 0.6 + 0.2,
-              animation: `float-particle ${Math.random() * 6 + 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 4}s`,
+              opacity: p.opacity,
+              animation: `float-particle ${p.duration}s ease-in-out infinite`,
+              animationDelay: `${p.delay}s`,
             }}
           />
         ))}

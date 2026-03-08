@@ -139,6 +139,11 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* ===== iOS Safe Area ===== */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ===== Selection ===== */
 ::selection {
   background: var(--primary);

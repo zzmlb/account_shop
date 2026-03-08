@@ -7,6 +7,11 @@ export const revalidate = 120; // ISR: revalidate every 2 minutes
 export const metadata = {
   title: "帮助中心 - PJ37 数字商品交易平台",
   description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
+  openGraph: {
+    title: "帮助中心 - PJ37 Digital",
+    description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
+    type: "website" as const,
+  },
 };
 
 export default async function ArticlesPage() {

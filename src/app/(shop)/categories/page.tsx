@@ -22,6 +22,11 @@ export const revalidate = 120; // ISR: revalidate every 2 minutes
 export const metadata: Metadata = {
   title: `商品分类 - ${SITE_NAME}`,
   description: "浏览所有商品分类，快速找到您需要的数字商品和服务",
+  openGraph: {
+    title: `商品分类 - ${SITE_NAME}`,
+    description: "浏览所有商品分类，快速找到您需要的数字商品和服务",
+    type: "website",
+  },
 };
 
 const ICON_MAP: Record<string, LucideIcon> = {

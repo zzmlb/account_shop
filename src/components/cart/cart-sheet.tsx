@@ -18,7 +18,7 @@ import { useCartStore } from "@/stores/cart-store";
 import CartItem from "./cart-item";
 
 export default function CartSheet() {
-  const { items, isOpen, toggleCart, getTotal, getItemCount } = useCartStore();
+  const { items, isOpen, toggleCart, getTotal, getItemCount, clearCart } = useCartStore();
 
   const total = getTotal();
   const itemCount = getItemCount();
@@ -45,6 +45,16 @@ export default function CartSheet() {
           <SheetDescription className="sr-only">
             查看和管理购物车中的商品
           </SheetDescription>
+          {items.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearCart}
+              className="absolute right-12 top-4 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
+            >
+              清空
+            </Button>
+          )}
         </SheetHeader>
 
         {/* Content */}
@@ -81,7 +91,7 @@ export default function CartSheet() {
             {/* Bottom sticky area */}
             <div className="border-t border-[var(--border)] bg-[var(--background)] px-6 py-4">
               {/* Subtotal */}
-              <div className="mb-3 space-y-1.5">
+              <div className="mb-3 space-y-1.5" aria-live="polite" aria-atomic="true">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[var(--muted-foreground)]">
                     小计 ({itemCount} 件)
