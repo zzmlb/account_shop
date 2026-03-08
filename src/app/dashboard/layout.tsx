@@ -104,6 +104,12 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-[var(--primary)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--primary-foreground)]"
+      >
+        跳到主要内容
+      </a>
       {/* Prevent dashboard pages from being indexed */}
       <meta name="robots" content="noindex, nofollow" />
       {/* ========== Top bar ========== */}
