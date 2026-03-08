@@ -95,17 +95,21 @@ export default function LoginContent() {
             autoFocus
             minLength={2}
             maxLength={100}
+            aria-invalid={!!errors.username}
+            aria-describedby={errors.username ? "username-error" : undefined}
             className={cn(
               "bg-[var(--background)]",
               errors.username && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
             )}
             {...register("username")}
           />
-          {errors.username && (
-            <p role="alert" className="text-xs text-[var(--destructive)]">
-              {errors.username.message}
-            </p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {errors.username && (
+              <p id="username-error" role="alert" className="text-xs text-[var(--destructive)]">
+                {errors.username.message}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Password */}
@@ -127,6 +131,8 @@ export default function LoginContent() {
               autoComplete="current-password"
               minLength={6}
               maxLength={50}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
               className={cn(
                 "bg-[var(--background)] pr-10",
                 errors.password && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -148,11 +154,13 @@ export default function LoginContent() {
               )}
             </button>
           </div>
-          {errors.password && (
-            <p role="alert" className="text-xs text-[var(--destructive)]">
-              {errors.password.message}
-            </p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {errors.password && (
+              <p id="password-error" role="alert" className="text-xs text-[var(--destructive)]">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Remember me */}

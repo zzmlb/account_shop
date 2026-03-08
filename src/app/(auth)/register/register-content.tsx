@@ -180,17 +180,21 @@ export default function RegisterContent() {
             autoFocus
             minLength={2}
             maxLength={20}
+            aria-invalid={!!errors.username}
+            aria-describedby={errors.username ? "username-error" : undefined}
             className={cn(
               "bg-[var(--background)]",
               errors.username && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
             )}
             {...register("username")}
           />
-          {errors.username && (
-            <p role="alert" className="text-xs text-[var(--destructive)]">
-              {errors.username.message}
-            </p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {errors.username && (
+              <p id="username-error" role="alert" className="text-xs text-[var(--destructive)]">
+                {errors.username.message}
+              </p>
+            )}
+          </div>
           {!errors.username && usernameStatus === "checking" && (
             <p className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -220,17 +224,21 @@ export default function RegisterContent() {
             placeholder="请输入邮箱地址"
             autoComplete="email"
             maxLength={100}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
             className={cn(
               "bg-[var(--background)]",
               errors.email && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
             )}
             {...register("email")}
           />
-          {errors.email && (
-            <p role="alert" className="text-xs text-[var(--destructive)]">
-              {errors.email.message}
-            </p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {errors.email && (
+              <p id="email-error" role="alert" className="text-xs text-[var(--destructive)]">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Password */}
@@ -244,6 +252,8 @@ export default function RegisterContent() {
               autoComplete="new-password"
               minLength={6}
               maxLength={50}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
               className={cn(
                 "bg-[var(--background)] pr-10",
                 errors.password && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -265,11 +275,13 @@ export default function RegisterContent() {
               )}
             </button>
           </div>
-          {errors.password && (
-            <p role="alert" className="text-xs text-[var(--destructive)]">
-              {errors.password.message}
-            </p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {errors.password && (
+              <p id="password-error" role="alert" className="text-xs text-[var(--destructive)]">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
 
           {/* Password strength indicator */}
           {watchedPassword && watchedPassword.length > 0 && (
@@ -308,6 +320,8 @@ export default function RegisterContent() {
               autoComplete="new-password"
               minLength={6}
               maxLength={50}
+              aria-invalid={!!errors.confirmPassword}
+              aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
               className={cn(
                 "bg-[var(--background)] pr-10",
                 errors.confirmPassword && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -328,11 +342,13 @@ export default function RegisterContent() {
               )}
             </button>
           </div>
-          {errors.confirmPassword && (
-            <p role="alert" className="text-xs text-[var(--destructive)]">
-              {errors.confirmPassword.message}
-            </p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {errors.confirmPassword && (
+              <p id="confirm-password-error" role="alert" className="text-xs text-[var(--destructive)]">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </div>
           {!errors.confirmPassword && passwordsMatch && (
             <p className="text-xs text-[var(--success)]">
               密码匹配
