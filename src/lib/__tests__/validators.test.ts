@@ -7,7 +7,11 @@ import {
   createReviewSchema,
   changePasswordSchema,
   formatZodError,
-  slugify,
+  createProductSchema,
+  createCategorySchema,
+  createCouponSchema,
+  createArticleSchema,
+  favoriteSchema,
 } from "../validators";
 
 describe("loginSchema", () => {
@@ -200,6 +204,194 @@ describe("changePasswordSchema", () => {
       currentPassword: "OldPass1",
       newPassword: "123456",
     });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("createProductSchema", () => {
+  it("accepts valid product", () => {
+    const result = createProductSchema.safeParse({
+      name: "测试商品",
+      description: "商品描述",
+      price: 9.99,
+      categoryId: "cat-1",
+      stockCount: 100,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty name", () => {
+    const result = createProductSchema.safeParse({
+      name: "",
+      description: "描述",
+      price: 9.99,
+      categoryId: "cat-1",
+      stockCount: 10,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects negative price", () => {
+    const result = createProductSchema.safeParse({
+      name: "商品",
+      description: "描述",
+      price: -1,
+      categoryId: "cat-1",
+      stockCount: 10,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects negative stock", () => {
+    const result = createProductSchema.safeParse({
+      name: "商品",
+      description: "描述",
+      price: 10,
+      categoryId: "cat-1",
+      stockCount: -5,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional fields", () => {
+    const result = createProductSchema.safeParse({
+      name: "商品",
+      description: "描述",
+      price: 10,
+      categoryId: "cat-1",
+      stockCount: 10,
+      originalPrice: 20,
+      tags: ["tag1", "tag2"],
+      isActive: true,
+      deliveryType: "AUTO",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid deliveryType", () => {
+    const result = createProductSchema.safeParse({
+      name: "商品",
+      description: "描述",
+      price: 10,
+      categoryId: "cat-1",
+      stockCount: 10,
+      deliveryType: "INVALID",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("createCategorySchema", () => {
+  it("accepts valid category", () => {
+    const result = createCategorySchema.safeParse({
+      name: "电子邮箱",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty name", () => {
+    const result = createCategorySchema.safeParse({
+      name: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional fields", () => {
+    const result = createCategorySchema.safeParse({
+      name: "VPN服务",
+      description: "各类VPN服务",
+      icon: "Shield",
+      sortOrder: 5,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("createCouponSchema", () => {
+  it("accepts valid fixed coupon", () => {
+    const result = createCouponSchema.safeParse({
+      code: "SAVE10",
+      type: "FIXED",
+      value: 10,
+      startAt: "2026-01-01T00:00:00Z",
+      expireAt: "2026-12-31T23:59:59Z",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts valid percentage coupon", () => {
+    const result = createCouponSchema.safeParse({
+      code: "OFF20",
+      type: "PERCENTAGE",
+      value: 20,
+      minAmount: 100,
+      maxUses: 50,
+      startAt: "2026-01-01T00:00:00Z",
+      expireAt: "2026-12-31T23:59:59Z",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid coupon type", () => {
+    const result = createCouponSchema.safeParse({
+      code: "BAD",
+      type: "INVALID",
+      value: 10,
+      startAt: "2026-01-01",
+      expireAt: "2026-12-31",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty code", () => {
+    const result = createCouponSchema.safeParse({
+      code: "",
+      type: "FIXED",
+      value: 10,
+      startAt: "2026-01-01",
+      expireAt: "2026-12-31",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("createArticleSchema", () => {
+  it("accepts valid article", () => {
+    const result = createArticleSchema.safeParse({
+      title: "使用指南",
+      content: "这是一篇帮助文章的内容...",
+      category: "guide",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty title", () => {
+    const result = createArticleSchema.safeParse({
+      title: "",
+      content: "内容",
+      category: "guide",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty content", () => {
+    const result = createArticleSchema.safeParse({
+      title: "标题",
+      content: "",
+      category: "guide",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("favoriteSchema", () => {
+  it("accepts valid productId", () => {
+    const result = favoriteSchema.safeParse({ productId: "prod-123" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty productId", () => {
+    const result = favoriteSchema.safeParse({ productId: "" });
     expect(result.success).toBe(false);
   });
 });
