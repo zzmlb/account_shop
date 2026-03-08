@@ -67,4 +67,58 @@ describe("sanitizeHtml", () => {
     expect(result).toContain("src=");
     expect(result).toContain("alt=");
   });
+
+  it("removes style tags", () => {
+    const input = "<style>body{display:none}</style><p>Visible</p>";
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("<style>");
+    expect(result).toContain("<p>Visible</p>");
+  });
+
+  it("removes onerror attributes", () => {
+    const input = '<img src="x" onerror="alert(1)">';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("onerror");
+  });
+
+  it("removes form and input tags", () => {
+    const input = '<form action="/steal"><input type="text"><p>Safe</p></form>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("<form");
+    expect(result).not.toContain("<input");
+    expect(result).toContain("<p>Safe</p>");
+  });
+
+  it("removes data attributes", () => {
+    const input = '<div data-custom="evil">Content</div>';
+    const result = sanitizeHtml(input);
+    expect(result).not.toContain("data-custom");
+    expect(result).toContain("Content");
+  });
+
+  it("preserves table structure", () => {
+    const input = "<table><thead><tr><th>Header</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table>";
+    const result = sanitizeHtml(input);
+    expect(result).toContain("<table>");
+    expect(result).toContain("<th>Header</th>");
+    expect(result).toContain("<td>Cell</td>");
+  });
+});
+
+describe("stripHtml edge cases", () => {
+  it("strips nested tags", () => {
+    expect(stripHtml("<div><p><strong>Hello</strong></p></div>")).toBe("Hello");
+  });
+
+  it("strips self-closing tags", () => {
+    expect(stripHtml("Line1<br/>Line2")).toBe("Line1Line2");
+  });
+
+  it("handles entities in plain text", () => {
+    expect(stripHtml("5 &gt; 3")).toBe("5 &gt; 3");
+  });
+
+  it("strips malformed tags", () => {
+    expect(stripHtml("<div class='test'>Text</div>")).toBe("Text");
+  });
 });

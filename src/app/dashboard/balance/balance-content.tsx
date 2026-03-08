@@ -103,7 +103,12 @@ export default function BalancePageContent() {
     }
 
     try {
-      const res = await fetch("/api/balance-logs");
+      const params = new URLSearchParams();
+      if (filterType !== "ALL") {
+        params.set("type", filterType);
+      }
+      const qs = params.toString();
+      const res = await fetch(`/api/balance-logs${qs ? `?${qs}` : ""}`);
       const data = await res.json();
 
       if (data.success) {
@@ -119,14 +124,13 @@ export default function BalancePageContent() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [filterType]);
 
   useEffect(() => {
     fetchBalanceLogs();
   }, [fetchBalanceLogs]);
 
   const displayBalance = balance !== null ? balance : (user?.balance ?? 0);
-  const filteredLogs = filterType === "ALL" ? logs : logs.filter((l) => l.type === filterType);
 
   const [showRechargeGuide, setShowRechargeGuide] = useState(false);
 
@@ -354,7 +358,7 @@ export default function BalancePageContent() {
               </div>
 
               <div className="space-y-3">
-                {filteredLogs.map((log) => {
+                {logs.map((log) => {
                   const isPositive = log.amount > 0;
                   const config = TYPE_CONFIG[log.type] ?? TYPE_CONFIG.RECHARGE;
                   const amountStr = isPositive
