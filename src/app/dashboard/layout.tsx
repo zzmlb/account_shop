@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -29,6 +30,7 @@ const sidebarLinks = [
   { label: "余额管理", href: "/dashboard/balance", icon: Wallet },
   { label: "我的收藏", href: "/dashboard/favorites", icon: Heart },
   { label: "优惠券", href: "/dashboard/coupons", icon: Ticket },
+  { label: "我的评价", href: "/dashboard/reviews", icon: Star },
   { label: "退款申请", href: "/dashboard/refunds", icon: RotateCcw },
   { label: "我的通知", href: "/dashboard/notifications", icon: Bell },
   { label: "账户设置", href: "/dashboard/settings", icon: Settings },
