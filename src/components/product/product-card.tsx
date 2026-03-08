@@ -4,7 +4,7 @@ import { memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Flame } from "lucide-react";
+import { ShoppingCart, Flame, Star } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ interface ProductCardProps {
   stockCount: number;
   soldCount: number;
   categoryName: string;
+  avgRating?: number;
+  reviewCount?: number;
   className?: string;
 }
 
@@ -38,6 +40,8 @@ function ProductCard({
   stockCount,
   soldCount,
   categoryName,
+  avgRating,
+  reviewCount,
   className,
 }: ProductCardProps) {
   const router = useRouter();
@@ -129,12 +133,22 @@ function ProductCard({
             {name}
           </h3>
 
-          {/* Price */}
-          <PriceTag
-            price={price}
-            originalPrice={originalPrice}
-            className="mb-3"
-          />
+          {/* Price + Rating */}
+          <div className="mb-3 flex items-center justify-between">
+            <PriceTag
+              price={price}
+              originalPrice={originalPrice}
+            />
+            {avgRating != null && avgRating > 0 && (
+              <div className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                <span>{avgRating}</span>
+                {reviewCount != null && reviewCount > 0 && (
+                  <span>({reviewCount})</span>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Bottom row */}
           <div className="flex items-center justify-between">

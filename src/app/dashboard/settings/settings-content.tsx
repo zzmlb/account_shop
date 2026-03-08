@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import {
   Lock,
   User,
@@ -76,6 +77,8 @@ export default function DashboardSettingsPageContent() {
 
   /* ---- Avatar state ---- */
   const [avatarHover, setAvatarHover] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   /* ---- Delete account state ---- */
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -252,6 +255,53 @@ export default function DashboardSettingsPageContent() {
   const displayEmail = user?.email ?? "user@example.com";
   const displayUsername = user?.username ?? "user";
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("图片大小不能超过 2MB");
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      // Upload the file
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) {
+        throw new Error(uploadData.message || "上传失败");
+      }
+
+      // Update profile with new avatar URL
+      const profileRes = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar: uploadData.url }),
+      });
+      const profileData = await profileRes.json();
+      if (!profileData.success) {
+        throw new Error(profileData.message || "更新头像失败");
+      }
+
+      // Refresh auth store
+      useAuthStore.getState().checkAuth();
+      toast.success("头像已更新");
+    } catch (err) {
+      toast.error("头像上传失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -277,31 +327,50 @@ export default function DashboardSettingsPageContent() {
               <CardDescription>您的账户基本信息</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
-              {/* Avatar placeholder */}
+              {/* Avatar upload */}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
               <button
                 className="group relative mb-4"
                 onMouseEnter={() => setAvatarHover(true)}
                 onMouseLeave={() => setAvatarHover(false)}
-                onClick={() => {
-                  toast.info("头像上传功能开发中");
-                }}
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
               >
                 <div
                   className={cn(
-                    "flex h-28 w-28 items-center justify-center rounded-full border-2 border-dashed transition-all",
+                    "flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-2 transition-all",
+                    user?.avatar ? "border-solid" : "border-dashed",
                     avatarHover
                       ? "border-[var(--primary)] bg-[var(--primary)]/5"
                       : "border-[var(--border)] bg-[var(--muted)]"
                   )}
                 >
-                  <User
-                    className={cn(
-                      "h-12 w-12 transition-colors",
-                      avatarHover
-                        ? "text-[var(--primary)]"
-                        : "text-[var(--muted-foreground)]"
-                    )}
-                  />
+                  {avatarUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+                  ) : user?.avatar ? (
+                    <Image
+                      src={user.avatar}
+                      alt="头像"
+                      width={112}
+                      height={112}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User
+                      className={cn(
+                        "h-12 w-12 transition-colors",
+                        avatarHover
+                          ? "text-[var(--primary)]"
+                          : "text-[var(--muted-foreground)]"
+                      )}
+                    />
+                  )}
                 </div>
                 {/* Camera overlay */}
                 <div

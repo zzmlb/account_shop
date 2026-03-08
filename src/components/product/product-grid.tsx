@@ -12,6 +12,8 @@ export interface ProductItem {
   stockCount: number;
   soldCount: number;
   categoryName: string;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 interface ProductGridProps {

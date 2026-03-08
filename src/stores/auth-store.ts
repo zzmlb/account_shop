@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   role: "user" | "admin" | "super_admin";
   balance: number;
+  avatar?: string | null;
 }
 
 interface AuthState {

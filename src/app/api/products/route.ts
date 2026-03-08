@@ -66,13 +66,29 @@ export async function GET(request: NextRequest) {
     const [products, total] = await Promise.all([
       db.product.findMany({
         where,
-        include: { category: { select: { name: true, slug: true } } },
+        include: {
+          category: { select: { name: true, slug: true } },
+          _count: { select: { reviews: { where: { isVisible: true } } } },
+        },
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       db.product.count({ where }),
     ]);
+
+    // Batch fetch average ratings for returned products
+    const productIds = products.map((p) => p.id);
+    const ratingStats = productIds.length > 0
+      ? await db.review.groupBy({
+          by: ["productId"],
+          where: { productId: { in: productIds }, isVisible: true },
+          _avg: { rating: true },
+        })
+      : [];
+    const avgRatingMap = new Map(
+      ratingStats.map((s) => [s.productId, Math.round((s._avg.rating ?? 0) * 10) / 10])
+    );
 
     const formatted = products.map((p) => ({
       id: p.id,
@@ -89,6 +105,8 @@ export async function GET(request: NextRequest) {
       description: p.description,
       image: p.image,
       tags: p.tags,
+      avgRating: avgRatingMap.get(p.id) ?? 0,
+      reviewCount: p._count.reviews,
       createdAt: p.createdAt.toISOString(),
     }));
 

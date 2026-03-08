@@ -30,6 +30,8 @@ interface ApiProduct {
   image?: string | null;
   stock: number;
   salesCount: number;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 interface ApiResponse {
@@ -94,6 +96,8 @@ export default function ProductsPageContent() {
             stockCount: p.stock,
             soldCount: p.salesCount,
             categoryName: p.category,
+            avgRating: p.avgRating,
+            reviewCount: p.reviewCount,
           }))
         );
         setTotalPages(data.pagination.totalPages);

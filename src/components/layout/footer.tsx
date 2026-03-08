@@ -31,6 +31,7 @@ const footerSections = [
   {
     title: "联系方式",
     links: [
+      { label: "联系我们", href: "/contact" },
       { label: "邮箱: support@pj37.com", href: "mailto:support@pj37.com" },
       { label: "常见问题", href: "/articles" },
     ],

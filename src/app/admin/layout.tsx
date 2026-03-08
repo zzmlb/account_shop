@@ -12,6 +12,7 @@ import {
   Users,
   BookOpen,
   Ticket,
+  MessageSquare,
   Settings,
   LogOut,
   Bell,
@@ -59,6 +60,7 @@ const sidebarLinks = [
   { label: "用户管理", href: "/admin/users", icon: Users },
   { label: "文章管理", href: "/admin/articles", icon: BookOpen },
   { label: "优惠券管理", href: "/admin/coupons", icon: Ticket },
+  { label: "评价管理", href: "/admin/reviews", icon: MessageSquare },
   { label: "系统设置", href: "/admin/settings", icon: Settings },
 ];
 

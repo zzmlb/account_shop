@@ -1,0 +1,370 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  Star,
+  Search,
+  Loader2,
+  Eye,
+  EyeOff,
+  Trash2,
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+/* ---------- types ---------- */
+
+interface ReviewUser {
+  id: string;
+  username: string;
+}
+
+interface ReviewProduct {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface AdminReview {
+  id: string;
+  rating: number;
+  content: string;
+  isVisible: boolean;
+  createdAt: string;
+  user: ReviewUser;
+  product: ReviewProduct;
+}
+
+/* ---------- helpers ---------- */
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          className={`h-3.5 w-3.5 ${
+            i <= rating
+              ? "fill-amber-400 text-amber-400"
+              : "fill-transparent text-[var(--border)]"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ---------- component ---------- */
+
+export default function AdminReviewsContent() {
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("");
+  const [visibleFilter, setVisibleFilter] = useState("");
+  const limit = 20;
+
+  const [deleteTarget, setDeleteTarget] = useState<AdminReview | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const fetchReviews = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
+      if (search) params.set("search", search);
+      if (ratingFilter) params.set("rating", ratingFilter);
+      if (visibleFilter) params.set("visible", visibleFilter);
+
+      const res = await fetch(`/api/admin/reviews?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setReviews(data.reviews);
+        setTotal(data.total);
+      } else {
+        toast.error(data.message || "获取评价失败");
+      }
+    } catch {
+      toast.error("网络错误");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, ratingFilter, visibleFilter]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
+
+  const handleToggleVisibility = async (review: AdminReview) => {
+    setActionLoading(review.id);
+    try {
+      const res = await fetch(`/api/admin/reviews?id=${review.id}`, {
+        method: "PUT",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === review.id ? { ...r, isVisible: data.isVisible } : r
+          )
+        );
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("操作失败");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setActionLoading(deleteTarget.id);
+    try {
+      const res = await fetch(`/api/admin/reviews?id=${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("评价已删除");
+        setDeleteTarget(null);
+        fetchReviews();
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("删除失败");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--foreground)]">评价管理</h1>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          管理用户商品评价，共 {total} 条
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Input
+            placeholder="搜索评价内容、用户名或商品..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="pl-9"
+          />
+        </div>
+        <select
+          value={ratingFilter}
+          onChange={(e) => {
+            setRatingFilter(e.target.value);
+            setPage(1);
+          }}
+          className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
+        >
+          <option value="">全部评分</option>
+          <option value="5">5星</option>
+          <option value="4">4星</option>
+          <option value="3">3星</option>
+          <option value="2">2星</option>
+          <option value="1">1星</option>
+        </select>
+        <select
+          value={visibleFilter}
+          onChange={(e) => {
+            setVisibleFilter(e.target.value);
+            setPage(1);
+          }}
+          className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
+        >
+          <option value="">全部状态</option>
+          <option value="true">已显示</option>
+          <option value="false">已隐藏</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+        </div>
+      ) : reviews.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] py-16 text-center">
+          <MessageSquare className="mb-3 h-10 w-10 text-[var(--muted-foreground)]" />
+          <p className="text-sm font-medium">暂无评价</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted-foreground)]">
+                <th className="px-4 py-3">用户</th>
+                <th className="px-4 py-3">商品</th>
+                <th className="px-4 py-3">评分</th>
+                <th className="px-4 py-3 max-w-xs">内容</th>
+                <th className="px-4 py-3">状态</th>
+                <th className="px-4 py-3">时间</th>
+                <th className="px-4 py-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map((review) => (
+                <tr
+                  key={review.id}
+                  className="border-b border-[var(--border)] last:border-0"
+                >
+                  <td className="px-4 py-3 text-sm font-medium">
+                    {review.user.username}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-[var(--muted-foreground)]">
+                    <span className="line-clamp-1 max-w-[150px]">
+                      {review.product.name}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Stars rating={review.rating} />
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <p className="line-clamp-2 max-w-xs text-[var(--card-foreground)]">
+                      {review.content}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      variant={review.isVisible ? "success" : "secondary"}
+                    >
+                      {review.isVisible ? "显示" : "隐藏"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-[var(--muted-foreground)] whitespace-nowrap">
+                    {formatDate(review.createdAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleToggleVisibility(review)}
+                        disabled={actionLoading === review.id}
+                        className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
+                        title={review.isVisible ? "隐藏" : "显示"}
+                      >
+                        {review.isVisible ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(review)}
+                        disabled={actionLoading === review.id}
+                        className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--muted-foreground)] transition-colors hover:bg-red-50 hover:text-[var(--destructive)] dark:hover:bg-red-950/30"
+                        title="删除"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-[var(--muted-foreground)]">
+            共 {total} 条，第 {page}/{totalPages} 页
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              上一页
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              下一页
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除评价</DialogTitle>
+            <DialogDescription>
+              确定要删除 {deleteTarget?.user.username} 对「{deleteTarget?.product.name}」的评价吗？此操作不可恢复。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={!!actionLoading}
+            >
+              {actionLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
