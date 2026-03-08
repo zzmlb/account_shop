@@ -204,6 +204,8 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-[var(--background)]">
+      {/* Prevent admin pages from being indexed */}
+      <meta name="robots" content="noindex, nofollow" />
       {/* ========== Desktop Sidebar ========== */}
       <aside className="hidden w-64 shrink-0 border-r border-[var(--border)] bg-[var(--card)] lg:flex lg:flex-col">
         {/* Sidebar header / logo */}

@@ -102,6 +102,8 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Prevent dashboard pages from being indexed */}
+      <meta name="robots" content="noindex, nofollow" />
       {/* ========== Top bar ========== */}
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 lg:px-8">
