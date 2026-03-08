@@ -162,10 +162,10 @@ export default function Header() {
           )}
 
           {/* Cart */}
-          <Link
-            href="/checkout"
+          <button
+            onClick={() => useCartStore.getState().toggleCart()}
             className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
-            aria-label="购物车"
+            aria-label={`购物车${cartCount > 0 ? ` (${cartCount}件)` : ""}`}
           >
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 && (
@@ -173,7 +173,7 @@ export default function Header() {
                 {cartCount > 9 ? "9+" : cartCount}
               </span>
             )}
-          </Link>
+          </button>
 
           {/* User: logged in state */}
           {user ? (

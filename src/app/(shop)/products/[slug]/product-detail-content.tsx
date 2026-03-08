@@ -37,6 +37,7 @@ interface Product {
   stockCount: number;
   soldCount: number;
   categoryName: string;
+  categorySlug?: string;
   description: string;
   instructions: string;
   afterSales: string;
@@ -152,7 +153,12 @@ export default function ProductDetailContent({
           全部商品
         </Link>
         <ChevronRight className="h-4 w-4" />
-        <span className="text-[var(--foreground)]">{product.categoryName}</span>
+        <Link
+          href={`/products?category=${encodeURIComponent(product.categoryName)}`}
+          className="transition-colors hover:text-[var(--foreground)]"
+        >
+          {product.categoryName}
+        </Link>
         <ChevronRight className="h-4 w-4" />
         <span className="truncate text-[var(--foreground)]">
           {product.name}

@@ -109,6 +109,7 @@ export default async function ProductDetailPage({
     stockCount: product.stockCount,
     soldCount: product.soldCount,
     categoryName: product.category.name,
+    categorySlug: product.category.slug,
     description: product.description,
     instructions: DEFAULT_INSTRUCTIONS,
     afterSales: DEFAULT_AFTER_SALES,
@@ -130,6 +131,30 @@ export default async function ProductDetailPage({
     ? Math.round(reviewStats._avg.rating * 10) / 10
     : null;
   const reviewCount = reviewStats._count;
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "全部商品",
+        item: `${SITE_URL}/products`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: product.category.name,
+        item: `${SITE_URL}/products?category=${encodeURIComponent(product.category.name)}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.name,
+      },
+    ],
+  };
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -161,6 +186,10 @@ export default async function ProductDetailPage({
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

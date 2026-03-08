@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -67,6 +67,7 @@ function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const [imgError, setImgError] = useState(false);
 
   const handleQuickBuy = () => {
     if (stockCount <= 0) {
@@ -100,13 +101,14 @@ function ProductCard({
       >
         {/* Image area */}
         <div className="relative aspect-[4/3] overflow-hidden">
-          {image ? (
+          {image && !imgError ? (
             <Image
               src={image}
               alt={name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
