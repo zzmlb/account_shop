@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { SlidersHorizontal, Loader2, Search, X } from "lucide-react";
+import Link from "next/link";
+import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import PriceTag from "@/components/shared/price-tag";
+import StockBadge from "@/components/shared/stock-badge";
 import {
   Sheet,
   SheetContent,
@@ -48,6 +51,7 @@ export default function ProductsPageContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const perPage = 9;
 
   // Read filter params from URL (set by ProductFilters component)
@@ -133,14 +137,40 @@ export default function ProductsPageContent() {
               : `共 ${total} 件商品`}
           </p>
         </div>
-        {/* Mobile filter button */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="lg:hidden">
-              <SlidersHorizontal className="mr-2 h-4 w-4" />
-              筛选
-            </Button>
-          </SheetTrigger>
+        <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="hidden sm:flex items-center rounded-[var(--radius-md)] border border-[var(--border)] p-0.5">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] transition-colors ${
+                viewMode === "grid"
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+              aria-label="网格视图"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] transition-colors ${
+                viewMode === "list"
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+              aria-label="列表视图"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Mobile filter button */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="lg:hidden">
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                筛选
+              </Button>
+            </SheetTrigger>
           <SheetContent side="left" className="w-80 overflow-y-auto">
             <SheetHeader>
               <SheetTitle>筛选商品</SheetTitle>
@@ -149,7 +179,8 @@ export default function ProductsPageContent() {
               <ProductFilters />
             </div>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
 
       {/* Active filter indicators */}
@@ -226,6 +257,39 @@ export default function ProductsPageContent() {
               <Button onClick={clearAllFilters} variant="outline">
                 清除全部筛选
               </Button>
+            </div>
+          ) : viewMode === "list" ? (
+            <div className="space-y-3">
+              {products.map((product) => (
+                <Link
+                  key={product.slug}
+                  href={`/products/${product.slug}`}
+                  className="group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--primary)]/50 hover:bg-[var(--card-hover)]"
+                >
+                  {product.image ? (
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
+                      <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5">
+                      <span className="text-2xl font-bold text-[var(--primary)]/30">{product.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                      {product.categoryName} · 已售 {product.soldCount}
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-3">
+                      <PriceTag price={product.price} originalPrice={product.originalPrice} />
+                      <StockBadge stockCount={product.stockCount} />
+                    </div>
+                  </div>
+                  <ShoppingCart className="h-5 w-5 shrink-0 text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors" />
+                </Link>
+              ))}
             </div>
           ) : (
             <ProductGrid products={products} />
