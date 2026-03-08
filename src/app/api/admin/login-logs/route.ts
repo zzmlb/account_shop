@@ -50,6 +50,20 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Today's stats
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [todayTotal, todayFailed, todayUniqueIPs] = await Promise.all([
+      db.loginLog.count({ where: { createdAt: { gte: todayStart } } }),
+      db.loginLog.count({ where: { createdAt: { gte: todayStart }, success: false } }),
+      db.loginLog.findMany({
+        where: { createdAt: { gte: todayStart }, ip: { not: null } },
+        select: { ip: true },
+        distinct: ["ip"],
+      }),
+    ]);
+
     const [logs, total] = await Promise.all([
       db.loginLog.findMany({
         where,
@@ -67,6 +81,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      stats: {
+        todayTotal,
+        todayFailed,
+        todaySuccess: todayTotal - todayFailed,
+        todayUniqueIPs: todayUniqueIPs.length,
+      },
       logs: logs.map((l) => ({
         id: l.id,
         userId: l.userId,

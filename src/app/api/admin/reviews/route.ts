@@ -221,6 +221,46 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// POST - Batch toggle visibility
+export async function POST(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { ids, visible } = body as { ids: string[]; visible: boolean };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ success: false, message: "请选择至少一条评价" }, { status: 400 });
+    }
+    if (ids.length > 100) {
+      return NextResponse.json({ success: false, message: "单次批量操作最多100条" }, { status: 400 });
+    }
+    if (typeof visible !== "boolean") {
+      return NextResponse.json({ success: false, message: "visible 参数必须为布尔值" }, { status: 400 });
+    }
+
+    const result = await db.review.updateMany({
+      where: { id: { in: ids } },
+      data: { isVisible: visible },
+    });
+
+    log.info({ adminId: session.id, ids, visible, affected: result.count }, "Batch review visibility update");
+
+    return NextResponse.json({
+      success: true,
+      message: `已${visible ? "显示" : "隐藏"} ${result.count} 条评价`,
+      affected: result.count,
+    });
+  } catch (error) {
+    log.error({ err: error }, "Admin reviews POST batch error");
+    return NextResponse.json({ success: false, message: "服务器内部错误" }, { status: 500 });
+  }
+}
+
 // DELETE - Delete a review
 export async function DELETE(request: NextRequest) {
   try {

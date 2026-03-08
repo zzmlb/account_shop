@@ -11,6 +11,7 @@ import {
   Download,
   MessageSquare,
   Reply,
+  CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,10 @@ export default function AdminReviewsContent() {
   const [replyText, setReplyText] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -211,6 +216,49 @@ export default function AdminReviewsContent() {
       toast.error("操作失败");
     } finally {
       setReplySubmitting(false);
+    }
+  };
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, debouncedSearch, ratingFilter, visibleFilter]);
+
+  const allSelected = reviews.length > 0 && reviews.every((r) => selectedIds.has(r.id));
+  const toggleSelectAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(reviews.map((r) => r.id)));
+  };
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBatchVisibility = async (visible: boolean) => {
+    if (selectedIds.size === 0) return;
+    setBatchLoading(true);
+    try {
+      const res = await fetch("/api/admin/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), visible }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setSelectedIds(new Set());
+        fetchReviews();
+      } else {
+        toast.error(data.message || "操作失败");
+      }
+    } catch {
+      toast.error("网络错误");
+    } finally {
+      setBatchLoading(false);
     }
   };
 

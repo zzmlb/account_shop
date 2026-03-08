@@ -29,6 +29,7 @@ interface ApiProduct {
   slug: string;
   price: number;
   categoryName: string;
+  stockCount?: number;
 }
 
 interface ApiCategory {
@@ -152,7 +153,7 @@ export default function CommandMenu() {
         title: p.name,
         type: "product" as const,
         href: `/products/${p.slug}`,
-        description: `¥${p.price.toFixed(2)}`,
+        description: `¥${p.price.toFixed(2)}${p.stockCount !== undefined && p.stockCount <= 0 ? " · 已售罄" : ""}`,
       }));
 
       // Map articles to SearchResult format

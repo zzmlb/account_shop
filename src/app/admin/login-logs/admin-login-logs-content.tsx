@@ -10,7 +10,11 @@ import {
   XCircle,
   Globe,
   Monitor,
+  Download,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +23,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateTimeFull } from "@/lib/utils";
 
 type StatusFilter = "all" | "success" | "failed";
+
+interface LoginStats {
+  todayTotal: number;
+  todaySuccess: number;
+  todayFailed: number;
+  todayUniqueIPs: number;
+}
 
 interface LoginLogItem {
   id: string;
@@ -56,6 +67,7 @@ function parseUA(ua: string | null): string {
 
 export default function AdminLoginLogsContent() {
   const [logs, setLogs] = useState<LoginLogItem[]>([]);
+  const [stats, setStats] = useState<LoginStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -81,6 +93,7 @@ export default function AdminLoginLogsContent() {
         setLogs(data.logs);
         setTotalPages(data.pagination.totalPages);
         setTotal(data.pagination.total);
+        if (data.stats) setStats(data.stats);
       } else {
         setError(data.message || "加载失败");
       }
@@ -104,18 +117,81 @@ export default function AdminLoginLogsContent() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const handleExportCSV = () => {
+    if (logs.length === 0) { toast.error("没有可导出的数据"); return; }
+    const headers = ["状态", "用户名", "邮箱", "IP地址", "浏览器", "原因", "时间"];
+    const rows = logs.map((l) => [
+      l.success ? "成功" : "失败",
+      l.username,
+      l.user?.email || "",
+      l.ip || "",
+      parseUA(l.userAgent),
+      l.reason || "",
+      l.createdAt,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `login-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`已导出 ${logs.length} 条记录`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <Shield className="h-6 w-6 text-[var(--primary)]" />
-          登录日志
-        </h1>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          查看所有用户的登录活动记录
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <Shield className="h-6 w-6 text-[var(--primary)]" />
+            登录日志
+          </h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            查看所有用户的登录活动记录
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-1" onClick={handleExportCSV} disabled={logs.length === 0}>
+          <Download className="h-3.5 w-3.5" />
+          导出当前页
+        </Button>
       </div>
+
+      {/* Stats cards */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <TrendingUp className="h-3.5 w-3.5" />
+              今日登录
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--foreground)]">{stats.todayTotal}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              今日成功
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--success)]">{stats.todaySuccess}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <XCircle className="h-3.5 w-3.5" />
+              今日失败
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--destructive)]">{stats.todayFailed}</p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <Users className="h-3.5 w-3.5" />
+              独立IP
+            </div>
+            <p className="mt-1 text-xl font-bold text-[var(--foreground)]">{stats.todayUniqueIPs}</p>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

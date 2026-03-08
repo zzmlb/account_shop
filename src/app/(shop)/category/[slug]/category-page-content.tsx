@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, FolderTree, Package } from "lucide-react";
+import { ChevronRight, FolderTree, Package, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/product/product-card";
+import { cn } from "@/lib/utils";
 
 interface Product {
   productId?: string;
@@ -30,11 +32,36 @@ interface CategoryPageContentProps {
   categories: { name: string; slug: string; icon: string | null }[];
 }
 
+type SortOption = "default" | "price-asc" | "price-desc" | "popular";
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "default", label: "默认排序" },
+  { value: "price-asc", label: "价格从低到高" },
+  { value: "price-desc", label: "价格从高到低" },
+  { value: "popular", label: "最热销" },
+];
+
 export default function CategoryPageContent({
   category,
   products,
   categories,
 }: CategoryPageContentProps) {
+  const [sortBy, setSortBy] = useState<SortOption>("default");
+
+  const sortedProducts = useMemo(() => {
+    const sorted = [...products];
+    switch (sortBy) {
+      case "price-asc":
+        return sorted.sort((a, b) => a.price - b.price);
+      case "price-desc":
+        return sorted.sort((a, b) => b.price - a.price);
+      case "popular":
+        return sorted.sort((a, b) => b.soldCount - a.soldCount);
+      default:
+        return sorted;
+    }
+  }, [products, sortBy]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
@@ -129,9 +156,26 @@ export default function CategoryPageContent({
                 <Badge variant="secondary" className="text-xs">
                   {products.length} 件商品
                 </Badge>
+                <div className="flex items-center gap-1">
+                  <ArrowUpDown className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSortBy(opt.value)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                        sortBy === opt.value
+                          ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {products.map((product) => (
+                {sortedProducts.map((product) => (
                   <ProductCard key={product.slug} {...product} />
                 ))}
               </div>
