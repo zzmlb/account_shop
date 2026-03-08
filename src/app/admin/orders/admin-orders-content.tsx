@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   Download,
   MoreHorizontal,
   Eye,
-  Truck,
   RotateCcw,
+  XCircle,
   ChevronLeft,
   ChevronRight,
   CalendarDays,
   Package,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,140 +30,68 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type OrderStatus = "PENDING" | "PAID" | "COMPLETED" | "CANCELLED" | "REFUNDED";
+type OrderStatus = "PENDING" | "PAID" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+
+interface OrderItem {
+  id: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  quantity: number;
+  unitPrice: number;
+  cardKeys?: Array<{
+    id: string;
+    content: string;
+    status: string;
+    soldAt: string | null;
+  }>;
+}
 
 interface Order {
   id: string;
   orderNo: string;
-  userName: string;
-  userEmail: string;
-  productName: string;
-  amount: number;
-  paymentMethod: string;
+  userId: string | null;
+  user: {
+    id: string;
+    username: string;
+    email: string | null;
+  } | null;
+  email: string | null;
+  totalAmount: number;
+  payAmount: number;
   status: OrderStatus;
+  paymentMethod: string | null;
+  paymentId: string | null;
+  paidAt: string | null;
+  expireAt: string;
+  couponId: string | null;
   createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
 }
 
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    orderNo: "ORD-20260305-A1B2",
-    userName: "张伟",
-    userEmail: "zhangwei@example.com",
-    productName: "Adobe Photoshop 2026 永久授权",
-    amount: 299.0,
-    paymentMethod: "支付宝",
-    status: "COMPLETED",
-    createdAt: "2026-03-05 14:32:00",
-  },
-  {
-    id: "2",
-    orderNo: "ORD-20260305-C3D4",
-    userName: "李娜",
-    userEmail: "lina@example.com",
-    productName: "Windows 11 Pro 密钥",
-    amount: 158.0,
-    paymentMethod: "微信支付",
-    status: "PAID",
-    createdAt: "2026-03-05 15:10:00",
-  },
-  {
-    id: "3",
-    orderNo: "ORD-20260304-E5F6",
-    userName: "王磊",
-    userEmail: "wanglei@example.com",
-    productName: "Netflix 高级会员 年卡",
-    amount: 688.0,
-    paymentMethod: "余额支付",
-    status: "PENDING",
-    createdAt: "2026-03-04 09:22:00",
-  },
-  {
-    id: "4",
-    orderNo: "ORD-20260304-G7H8",
-    userName: "赵敏",
-    userEmail: "zhaomin@example.com",
-    productName: "Spotify Premium 季卡",
-    amount: 89.0,
-    paymentMethod: "支付宝",
-    status: "CANCELLED",
-    createdAt: "2026-03-04 11:45:00",
-  },
-  {
-    id: "5",
-    orderNo: "ORD-20260303-I9J0",
-    userName: "陈浩",
-    userEmail: "chenhao@example.com",
-    productName: "JetBrains 全家桶 年度订阅",
-    amount: 1299.0,
-    paymentMethod: "微信支付",
-    status: "REFUNDED",
-    createdAt: "2026-03-03 16:08:00",
-  },
-  {
-    id: "6",
-    orderNo: "ORD-20260303-K1L2",
-    userName: "刘芳",
-    userEmail: "liufang@example.com",
-    productName: "Microsoft Office 365 家庭版",
-    amount: 398.0,
-    paymentMethod: "支付宝",
-    status: "COMPLETED",
-    createdAt: "2026-03-03 10:30:00",
-  },
-  {
-    id: "7",
-    orderNo: "ORD-20260302-M3N4",
-    userName: "杨洋",
-    userEmail: "yangyang@example.com",
-    productName: "Steam 充值卡 200元",
-    amount: 200.0,
-    paymentMethod: "微信支付",
-    status: "COMPLETED",
-    createdAt: "2026-03-02 20:15:00",
-  },
-  {
-    id: "8",
-    orderNo: "ORD-20260302-O5P6",
-    userName: "黄丽",
-    userEmail: "huangli@example.com",
-    productName: "Figma 专业版 月度订阅",
-    amount: 128.0,
-    paymentMethod: "余额支付",
-    status: "PAID",
-    createdAt: "2026-03-02 13:42:00",
-  },
-  {
-    id: "9",
-    orderNo: "ORD-20260301-Q7R8",
-    userName: "周杰",
-    userEmail: "zhoujie@example.com",
-    productName: "ChatGPT Plus 月度会员",
-    amount: 148.0,
-    paymentMethod: "支付宝",
-    status: "PENDING",
-    createdAt: "2026-03-01 08:55:00",
-  },
-  {
-    id: "10",
-    orderNo: "ORD-20260301-S9T0",
-    userName: "吴强",
-    userEmail: "wuqiang@example.com",
-    productName: "Notion 团队版 年度订阅",
-    amount: 960.0,
-    paymentMethod: "微信支付",
-    status: "REFUNDED",
-    createdAt: "2026-03-01 17:20:00",
-  },
-];
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
 
 const statusConfig: Record<
   OrderStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success"; className?: string }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline" | "success";
+    className?: string;
+  }
 > = {
-  PENDING: { label: "待支付", variant: "outline", className: "border-[var(--warning)] text-[var(--warning)]" },
+  PENDING: {
+    label: "待支付",
+    variant: "outline",
+    className: "border-[var(--warning)] text-[var(--warning)]",
+  },
   PAID: { label: "已支付", variant: "default" },
-  COMPLETED: { label: "已完成", variant: "success" },
+  DELIVERED: { label: "已完成", variant: "success" },
   CANCELLED: { label: "已取消", variant: "secondary" },
   REFUNDED: { label: "已退款", variant: "destructive" },
 };
@@ -170,42 +100,141 @@ const statusTabs = [
   { value: "ALL", label: "全部" },
   { value: "PENDING", label: "待支付" },
   { value: "PAID", label: "已支付" },
-  { value: "COMPLETED", label: "已完成" },
+  { value: "DELIVERED", label: "已完成" },
   { value: "CANCELLED", label: "已取消" },
   { value: "REFUNDED", label: "已退款" },
 ];
 
+const paymentMethodMap: Record<string, string> = {
+  balance: "余额",
+  alipay: "支付宝",
+  wechat: "微信",
+  usdt: "USDT",
+};
+
+function formatPaymentMethod(method: string | null): string {
+  if (!method) return "-";
+  return paymentMethodMap[method] || method;
+}
+
+function formatDateTime(isoString: string): string {
+  const date = new Date(isoString);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const h = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d} ${h}:${min}`;
+}
+
+function getProductSummary(items: OrderItem[]): string {
+  if (items.length === 0) return "-";
+  const first = items[0].productName;
+  if (items.length === 1) {
+    return items[0].quantity > 1 ? `${first} x${items[0].quantity}` : first;
+  }
+  return `${first} 等${items.length}件商品`;
+}
 
 export default function AdminOrdersPageContent() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
-
-  const filteredOrders = mockOrders.filter((order) => {
-    const matchesTab = activeTab === "ALL" || order.status === activeTab;
-    const matchesSearch =
-      !searchQuery ||
-      order.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.productName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+    totalPages: 1,
   });
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const pageSize = 10;
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  const fetchOrders = useCallback(
+    async (page: number, status: string, search: string) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("pageSize", String(pageSize));
+        if (status && status !== "ALL") {
+          params.set("status", status);
+        }
+        if (search) {
+          params.set("search", search);
+        }
+
+        const res = await fetch(`/api/admin/orders?${params.toString()}`);
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          toast.error(data.message || "获取订单列表失败");
+          return;
+        }
+
+        setOrders(data.orders);
+        setPagination(data.pagination);
+      } catch {
+        toast.error("网络错误，无法获取订单列表");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pageSize]
   );
+
+  useEffect(() => {
+    fetchOrders(currentPage, activeTab, searchQuery);
+  }, [currentPage, activeTab, searchQuery, fetchOrders]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setCurrentPage(1);
   };
 
-  const getStatusCount = (status: string) => {
-    if (status === "ALL") return mockOrders.length;
-    return mockOrders.filter((o) => o.status === status).length;
+  const handleSearchInputChange = (value: string) => {
+    setSearchInput(value);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    searchTimerRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setCurrentPage(1);
+    }, 400);
   };
+
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: "REFUNDED" | "CANCELLED"
+  ) => {
+    const actionLabel = newStatus === "REFUNDED" ? "退款" : "取消";
+    setActionLoading(orderId);
+    try {
+      const res = await fetch(`/api/admin/orders?id=${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        toast.error(data.message || `${actionLabel}失败`);
+        return;
+      }
+
+      toast.success(data.message || `${actionLabel}成功`);
+      fetchOrders(currentPage, activeTab, searchQuery);
+    } catch {
+      toast.error(`网络错误，${actionLabel}操作失败`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const { total, totalPages } = pagination;
 
   return (
     <div className="space-y-6">
@@ -231,9 +260,6 @@ export default function AdminOrdersPageContent() {
           {statusTabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
               {tab.label}
-              <span className="ml-1 rounded-full bg-[var(--background)]/50 px-1.5 py-0.5 text-xs">
-                {getStatusCount(tab.value)}
-              </span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -244,16 +270,17 @@ export default function AdminOrdersPageContent() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
           <Input
-            placeholder="搜索订单号或商品名称..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
+            placeholder="搜索订单号或邮箱..."
+            value={searchInput}
+            onChange={(e) => handleSearchInputChange(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Button variant="outline" size="sm" className="gap-2 text-[var(--muted-foreground)]">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-[var(--muted-foreground)]"
+        >
           <CalendarDays className="h-4 w-4" />
           日期范围
         </Button>
@@ -293,7 +320,16 @@ export default function AdminOrdersPageContent() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedOrders.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-12">
+                      <Loader2 className="h-8 w-8 mx-auto text-[var(--muted-foreground)] mb-3 animate-spin" />
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        加载中...
+                      </p>
+                    </td>
+                  </tr>
+                ) : orders.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-12">
                       <Package className="h-10 w-10 mx-auto text-[var(--muted-foreground)] mb-3" />
@@ -303,8 +339,16 @@ export default function AdminOrdersPageContent() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedOrders.map((order) => {
-                    const status = statusConfig[order.status];
+                  orders.map((order) => {
+                    const status = statusConfig[order.status] ?? {
+                      label: order.status,
+                      variant: "outline" as const,
+                    };
+                    const displayEmail =
+                      order.user?.email || order.email || "-";
+                    const displayName =
+                      order.user?.username || displayEmail;
+
                     return (
                       <tr
                         key={order.id}
@@ -318,62 +362,102 @@ export default function AdminOrdersPageContent() {
                         <td className="px-4 py-3">
                           <div>
                             <p className="text-sm font-medium text-[var(--foreground)]">
-                              {order.userName}
+                              {displayName}
                             </p>
                             <p className="text-xs text-[var(--muted-foreground)]">
-                              {order.userEmail}
+                              {displayEmail}
                             </p>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-sm text-[var(--foreground)] max-w-[200px] truncate block">
-                            {order.productName}
+                          <span
+                            className="text-sm text-[var(--foreground)] max-w-[200px] truncate block"
+                            title={order.items
+                              .map((i) => `${i.productName} x${i.quantity}`)
+                              .join(", ")}
+                          >
+                            {getProductSummary(order.items)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className="text-sm font-semibold text-[var(--foreground)]">
-                            ¥{order.amount.toFixed(2)}
+                            ¥{order.payAmount.toFixed(2)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-[var(--muted-foreground)]">
-                            {order.paymentMethod}
+                            {formatPaymentMethod(order.paymentMethod)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant={status.variant} className={status.className}>
+                          <Badge
+                            variant={status.variant}
+                            className={status.className}
+                          >
                             {status.label}
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-[var(--muted-foreground)] whitespace-nowrap">
-                            {order.createdAt}
+                            {formatDateTime(order.createdAt)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={actionLoading === order.id}
+                              >
+                                {actionLoading === order.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="h-4 w-4" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2 cursor-pointer">
+                              <DropdownMenuItem
+                                className="gap-2 cursor-pointer"
+                                onClick={() => {
+                                  window.open(
+                                    `/order/${order.orderNo}`,
+                                    "_blank"
+                                  );
+                                }}
+                              >
                                 <Eye className="h-4 w-4" />
                                 查看详情
                               </DropdownMenuItem>
-                              {order.status === "PAID" && (
-                                <DropdownMenuItem className="gap-2 cursor-pointer">
-                                  <Truck className="h-4 w-4" />
-                                  手动发货
-                                </DropdownMenuItem>
-                              )}
-                              {(order.status === "PAID" || order.status === "COMPLETED") && (
+                              {(order.status === "PAID" ||
+                                order.status === "DELIVERED") && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="gap-2 cursor-pointer text-[var(--destructive)]">
+                                  <DropdownMenuItem
+                                    className="gap-2 cursor-pointer text-[var(--destructive)]"
+                                    onClick={() =>
+                                      handleUpdateStatus(order.id, "REFUNDED")
+                                    }
+                                  >
                                     <RotateCcw className="h-4 w-4" />
                                     退款
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {(order.status === "PENDING" ||
+                                order.status === "PAID") && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="gap-2 cursor-pointer text-[var(--destructive)]"
+                                    onClick={() =>
+                                      handleUpdateStatus(order.id, "CANCELLED")
+                                    }
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                    取消订单
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -389,12 +473,12 @@ export default function AdminOrdersPageContent() {
           </div>
 
           {/* Pagination */}
-          {filteredOrders.length > 0 && (
+          {!loading && total > 0 && (
             <>
               <Separator />
               <div className="flex items-center justify-between px-4 py-3">
                 <p className="text-sm text-[var(--muted-foreground)]">
-                  共 {filteredOrders.length} 条订单，第 {currentPage}/{totalPages} 页
+                  共 {total} 条订单，第 {currentPage}/{totalPages} 页
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -407,22 +491,50 @@ export default function AdminOrdersPageContent() {
                     <ChevronLeft className="h-4 w-4" />
                     上一页
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={page === currentPage ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((page) => {
+                      // Show first, last, and pages around current
+                      if (page === 1 || page === totalPages) return true;
+                      if (Math.abs(page - currentPage) <= 1) return true;
+                      return false;
+                    })
+                    .reduce<(number | "ellipsis")[]>((acc, page, idx, arr) => {
+                      if (idx > 0) {
+                        const prev = arr[idx - 1];
+                        if (page - prev > 1) {
+                          acc.push("ellipsis");
+                        }
+                      }
+                      acc.push(page);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="px-1 text-sm text-[var(--muted-foreground)]"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <Button
+                          key={item}
+                          variant={item === currentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(item)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {item}
+                        </Button>
+                      )
+                    )}
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
                     className="gap-1"
                   >
                     下一页

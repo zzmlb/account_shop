@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   MoreHorizontal,
@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,189 +35,196 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
 type UserStatus = "ACTIVE" | "BANNED";
 
-interface MockUser {
+interface ApiUser {
   id: string;
   username: string;
   email: string;
+  avatar: string | null;
   balance: number;
-  orderCount: number;
   role: UserRole;
   status: UserStatus;
+  orderCount: number;
   createdAt: string;
+  updatedAt: string;
 }
 
-const mockUsers: MockUser[] = [
-  {
-    id: "1",
-    username: "张伟",
-    email: "zhangwei@example.com",
-    balance: 1280.5,
-    orderCount: 12,
-    role: "USER",
-    status: "ACTIVE",
-    createdAt: "2025-11-05",
-  },
-  {
-    id: "2",
-    username: "李娜",
-    email: "lina@example.com",
-    balance: 350.0,
-    orderCount: 5,
-    role: "USER",
-    status: "ACTIVE",
-    createdAt: "2025-12-10",
-  },
-  {
-    id: "3",
-    username: "王磊",
-    email: "wanglei@example.com",
-    balance: 0.0,
-    orderCount: 2,
-    role: "USER",
-    status: "BANNED",
-    createdAt: "2026-01-03",
-  },
-  {
-    id: "4",
-    username: "赵敏",
-    email: "zhaomin@example.com",
-    balance: 5600.0,
-    orderCount: 28,
-    role: "ADMIN",
-    status: "ACTIVE",
-    createdAt: "2025-09-20",
-  },
-  {
-    id: "5",
-    username: "陈浩",
-    email: "chenhao@example.com",
-    balance: 720.3,
-    orderCount: 8,
-    role: "USER",
-    status: "ACTIVE",
-    createdAt: "2026-01-15",
-  },
-  {
-    id: "6",
-    username: "刘芳",
-    email: "liufang@example.com",
-    balance: 99.0,
-    orderCount: 1,
-    role: "USER",
-    status: "ACTIVE",
-    createdAt: "2026-02-08",
-  },
-  {
-    id: "7",
-    username: "杨洋",
-    email: "yangyang@example.com",
-    balance: 15200.0,
-    orderCount: 45,
-    role: "SUPER_ADMIN",
-    status: "ACTIVE",
-    createdAt: "2025-08-01",
-  },
-  {
-    id: "8",
-    username: "黄丽",
-    email: "huangli@example.com",
-    balance: 430.0,
-    orderCount: 6,
-    role: "USER",
-    status: "BANNED",
-    createdAt: "2025-12-22",
-  },
-  {
-    id: "9",
-    username: "周杰",
-    email: "zhoujie@example.com",
-    balance: 2100.0,
-    orderCount: 15,
-    role: "ADMIN",
-    status: "ACTIVE",
-    createdAt: "2025-10-18",
-  },
-  {
-    id: "10",
-    username: "吴强",
-    email: "wuqiang@example.com",
-    balance: 88.8,
-    orderCount: 3,
-    role: "USER",
-    status: "ACTIVE",
-    createdAt: "2026-02-28",
-  },
-];
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
 
-const roleConfig: Record<UserRole, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success"; className?: string }> = {
-  USER: { label: "USER", variant: "secondary" },
-  ADMIN: { label: "ADMIN", variant: "default" },
-  SUPER_ADMIN: { label: "SUPER_ADMIN", variant: "outline", className: "border-[var(--accent)] text-[var(--accent)]" },
+const roleConfig: Record<
+  UserRole,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline" | "success";
+    className?: string;
+  }
+> = {
+  USER: { label: "用户", variant: "secondary" },
+  ADMIN: { label: "管理员", variant: "default" },
+  SUPER_ADMIN: {
+    label: "超级管理员",
+    variant: "outline",
+    className: "border-[var(--accent)] text-[var(--accent)]",
+  },
 };
-
 
 export default function AdminUsersPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [users, setUsers] = useState<MockUser[]>(mockUsers);
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: 5,
+    total: 0,
+    totalPages: 1,
+  });
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<MockUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const pageSize = 5;
 
-  const filteredUsers = users.filter((user) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      !searchQuery ||
-      user.username.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query)
-    );
-  });
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  // Fetch users from API
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        pageSize: String(pageSize),
+      });
+      if (debouncedSearch) {
+        params.set("search", debouncedSearch);
+      }
 
-  const handleToggleBan = (userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === userId
-          ? { ...u, status: u.status === "ACTIVE" ? "BANNED" as UserStatus : "ACTIVE" as UserStatus }
-          : u
-      )
-    );
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      const data = await res.json();
+
+      if (data.success) {
+        setUsers(data.users);
+        setPagination(data.pagination);
+      } else {
+        toast.error("获取用户列表失败");
+      }
+    } catch {
+      toast.error("网络错误，获取用户列表失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, debouncedSearch, pageSize]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Toggle ban/unban
+  const handleToggleBan = async (user: ApiUser) => {
+    const newStatus: UserStatus =
+      user.status === "ACTIVE" ? "BANNED" : "ACTIVE";
+    const actionLabel = newStatus === "BANNED" ? "封禁" : "解封";
+
+    setActionLoading(user.id);
+    try {
+      const res = await fetch(`/api/admin/users?id=${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`已${actionLabel}用户 ${user.username}`);
+        await fetchUsers();
+      } else {
+        toast.error(data.error || `${actionLabel}失败`);
+      }
+    } catch {
+      toast.error(`网络错误，${actionLabel}失败`);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const openBalanceDialog = (user: MockUser) => {
+  // Open balance adjustment dialog
+  const openBalanceDialog = (user: ApiUser) => {
     setSelectedUser(user);
     setAdjustAmount("");
     setAdjustReason("");
     setBalanceDialogOpen(true);
   };
 
-  const handleBalanceAdjust = () => {
+  // Submit balance adjustment
+  const handleBalanceAdjust = async () => {
     if (!selectedUser || !adjustAmount) return;
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return;
 
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id
-          ? { ...u, balance: Math.max(0, u.balance + amount) }
-          : u
-      )
-    );
-    setBalanceDialogOpen(false);
-    setSelectedUser(null);
-    setAdjustAmount("");
-    setAdjustReason("");
+    setActionLoading(selectedUser.id);
+    try {
+      const res = await fetch(`/api/admin/users?id=${selectedUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ balanceAdjust: amount }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(
+          `已调整用户 ${selectedUser.username} 的余额：${amount >= 0 ? "+" : ""}${amount.toFixed(2)}`
+        );
+        setBalanceDialogOpen(false);
+        setSelectedUser(null);
+        setAdjustAmount("");
+        setAdjustReason("");
+        await fetchUsers();
+      } else {
+        toast.error(data.error || "余额调整失败");
+      }
+    } catch {
+      toast.error("网络错误，余额调整失败");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const totalPages = pagination.totalPages;
+  const totalUsers = pagination.total;
+
+  // Count active/banned from current knowledge (total from API)
+  const activeCount = users.filter((u) => u.status === "ACTIVE").length;
+  const bannedCount = users.filter((u) => u.status === "BANNED").length;
+
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -228,13 +236,12 @@ export default function AdminUsersPageContent() {
             用户管理
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            共 {users.length} 名注册用户
+            共 {totalUsers} 名注册用户
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
           <Users className="h-4 w-4" />
-          活跃 {users.filter((u) => u.status === "ACTIVE").length} / 封禁{" "}
-          {users.filter((u) => u.status === "BANNED").length}
+          活跃 {activeCount} / 封禁 {bannedCount}
         </div>
       </div>
 
@@ -244,10 +251,7 @@ export default function AdminUsersPageContent() {
         <Input
           placeholder="搜索用户名或邮箱..."
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
+          onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
         />
       </div>
@@ -286,7 +290,16 @@ export default function AdminUsersPageContent() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedUsers.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-12">
+                      <Loader2 className="h-8 w-8 mx-auto text-[var(--muted-foreground)] mb-3 animate-spin" />
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        加载中...
+                      </p>
+                    </td>
+                  </tr>
+                ) : users.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-12">
                       <Users className="h-10 w-10 mx-auto text-[var(--muted-foreground)] mb-3" />
@@ -296,8 +309,9 @@ export default function AdminUsersPageContent() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedUsers.map((user) => {
+                  users.map((user) => {
                     const role = roleConfig[user.role];
+                    const isActionLoading = actionLoading === user.id;
                     return (
                       <tr
                         key={user.id}
@@ -315,7 +329,7 @@ export default function AdminUsersPageContent() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className="text-sm font-semibold text-[var(--foreground)]">
-                            ¥{user.balance.toFixed(2)}
+                            ¥{Number(user.balance).toFixed(2)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -337,14 +351,23 @@ export default function AdminUsersPageContent() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-[var(--muted-foreground)] whitespace-nowrap">
-                            {user.createdAt}
+                            {formatDate(user.createdAt)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={isActionLoading}
+                              >
+                                {isActionLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="h-4 w-4" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -367,7 +390,7 @@ export default function AdminUsersPageContent() {
                                     ? "text-[var(--destructive)]"
                                     : "text-[var(--success)]"
                                 )}
-                                onClick={() => handleToggleBan(user.id)}
+                                onClick={() => handleToggleBan(user)}
                               >
                                 {user.status === "ACTIVE" ? (
                                   <>
@@ -393,12 +416,12 @@ export default function AdminUsersPageContent() {
           </div>
 
           {/* Pagination */}
-          {filteredUsers.length > 0 && (
+          {!loading && users.length > 0 && (
             <>
               <Separator />
               <div className="flex items-center justify-between px-4 py-3">
                 <p className="text-sm text-[var(--muted-foreground)]">
-                  共 {filteredUsers.length} 名用户，第 {currentPage}/{totalPages} 页
+                  共 {totalUsers} 名用户，第 {currentPage}/{totalPages} 页
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -411,22 +434,26 @@ export default function AdminUsersPageContent() {
                     <ChevronLeft className="h-4 w-4" />
                     上一页
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={page === currentPage ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
                     className="gap-1"
                   >
                     下一页
@@ -445,8 +472,12 @@ export default function AdminUsersPageContent() {
           <DialogHeader>
             <DialogTitle>调整余额</DialogTitle>
             <DialogDescription>
-              为用户 <span className="font-medium text-[var(--foreground)]">{selectedUser?.username}</span> 调整账户余额。
-              当前余额：¥{selectedUser?.balance.toFixed(2)}
+              为用户{" "}
+              <span className="font-medium text-[var(--foreground)]">
+                {selectedUser?.username}
+              </span>{" "}
+              调整账户余额。 当前余额：¥
+              {selectedUser ? Number(selectedUser.balance).toFixed(2) : "0.00"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -473,16 +504,22 @@ export default function AdminUsersPageContent() {
                 onChange={(e) => setAdjustReason(e.target.value)}
               />
             </div>
-            {adjustAmount && !isNaN(parseFloat(adjustAmount)) && selectedUser && (
-              <div className="rounded-[var(--radius-md)] bg-[var(--muted)] p-3">
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  调整后余额：
-                  <span className="font-semibold text-[var(--foreground)] ml-1">
-                    ¥{Math.max(0, selectedUser.balance + parseFloat(adjustAmount)).toFixed(2)}
-                  </span>
-                </p>
-              </div>
-            )}
+            {adjustAmount &&
+              !isNaN(parseFloat(adjustAmount)) &&
+              selectedUser && (
+                <div className="rounded-[var(--radius-md)] bg-[var(--muted)] p-3">
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    调整后余额：
+                    <span className="font-semibold text-[var(--foreground)] ml-1">
+                      ¥
+                      {Math.max(
+                        0,
+                        Number(selectedUser.balance) + parseFloat(adjustAmount)
+                      ).toFixed(2)}
+                    </span>
+                  </p>
+                </div>
+              )}
           </div>
           <DialogFooter>
             <Button
@@ -493,9 +530,20 @@ export default function AdminUsersPageContent() {
             </Button>
             <Button
               onClick={handleBalanceAdjust}
-              disabled={!adjustAmount || isNaN(parseFloat(adjustAmount))}
+              disabled={
+                !adjustAmount ||
+                isNaN(parseFloat(adjustAmount)) ||
+                actionLoading !== null
+              }
             >
-              确认调整
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  处理中...
+                </>
+              ) : (
+                "确认调整"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

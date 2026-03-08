@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogTrigger,
@@ -35,171 +36,81 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+interface ApiProduct {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  originalPrice: number | null;
+  categoryId: string;
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  image: string | null;
+  tags: string[];
+  stockCount: number;
+  soldCount: number;
+  isActive: boolean;
+  sortOrder: number;
+  deliveryType: string | null;
+  afterSaleHours: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Product {
   id: string;
   name: string;
+  slug: string;
   category: string;
+  categoryId: string;
   price: number;
   originalPrice: number;
   stock: number;
   status: "上架" | "下架";
   sales: number;
   description: string;
+  tags: string[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  productCount: number;
 }
 
 // ---------------------------------------------------------------------------
-// Mock data
+// Helpers
 // ---------------------------------------------------------------------------
 
-const CATEGORIES = [
-  "邮箱账号",
-  "流媒体",
-  "VPN服务",
-  "社交媒体",
-  "云存储",
-  "软件许可",
-];
-
-const initialProducts: Product[] = [
-  {
-    id: "P001",
-    name: "Gmail 邮箱账号 - 全新注册",
-    category: "邮箱账号",
-    price: 8.9,
-    originalPrice: 15.0,
-    stock: 350,
-    status: "上架",
-    sales: 1247,
-    description: "全新注册 Gmail 邮箱，支持 POP3/IMAP，稳定可靠",
-  },
-  {
-    id: "P002",
-    name: "Netflix 高级会员 - 月卡",
-    category: "流媒体",
-    price: 25.0,
-    originalPrice: 45.0,
-    stock: 128,
-    status: "上架",
-    sales: 862,
-    description: "Netflix Premium 独享账号，支持4K超高清，可同时4屏观看",
-  },
-  {
-    id: "P003",
-    name: "ExpressVPN 一年订阅",
-    category: "VPN服务",
-    price: 68.0,
-    originalPrice: 120.0,
-    stock: 75,
-    status: "上架",
-    sales: 534,
-    description: "全球94个国家服务器节点，无限流量，极速连接",
-  },
-  {
-    id: "P004",
-    name: "Spotify Premium 季卡",
-    category: "流媒体",
-    price: 35.0,
-    originalPrice: 60.0,
-    stock: 200,
-    status: "上架",
-    sales: 723,
-    description: "Spotify 高级会员3个月，无广告畅听，支持离线下载",
-  },
-  {
-    id: "P005",
-    name: "Outlook 企业邮箱",
-    category: "邮箱账号",
-    price: 12.0,
-    originalPrice: 20.0,
-    stock: 0,
-    status: "下架",
-    sales: 389,
-    description: "Microsoft 365 企业邮箱，50GB存储空间",
-  },
-  {
-    id: "P006",
-    name: "NordVPN 两年套餐",
-    category: "VPN服务",
-    price: 99.0,
-    originalPrice: 180.0,
-    stock: 45,
-    status: "上架",
-    sales: 412,
-    description: "双重VPN加密，5500+服务器，支持6台设备同时连接",
-  },
-  {
-    id: "P007",
-    name: "Twitter/X 蓝标认证账号",
-    category: "社交媒体",
-    price: 150.0,
-    originalPrice: 220.0,
-    stock: 15,
-    status: "上架",
-    sales: 98,
-    description: "已认证蓝标 X Premium 账号，含所有高级功能",
-  },
-  {
-    id: "P008",
-    name: "Google Drive 2TB 年卡",
-    category: "云存储",
-    price: 45.0,
-    originalPrice: 69.0,
-    stock: 180,
-    status: "上架",
-    sales: 567,
-    description: "Google One 2TB云存储空间，支持全家共享",
-  },
-  {
-    id: "P009",
-    name: "Disney+ 高级会员 - 年卡",
-    category: "流媒体",
-    price: 88.0,
-    originalPrice: 150.0,
-    stock: 92,
-    status: "上架",
-    sales: 345,
-    description: "Disney Plus 年度会员，包含所有迪士尼、漫威、星战内容",
-  },
-  {
-    id: "P010",
-    name: "Instagram 万粉老号",
-    category: "社交媒体",
-    price: 280.0,
-    originalPrice: 400.0,
-    stock: 8,
-    status: "下架",
-    sales: 56,
-    description: "Instagram 活跃老号，10000+真实粉丝，高互动率",
-  },
-  {
-    id: "P011",
-    name: "iCloud 200GB 年度方案",
-    category: "云存储",
-    price: 32.0,
-    originalPrice: 50.0,
-    stock: 220,
-    status: "上架",
-    sales: 678,
-    description: "Apple iCloud 200GB 年度存储方案，自动续期",
-  },
-  {
-    id: "P012",
-    name: "Windows 11 Pro 激活密钥",
-    category: "软件许可",
-    price: 58.0,
-    originalPrice: 128.0,
-    stock: 500,
-    status: "上架",
-    sales: 1523,
-    description: "正版 Windows 11 专业版永久激活密钥，支持在线激活",
-  },
-];
+function mapApiProduct(p: ApiProduct): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    category: p.category.name,
+    categoryId: p.categoryId,
+    price: p.price,
+    originalPrice: p.originalPrice ?? p.price,
+    stock: p.stockCount,
+    status: p.isActive ? "上架" : "下架",
+    sales: p.soldCount,
+    description: p.description,
+    tags: p.tags,
+  };
+}
 
 const ITEMS_PER_PAGE = 6;
 
@@ -207,32 +118,99 @@ const ITEMS_PER_PAGE = 6;
 // Component
 // ---------------------------------------------------------------------------
 
-
 export default function AdminProductsPageContent() {
-  // State
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  // Data state
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mutating, setMutating] = useState(false);
+
+  // Filter / pagination state
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<string | string[] | null>(null);
   const [sortField, setSortField] = useState<keyof Product | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  // Form state for add dialog
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | string[] | null>(
+    null
+  );
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Form state for add/edit dialog
   const [formName, setFormName] = useState("");
-  const [formCategory, setFormCategory] = useState("");
+  const [formSlug, setFormSlug] = useState("");
+  const [formCategoryId, setFormCategoryId] = useState("");
   const [formPrice, setFormPrice] = useState("");
   const [formOriginalPrice, setFormOriginalPrice] = useState("");
+  const [formStockCount, setFormStockCount] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formStatus, setFormStatus] = useState<"上架" | "下架">("上架");
 
   // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/products");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || `请求失败 (${res.status})`);
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.products)) {
+        setProducts(data.products.map(mapApiProduct));
+      } else {
+        throw new Error(data.message || "获取商品列表失败");
+      }
+    } catch (err) {
+      toast.error("加载商品失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    }
+  }, []);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch("/api/categories");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || `请求失败 (${res.status})`);
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.categories)) {
+        setCategories(data.categories);
+      }
+    } catch (err) {
+      toast.error("加载分类失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    async function init() {
+      setLoading(true);
+      await Promise.all([fetchProducts(), fetchCategories()]);
+      setLoading(false);
+    }
+    init();
+  }, [fetchProducts, fetchCategories]);
+
+  // ---------------------------------------------------------------------------
   // Derived data
   // ---------------------------------------------------------------------------
+
+  const categoryNames = useMemo(
+    () => categories.map((c) => c.name),
+    [categories]
+  );
 
   const filtered = useMemo(() => {
     let result = [...products];
@@ -323,63 +301,219 @@ export default function AdminProductsPageContent() {
     }
   }
 
-  function toggleStatus(id: string) {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === "上架" ? "下架" : "上架" }
-          : p
-      )
-    );
+  async function toggleStatus(id: string) {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+
+    const newIsActive = product.status !== "上架";
+    setMutating(true);
+    try {
+      const res = await fetch(`/api/admin/products?id=${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newIsActive }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "操作失败");
+      }
+      toast.success(newIsActive ? "商品已上架" : "商品已下架");
+      await fetchProducts();
+    } catch (err) {
+      toast.error("切换状态失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
   }
 
-  function bulkToggleStatus(status: "上架" | "下架") {
-    setProducts((prev) =>
-      prev.map((p) => (selectedIds.has(p.id) ? { ...p, status } : p))
-    );
-    setSelectedIds(new Set());
+  async function bulkToggleStatus(status: "上架" | "下架") {
+    const isActive = status === "上架";
+    const ids = Array.from(selectedIds);
+    setMutating(true);
+    try {
+      const results = await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/admin/products?id=${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isActive }),
+          }).then((r) => r.json())
+        )
+      );
+      const failures = results.filter((r) => !r.success);
+      if (failures.length > 0) {
+        toast.warning(`部分操作失败: ${failures.length}/${ids.length} 件商品未能更新`);
+      } else {
+        toast.success(`已批量${status} ${ids.length} 件商品`);
+      }
+      setSelectedIds(new Set());
+      await fetchProducts();
+    } catch (err) {
+      toast.error("批量操作失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
     const idsToDelete = Array.isArray(deleteTarget)
       ? deleteTarget
       : [deleteTarget];
-    setProducts((prev) => prev.filter((p) => !idsToDelete.includes(p.id)));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      idsToDelete.forEach((id) => next.delete(id));
-      return next;
-    });
-    setDeleteTarget(null);
-    setDeleteDialogOpen(false);
+
+    setMutating(true);
+    try {
+      const results = await Promise.all(
+        idsToDelete.map((id) =>
+          fetch(`/api/admin/products?id=${id}`, {
+            method: "DELETE",
+          }).then((r) => r.json())
+        )
+      );
+      const failures = results.filter((r) => !r.success);
+      if (failures.length > 0) {
+        toast.warning(
+          `部分删除失败: ${failures.length}/${idsToDelete.length} 件商品未能删除`
+        );
+      } else {
+        toast.success(
+          idsToDelete.length === 1
+            ? "商品已删除(下架)"
+            : `已删除(下架) ${idsToDelete.length} 件商品`
+        );
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        idsToDelete.forEach((id) => next.delete(id));
+        return next;
+      });
+      setDeleteTarget(null);
+      setDeleteDialogOpen(false);
+      await fetchProducts();
+    } catch (err) {
+      toast.error("删除失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
   }
 
-  function handleAddProduct() {
-    if (!formName.trim() || !formCategory || !formPrice) return;
-    const newProduct: Product = {
-      id: `P${String(products.length + 1).padStart(3, "0")}`,
-      name: formName.trim(),
-      category: formCategory,
-      price: parseFloat(formPrice) || 0,
-      originalPrice: parseFloat(formOriginalPrice) || parseFloat(formPrice) || 0,
-      stock: 0,
-      status: formStatus,
-      sales: 0,
-      description: formDescription.trim(),
-    };
-    setProducts((prev) => [newProduct, ...prev]);
-    resetForm();
-    setDialogOpen(false);
+  async function handleSaveProduct() {
+    if (!formName.trim() || !formCategoryId || !formPrice) return;
+
+    const priceVal = parseFloat(formPrice);
+    const originalPriceVal = formOriginalPrice
+      ? parseFloat(formOriginalPrice)
+      : undefined;
+    const stockVal = formStockCount ? parseInt(formStockCount, 10) : 0;
+
+    if (isNaN(priceVal) || priceVal < 0) {
+      toast.error("请输入有效的价格");
+      return;
+    }
+
+    setMutating(true);
+    try {
+      if (editingProduct) {
+        // Update existing product
+        const body: Record<string, unknown> = {
+          name: formName.trim(),
+          categoryId: formCategoryId,
+          price: priceVal,
+          stockCount: stockVal,
+          description: formDescription.trim(),
+          isActive: formStatus === "上架",
+        };
+        if (formSlug.trim()) body.slug = formSlug.trim();
+        if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
+
+        const res = await fetch(
+          `/api/admin/products?id=${editingProduct.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "更新失败");
+        }
+        toast.success("商品更新成功");
+      } else {
+        // Create new product
+        const body: Record<string, unknown> = {
+          name: formName.trim(),
+          categoryId: formCategoryId,
+          price: priceVal,
+          stockCount: stockVal,
+          description: formDescription.trim(),
+          isActive: formStatus === "上架",
+        };
+        if (formSlug.trim()) body.slug = formSlug.trim();
+        if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
+
+        const res = await fetch("/api/admin/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "创建失败");
+        }
+        toast.success("商品添加成功");
+      }
+
+      resetForm();
+      setDialogOpen(false);
+      await fetchProducts();
+    } catch (err) {
+      toast.error(editingProduct ? "更新商品失败" : "添加商品失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
   }
 
   function resetForm() {
     setFormName("");
-    setFormCategory("");
+    setFormSlug("");
+    setFormCategoryId("");
     setFormPrice("");
     setFormOriginalPrice("");
+    setFormStockCount("");
     setFormDescription("");
     setFormStatus("上架");
+    setEditingProduct(null);
+  }
+
+  function openEditDialog(product: Product) {
+    setEditingProduct(product);
+    setFormName(product.name);
+    setFormSlug(product.slug);
+    setFormCategoryId(product.categoryId);
+    setFormPrice(String(product.price));
+    setFormOriginalPrice(
+      product.originalPrice !== product.price
+        ? String(product.originalPrice)
+        : ""
+    );
+    setFormStockCount(String(product.stock));
+    setFormDescription(product.description);
+    setFormStatus(product.status);
+    setDialogOpen(true);
+  }
+
+  function openAddDialog() {
+    resetForm();
+    setDialogOpen(true);
   }
 
   // ---------------------------------------------------------------------------
@@ -399,9 +533,59 @@ export default function AdminProductsPageContent() {
     );
   }
 
+  function renderLoadingSkeleton() {
+    return (
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-28" />
+        </div>
+        {/* Filters skeleton */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex gap-3">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-[160px]" />
+              <Skeleton className="h-10 w-[120px]" />
+            </div>
+          </CardContent>
+        </Card>
+        {/* Table skeleton */}
+        <Card>
+          <div className="p-4 space-y-4">
+            {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-5 w-5" />
+                <Skeleton className="h-5 flex-1" />
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-12" />
+                <Skeleton className="h-6 w-14" />
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-8 w-32" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // JSX
   // ---------------------------------------------------------------------------
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">{renderLoadingSkeleton()}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] p-4 md:p-8">
@@ -417,9 +601,15 @@ export default function AdminProductsPageContent() {
             </p>
           </div>
 
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
             <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}>
+              <Button onClick={openAddDialog}>
                 <Plus className="h-4 w-4" />
                 添加商品
               </Button>
@@ -427,7 +617,9 @@ export default function AdminProductsPageContent() {
 
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>添加商品</DialogTitle>
+                <DialogTitle>
+                  {editingProduct ? "编辑商品" : "添加商品"}
+                </DialogTitle>
               </DialogHeader>
 
               <div className="grid gap-4 py-4">
@@ -442,17 +634,36 @@ export default function AdminProductsPageContent() {
                   />
                 </div>
 
+                {/* Slug */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-slug">
+                    Slug{" "}
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      (可选，留空自动生成)
+                    </span>
+                  </Label>
+                  <Input
+                    id="product-slug"
+                    placeholder="product-url-slug"
+                    value={formSlug}
+                    onChange={(e) => setFormSlug(e.target.value)}
+                  />
+                </div>
+
                 {/* 分类 */}
                 <div className="grid gap-2">
                   <Label>分类</Label>
-                  <Select value={formCategory} onValueChange={setFormCategory}>
+                  <Select
+                    value={formCategoryId}
+                    onValueChange={setFormCategoryId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="选择分类" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -487,6 +698,20 @@ export default function AdminProductsPageContent() {
                   </div>
                 </div>
 
+                {/* 库存 */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-stock">库存数量</Label>
+                  <Input
+                    id="product-stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={formStockCount}
+                    onChange={(e) => setFormStockCount(e.target.value)}
+                  />
+                </div>
+
                 {/* 描述 */}
                 <div className="grid gap-2">
                   <Label htmlFor="product-desc">描述</Label>
@@ -505,7 +730,9 @@ export default function AdminProductsPageContent() {
                   <Label>状态</Label>
                   <Select
                     value={formStatus}
-                    onValueChange={(v) => setFormStatus(v as "上架" | "下架")}
+                    onValueChange={(v) =>
+                      setFormStatus(v as "上架" | "下架")
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -521,11 +748,19 @@ export default function AdminProductsPageContent() {
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={() => setDialogOpen(false)}
+                  onClick={() => {
+                    setDialogOpen(false);
+                    resetForm();
+                  }}
                 >
                   取消
                 </Button>
-                <Button onClick={handleAddProduct}>确认添加</Button>
+                <Button onClick={handleSaveProduct} disabled={mutating}>
+                  {mutating && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {editingProduct ? "保存修改" : "确认添加"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -562,7 +797,7 @@ export default function AdminProductsPageContent() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部分类</SelectItem>
-                  {CATEGORIES.map((c) => (
+                  {categoryNames.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
                     </SelectItem>
@@ -601,6 +836,7 @@ export default function AdminProductsPageContent() {
               <Button
                 size="sm"
                 variant="outline"
+                disabled={mutating}
                 onClick={() => bulkToggleStatus("上架")}
               >
                 <Eye className="h-3.5 w-3.5" />
@@ -609,6 +845,7 @@ export default function AdminProductsPageContent() {
               <Button
                 size="sm"
                 variant="outline"
+                disabled={mutating}
                 onClick={() => bulkToggleStatus("下架")}
               >
                 <EyeOff className="h-3.5 w-3.5" />
@@ -617,6 +854,7 @@ export default function AdminProductsPageContent() {
               <Button
                 size="sm"
                 variant="destructive"
+                disabled={mutating}
                 onClick={() => {
                   setDeleteTarget(Array.from(selectedIds));
                   setDeleteDialogOpen(true);
@@ -756,13 +994,19 @@ export default function AdminProductsPageContent() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={mutating}
+                            onClick={() => openEditDialog(product)}
+                          >
                             <Edit className="h-3.5 w-3.5" />
                             编辑
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            disabled={mutating}
                             onClick={() => toggleStatus(product.id)}
                           >
                             {product.status === "上架" ? (
@@ -780,6 +1024,7 @@ export default function AdminProductsPageContent() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            disabled={mutating}
                             className="text-[var(--destructive)] hover:text-[var(--destructive)]"
                             onClick={() => {
                               setDeleteTarget(product.id);
@@ -887,13 +1132,19 @@ export default function AdminProductsPageContent() {
 
                     {/* Actions */}
                     <div className="flex gap-1 pt-1">
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={mutating}
+                        onClick={() => openEditDialog(product)}
+                      >
                         <Edit className="h-3.5 w-3.5" />
                         编辑
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
+                        disabled={mutating}
                         onClick={() => toggleStatus(product.id)}
                       >
                         {product.status === "上架" ? (
@@ -911,6 +1162,7 @@ export default function AdminProductsPageContent() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        disabled={mutating}
                         className="text-[var(--destructive)] hover:text-[var(--destructive)]"
                         onClick={() => {
                           setDeleteTarget(product.id);
@@ -984,8 +1236,8 @@ export default function AdminProductsPageContent() {
           </DialogHeader>
           <p className="text-sm text-[var(--muted-foreground)]">
             {Array.isArray(deleteTarget)
-              ? `确定要删除选中的 ${deleteTarget.length} 件商品吗？此操作无法撤销。`
-              : "确定要删除该商品吗？此操作无法撤销。"}
+              ? `确定要删除选中的 ${deleteTarget.length} 件商品吗？商品将被下架处理。`
+              : "确定要删除该商品吗？商品将被下架处理。"}
           </p>
           <DialogFooter>
             <Button
@@ -997,7 +1249,12 @@ export default function AdminProductsPageContent() {
             >
               取消
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
+            <Button
+              variant="destructive"
+              disabled={mutating}
+              onClick={confirmDelete}
+            >
+              {mutating && <Loader2 className="h-4 w-4 animate-spin" />}
               确认删除
             </Button>
           </DialogFooter>
