@@ -211,6 +211,12 @@ export async function PUT(request: NextRequest) {
     if (action === "approve") {
       // Approve: refund balance + update order status + update refund status
       await db.$transaction(async (tx) => {
+        // Re-validate status inside transaction to prevent double-approval race condition
+        const current = await tx.refundRequest.findUnique({ where: { id } });
+        if (!current || current.status !== "PENDING") {
+          throw new Error("ALREADY_PROCESSED");
+        }
+
         // Update refund request status
         await tx.refundRequest.update({
           where: { id },
