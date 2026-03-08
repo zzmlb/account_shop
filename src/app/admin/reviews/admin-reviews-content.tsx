@@ -338,6 +338,39 @@ export default function AdminReviewsContent() {
         </select>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-3">
+          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+          <span className="text-sm font-medium">已选择 {selectedIds.size} 条评价</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => handleBatchVisibility(true)}
+              disabled={batchLoading}
+            >
+              {batchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+              批量显示
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => handleBatchVisibility(false)}
+              disabled={batchLoading}
+            >
+              {batchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <EyeOff className="h-3.5 w-3.5" />}
+              批量隐藏
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+              取消选择
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -353,6 +386,19 @@ export default function AdminReviewsContent() {
           <table className="w-full" aria-label="评价管理列表">
             <thead>
               <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted-foreground)]">
+                <th className="w-10 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                      allSelected
+                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                        : "border-[var(--border)] hover:border-[var(--primary)]"
+                    }`}
+                  >
+                    {allSelected && <CheckSquare className="h-3 w-3" />}
+                  </button>
+                </th>
                 <th className="px-4 py-3">用户</th>
                 <th className="px-4 py-3">商品</th>
                 <th className="px-4 py-3">评分</th>
@@ -363,11 +409,26 @@ export default function AdminReviewsContent() {
               </tr>
             </thead>
             <tbody>
-              {reviews.map((review) => (
+              {reviews.map((review) => {
+                const isSelected = selectedIds.has(review.id);
+                return (
                 <tr
                   key={review.id}
-                  className="border-b border-[var(--border)] last:border-0"
+                  className={`border-b border-[var(--border)] last:border-0 transition-colors ${isSelected ? "bg-[var(--primary)]/5" : ""}`}
                 >
+                  <td className="w-10 px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(review.id)}
+                      className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                        isSelected
+                          ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                          : "border-[var(--border)] hover:border-[var(--primary)]"
+                      }`}
+                    >
+                      {isSelected && <CheckSquare className="h-3 w-3" />}
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-sm font-medium">
                     {review.user.username}
                   </td>
@@ -436,7 +497,8 @@ export default function AdminReviewsContent() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
