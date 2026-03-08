@@ -142,8 +142,10 @@ export async function POST(request: NextRequest) {
     const maxAfterSaleHours = Math.max(
       ...order.items.map((i) => i.product.afterSaleHours)
     );
+    // Use paidAt as the reference time for after-sale window (not updatedAt)
+    const referenceTime = order.paidAt ?? order.updatedAt;
     const deliveredHoursAgo =
-      (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
+      (Date.now() - referenceTime.getTime()) / (1000 * 60 * 60);
 
     if (deliveredHoursAgo > maxAfterSaleHours) {
       return NextResponse.json(
@@ -166,6 +168,22 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return NextResponse.json(
         { success: false, message: "该订单已有待处理的退款申请" },
+        { status: 400 }
+      );
+    }
+
+    // Prevent spam: require 24h cooldown after rejection before resubmitting
+    const recentRejection = await db.refundRequest.findFirst({
+      where: {
+        orderId,
+        status: "REJECTED",
+        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    if (recentRejection) {
+      return NextResponse.json(
+        { success: false, message: "退款申请被拒绝后需等待24小时才能重新提交" },
         { status: 400 }
       );
     }

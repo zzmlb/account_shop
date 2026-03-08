@@ -31,6 +31,9 @@ export async function generateMetadata({ params }: ProductDetailPageProps): Prom
   return {
     title,
     description,
+    alternates: {
+      canonical: productUrl,
+    },
     openGraph: {
       title: `${title} | ${SITE_NAME}`,
       description,
@@ -171,6 +174,8 @@ export default async function ProductDetailPage({
       availability: product.stockCount > 0
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+      url: `${SITE_URL}/products/${product.slug}`,
       seller: { "@type": "Organization", name: SITE_NAME },
     },
     ...(avgRating && reviewCount > 0 && {

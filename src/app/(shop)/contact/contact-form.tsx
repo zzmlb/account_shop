@@ -5,6 +5,7 @@ import { Send, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 export default function ContactForm() {
   const [form, setForm] = useState({
@@ -33,6 +34,7 @@ export default function ContactForm() {
       const data = await res.json();
 
       if (data.success) {
+        toast.success("留言已提交", { description: "我们会尽快通过邮件回复您" });
         setSuccess(true);
         setForm({ name: "", email: "", subject: "", message: "", website: "" });
       } else {

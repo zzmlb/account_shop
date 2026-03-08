@@ -395,6 +395,7 @@ export default function AdminOrdersPageContent() {
             value={searchInput}
             onChange={(e) => handleSearchInputChange(e.target.value)}
             className="pl-9"
+            aria-label="搜索订单"
           />
         </div>
         <div className="relative">
@@ -591,6 +592,7 @@ export default function AdminOrdersPageContent() {
                                 size="icon"
                                 className="h-10 w-10 sm:h-8 sm:w-8"
                                 disabled={actionLoading === order.id}
+                                aria-label="订单操作"
                               >
                                 {actionLoading === order.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
