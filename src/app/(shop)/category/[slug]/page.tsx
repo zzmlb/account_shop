@@ -87,6 +87,24 @@ export default async function CategoryPage({ params }: Props) {
     icon: c.icon,
   }));
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "分类",
+        item: `${SITE_URL}/categories`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: category.name,
+      },
+    ],
+  };
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -105,6 +123,10 @@ export default async function CategoryPage({ params }: Props) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

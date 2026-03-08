@@ -243,8 +243,12 @@ export default function AdminProductsPageContent() {
       result = result.filter((p) => p.category === categoryFilter);
     }
 
-    // Status
-    if (statusFilter !== "all") {
+    // Status / stock filter
+    if (statusFilter === "low-stock") {
+      result = result.filter((p) => p.stock > 0 && p.stock < 10);
+    } else if (statusFilter === "out-of-stock") {
+      result = result.filter((p) => p.stock === 0);
+    } else if (statusFilter !== "all") {
       result = result.filter((p) => p.status === statusFilter);
     }
 
@@ -1029,13 +1033,25 @@ export default function AdminProductsPageContent() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="w-full md:w-[120px]">
+                <SelectTrigger className="w-full md:w-[140px]">
                   <SelectValue placeholder="全部状态" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部</SelectItem>
                   <SelectItem value="上架">上架</SelectItem>
                   <SelectItem value="下架">下架</SelectItem>
+                  <SelectItem value="low-stock">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3 w-3 text-orange-500" />
+                      库存不足
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="out-of-stock">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3 w-3 text-red-500" />
+                      已售罄
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
