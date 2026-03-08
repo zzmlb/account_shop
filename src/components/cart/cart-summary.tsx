@@ -145,7 +145,15 @@ export default function CartSummary({
                 setCouponCode(e.target.value);
                 setCouponError("");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && couponCode.trim() && !isValidating) {
+                  e.preventDefault();
+                  handleApplyCoupon();
+                }
+              }}
               className="flex-1"
+              aria-label="优惠码"
+              aria-describedby={couponError ? "coupon-error" : undefined}
             />
             <Button
               variant="outline"
@@ -162,7 +170,7 @@ export default function CartSummary({
           </div>
         )}
         {couponError && (
-          <p className="mt-1 text-xs text-[var(--destructive)]">
+          <p id="coupon-error" className="mt-1 text-xs text-[var(--destructive)]" role="alert">
             {couponError}
           </p>
         )}
@@ -171,7 +179,7 @@ export default function CartSummary({
       <Separator className="my-4" />
 
       {/* Price breakdown */}
-      <div className="space-y-2">
+      <div className="space-y-2" aria-live="polite" aria-atomic="true">
         <div className="flex items-center justify-between text-sm">
           <span className="text-[var(--muted-foreground)]">商品小计</span>
           <span className="text-[var(--foreground)]">{formatPrice(subtotal)}</span>

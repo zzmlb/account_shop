@@ -232,6 +232,15 @@ export default function OrdersPageContent() {
     }
   };
 
+  /* Status counts for tab badges */
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: orders.length };
+    for (const o of orders) {
+      counts[o.status] = (counts[o.status] || 0) + 1;
+    }
+    return counts;
+  }, [orders]);
+
   /* Date range display */
   const dateRange = useMemo(() => {
     if (orders.length === 0) return null;
@@ -266,11 +275,19 @@ export default function OrdersPageContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList>
-            {statusTabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
+            {statusTabs.map((tab) => {
+              const count = statusCounts[tab.value] || 0;
+              return (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                  {count > 0 && (
+                    <span className="ml-1 text-xs text-[var(--muted-foreground)]">
+                      {count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
         </Tabs>
 

@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useAuthStore } from "@/stores/auth-store";
 import CartSummary from "@/components/cart/cart-summary";
@@ -421,6 +421,28 @@ export default function CheckoutContent() {
                 );
               })}
             </div>
+
+            {/* Balance indicator */}
+            {paymentMethod === "balance" && user && (
+              <div className="mt-3 flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]/50 px-4 py-2.5">
+                <span className="text-sm text-[var(--muted-foreground)]">
+                  当前余额
+                </span>
+                <span className={cn(
+                  "text-sm font-semibold",
+                  user.balance >= getTotal()
+                    ? "text-[var(--success)]"
+                    : "text-[var(--destructive)]"
+                )}>
+                  {formatPrice(user.balance)}
+                  {user.balance < getTotal() && (
+                    <span className="ml-2 text-xs font-normal">
+                      (余额不足)
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Delivery info badges */}
