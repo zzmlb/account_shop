@@ -1,9 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, ArrowLeft, Eye, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface ArticleDetail {
   id: string;
@@ -34,6 +36,8 @@ interface Props {
 }
 
 export default function ArticleDetailContent({ article, relatedArticles }: Props) {
+  const cleanContent = useMemo(() => sanitizeHtml(article.content), [article.content]);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
@@ -95,7 +99,7 @@ export default function ArticleDetailContent({ article, relatedArticles }: Props
           prose-code:bg-[var(--accent)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-[var(--radius-sm)] prose-code:text-sm
           prose-ol:my-4 prose-ol:pl-6
           prose-ul:my-4 prose-ul:pl-6"
-        dangerouslySetInnerHTML={{ __html: article.content }}
+        dangerouslySetInnerHTML={{ __html: cleanContent }}
       />
 
       {/* Divider */}

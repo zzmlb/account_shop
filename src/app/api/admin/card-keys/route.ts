@@ -168,21 +168,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Filter out empty strings
-    const validKeys = keys
+    // Filter out empty strings and remove duplicates within the batch
+    const rawKeys = keys
       .map((k: unknown) => (typeof k === "string" ? k.trim() : ""))
       .filter((k: string) => k.length > 0);
 
-    if (validKeys.length === 0) {
+    if (rawKeys.length === 0) {
       return NextResponse.json(
         { success: false, message: "没有有效的卡密内容" },
         { status: 400 }
       );
     }
 
+    // Deduplicate within the batch
+    const uniqueKeys = [...new Set(rawKeys as string[])];
+    const batchDuplicates = rawKeys.length - uniqueKeys.length;
+
+    // Check for existing duplicates in the database
+    // Encrypt keys to compare with stored encrypted values
+    const encryptedKeys = uniqueKeys.map((k: string) => encryptCardKey(k));
+    const existingKeys = await db.cardKey.findMany({
+      where: {
+        content: { in: encryptedKeys },
+        productId,
+      },
+      select: { content: true },
+    });
+
+    const existingSet = new Set(existingKeys.map((k) => k.content));
+    const newKeys = uniqueKeys.filter(
+      (k: string) => !existingSet.has(encryptCardKey(k))
+    );
+    const dbDuplicates = uniqueKeys.length - newKeys.length;
+
+    if (newKeys.length === 0) {
+      return NextResponse.json({
+        success: true,
+        count: 0,
+        message: "所有卡密已存在，无新增",
+        duplicates: { batch: batchDuplicates, existing: dbDuplicates },
+      });
+    }
+
     // Bulk create card keys (encrypted)
     const result = await db.cardKey.createMany({
-      data: validKeys.map((content: string) => ({
+      data: newKeys.map((content: string) => ({
         productId,
         content: encryptCardKey(content),
         status: "AVAILABLE" as const,
@@ -197,10 +227,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const warnings = [];
+    if (batchDuplicates > 0) {
+      warnings.push(`${batchDuplicates} 个批内重复`);
+    }
+    if (dbDuplicates > 0) {
+      warnings.push(`${dbDuplicates} 个已存在于数据库`);
+    }
+
     return NextResponse.json({
       success: true,
       count: result.count,
-      message: `成功导入 ${result.count} 个卡密`,
+      message: `成功导入 ${result.count} 个卡密${
+        warnings.length > 0 ? `（跳过: ${warnings.join(", ")}）` : ""
+      }`,
+      duplicates: { batch: batchDuplicates, existing: dbDuplicates },
     });
   } catch (error) {
     log.error({ err: error }, "Admin card-keys POST error");

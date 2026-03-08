@@ -16,6 +16,7 @@ import {
   Mail,
   Pencil,
   X,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface FormMessage {
@@ -40,7 +49,8 @@ interface FormMessage {
 
 
 export default function DashboardSettingsPageContent() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
 
   /* ---- Password form state ---- */
   const [currentPassword, setCurrentPassword] = useState("");
@@ -66,6 +76,12 @@ export default function DashboardSettingsPageContent() {
 
   /* ---- Avatar state ---- */
   const [avatarHover, setAvatarHover] = useState(false);
+
+  /* ---- Delete account state ---- */
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   /* ---- Password strength ---- */
   const getPasswordStrength = (
@@ -199,6 +215,37 @@ export default function DashboardSettingsPageContent() {
       toast.error("网络错误，请稍后重试");
     } finally {
       setEmailSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast.error("请输入 DELETE 确认删除");
+      return;
+    }
+    if (!deletePassword) {
+      toast.error("请输入密码确认");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/auth/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("账户已删除");
+        logout();
+        router.push("/");
+      } else {
+        toast.error(data.message || "删除失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -605,6 +652,90 @@ export default function DashboardSettingsPageContent() {
           </Card>
         </div>
       </div>
+
+      {/* Danger Zone */}
+      <Card className="border-[var(--destructive)]/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg text-[var(--destructive)]">
+            <Trash2 className="h-5 w-5" />
+            危险操作
+          </CardTitle>
+          <CardDescription>
+            删除账户后，所有个人数据将被清除，此操作不可恢复
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="destructive"
+            className="gap-2"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            删除账户
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Delete Account Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[var(--destructive)]">
+              确认删除账户
+            </DialogTitle>
+            <DialogDescription>
+              此操作不可恢复。您的个人信息将被清除，但订单记录会保留。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>输入密码确认身份</Label>
+              <Input
+                type="password"
+                placeholder="请输入当前密码"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                输入 <span className="font-mono font-bold">DELETE</span> 确认
+              </Label>
+              <Input
+                placeholder="输入 DELETE"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeletePassword("");
+                setDeleteConfirmText("");
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting || deleteConfirmText !== "DELETE" || !deletePassword}
+              onClick={handleDeleteAccount}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                "确认删除"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
