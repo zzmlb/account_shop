@@ -147,7 +147,7 @@ export default function ProductsPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [page, category, sort, search, minPrice, maxPrice, inStock]);
+  }, [page, category, sort, search, minPrice, maxPrice, inStock, searchParams, router]);
 
   useEffect(() => {
     fetchProducts();
