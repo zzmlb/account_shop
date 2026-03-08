@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   DollarSign,
@@ -245,6 +245,11 @@ export default function AdminOverviewPageContent() {
     setChartPeriod(period);
     fetchStats(period);
   };
+
+  const orderStatusTotal = useMemo(
+    () => ordersByStatus.reduce((sum, o) => sum + o.count, 0),
+    [ordersByStatus]
+  );
 
   const handleManualRefresh = () => {
     fetchStats(chartPeriod, false, true);
@@ -582,9 +587,13 @@ export default function AdminOverviewPageContent() {
           <CardContent>
             <div className="space-y-4">
               {hotProducts.length === 0 ? (
-                <p className="text-sm text-[var(--muted-foreground)] text-center py-4">
-                  暂无数据
-                </p>
+                <div className="flex flex-col items-center py-6 text-center text-[var(--muted-foreground)]">
+                  <Package className="mb-2 h-8 w-8 opacity-20" />
+                  <p className="text-sm">暂无销量数据</p>
+                  <Link href="/admin/products" className="mt-1 text-xs text-[var(--primary)] hover:underline">
+                    管理商品
+                  </Link>
+                </div>
               ) : (
                 hotProducts.map((product) => (
                   <div
@@ -632,8 +641,7 @@ export default function AdminOverviewPageContent() {
                 ].map((s) => {
                   const item = ordersByStatus.find((o) => o.status === s.key);
                   const count = item?.count ?? 0;
-                  const total = ordersByStatus.reduce((sum, o) => sum + o.count, 0);
-                  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                  const pct = orderStatusTotal > 0 ? Math.round((count / orderStatusTotal) * 100) : 0;
                   return (
                     <div
                       key={s.key}
@@ -685,7 +693,7 @@ export default function AdminOverviewPageContent() {
                   </div>
                 </div>
                 <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-center">
-                  <p className="text-lg font-bold">{ordersByStatus.reduce((sum, o) => sum + o.count, 0)}</p>
+                  <p className="text-lg font-bold">{orderStatusTotal}</p>
                   <p className="text-xs text-[var(--muted-foreground)]">总订单数</p>
                 </div>
               </div>
@@ -784,9 +792,15 @@ export default function AdminOverviewPageContent() {
                     <tr>
                       <td
                         colSpan={5}
-                        className="py-8 text-center text-sm text-[var(--muted-foreground)]"
+                        className="py-8 text-center"
                       >
-                        暂无订单数据
+                        <div className="flex flex-col items-center text-[var(--muted-foreground)]">
+                          <ShoppingCart className="mb-2 h-8 w-8 opacity-20" />
+                          <p className="text-sm">暂无订单数据</p>
+                          <Link href="/admin/orders" className="mt-1 text-xs text-[var(--primary)] hover:underline">
+                            查看全部订单
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ) : (
