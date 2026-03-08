@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { claimCouponSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("coupons/claim");
 
@@ -24,28 +25,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
+    const parsed = claimCouponSchema.safeParse(body);
 
-    if (!code) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "请输入优惠码" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
 
-    if (code.length < 2 || code.length > 50) {
-      return NextResponse.json(
-        { success: false, message: "优惠码格式无效" },
-        { status: 400 }
-      );
-    }
-
-    if (!/^[A-Z0-9_-]+$/.test(code)) {
-      return NextResponse.json(
-        { success: false, message: "优惠码格式无效" },
-        { status: 400 }
-      );
-    }
+    const { code } = parsed.data;
 
     // Find the coupon
     const coupon = await db.coupon.findUnique({

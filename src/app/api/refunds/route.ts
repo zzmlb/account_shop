@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
+import { refundRequestSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("refunds");
 
@@ -99,28 +100,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { orderId, reason } = body;
+    const parsed = refundRequestSchema.safeParse(body);
 
-    if (!orderId || !reason) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "缺少必要参数" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
 
-    if (typeof reason !== "string" || reason.trim().length < 5) {
-      return NextResponse.json(
-        { success: false, message: "退款原因至少需要5个字符" },
-        { status: 400 }
-      );
-    }
-
-    if (reason.length > 500) {
-      return NextResponse.json(
-        { success: false, message: "退款原因不能超过500字" },
-        { status: 400 }
-      );
-    }
+    const { orderId, reason } = parsed.data;
 
     // Find the order and verify ownership
     const order = await db.order.findUnique({

@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { hashPassword } from "@/lib/auth";
 import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
+import { resetPasswordSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("auth/reset-password");
 
@@ -18,35 +19,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { token, password } = body;
-
-    if (!token || typeof token !== "string") {
+    const parsed = resetPasswordSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "无效的重置链接" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
 
-    if (!password || typeof password !== "string" || password.length < 6) {
-      return NextResponse.json(
-        { success: false, message: "密码长度至少为6位" },
-        { status: 400 }
-      );
-    }
-
-    if (password.length > 50) {
-      return NextResponse.json(
-        { success: false, message: "密码最多50个字符" },
-        { status: 400 }
-      );
-    }
-
-    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
-      return NextResponse.json(
-        { success: false, message: "密码需包含至少一个字母和一个数字" },
-        { status: 400 }
-      );
-    }
+    const { token, password } = parsed.data;
 
     // Find the token
     const resetRecord = await db.passwordReset.findUnique({

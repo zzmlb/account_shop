@@ -91,6 +91,15 @@ describe("slugify", () => {
   it("preserves numbers and underscores", () => {
     expect(slugify("product_123")).toBe("product_123");
   });
+
+  it("preserves Chinese characters", () => {
+    expect(slugify("数字商品")).toBe("数字商品");
+    expect(slugify("Hello 世界")).toBe("hello-世界");
+  });
+
+  it("trims leading/trailing whitespace", () => {
+    expect(slugify("  hello world  ")).toBe("hello-world");
+  });
 });
 
 describe("timeAgo", () => {

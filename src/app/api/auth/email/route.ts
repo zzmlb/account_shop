@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { updateEmailSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("auth/email");
 
@@ -24,23 +25,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email } = body;
-
-    if (!email || typeof email !== "string") {
+    const parsed = updateEmailSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "请输入邮箱地址" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
 
-    const trimmed = email.trim().toLowerCase();
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      return NextResponse.json(
-        { success: false, message: "邮箱格式不正确" },
-        { status: 400 }
-      );
-    }
+    const trimmed = parsed.data.email;
 
     // Check if email is already in use by another user
     const existing = await db.user.findUnique({

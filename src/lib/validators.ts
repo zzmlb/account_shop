@@ -227,6 +227,88 @@ export const broadcastNotificationSchema = z.object({
 });
 
 /* ------------------------------------------------------------------ */
+/*  Auth: Reset Password                                               */
+/* ------------------------------------------------------------------ */
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "无效的重置链接"),
+  password: z
+    .string()
+    .min(6, "密码长度至少为6位")
+    .max(50, "密码最多50个字符")
+    .regex(/[A-Za-z]/, "密码需包含至少一个字母")
+    .regex(/[0-9]/, "密码需包含至少一个数字"),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Auth: Update Email                                                 */
+/* ------------------------------------------------------------------ */
+
+export const updateEmailSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("邮箱格式不正确")
+    .transform((val) => val.toLowerCase()),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Auth: Update Profile (avatar)                                      */
+/* ------------------------------------------------------------------ */
+
+export const updateProfileSchema = z.object({
+  avatar: z.string().max(500, "头像地址过长").nullable().optional(),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Auth: Delete Account                                               */
+/* ------------------------------------------------------------------ */
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, "请输入密码确认"),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Refund Request                                                     */
+/* ------------------------------------------------------------------ */
+
+export const refundRequestSchema = z.object({
+  orderId: z.string().min(1, "缺少订单ID"),
+  reason: z
+    .string()
+    .min(5, "退款原因至少需要5个字符")
+    .max(500, "退款原因不能超过500字"),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Coupon: Claim                                                      */
+/* ------------------------------------------------------------------ */
+
+export const claimCouponSchema = z.object({
+  code: z
+    .string()
+    .transform((val) => val.trim().toUpperCase())
+    .pipe(
+      z.string()
+        .min(2, "优惠码格式无效")
+        .max(50, "优惠码格式无效")
+        .regex(/^[A-Z0-9_-]+$/, "优惠码格式无效")
+    ),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Coupon: Validate                                                   */
+/* ------------------------------------------------------------------ */
+
+export const validateCouponSchema = z.object({
+  code: z
+    .string()
+    .min(1, "请提供优惠码")
+    .transform((val) => val.trim().toUpperCase()),
+  amount: z.number().positive("订单金额无效"),
+});
+
+/* ------------------------------------------------------------------ */
 /*  Type Exports                                                       */
 /* ------------------------------------------------------------------ */
 

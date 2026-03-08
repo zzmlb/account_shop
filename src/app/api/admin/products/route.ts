@@ -5,19 +5,9 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { createProductSchema, updateProductSchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { slugify } from "@/lib/utils";
 
 const log = createLogger("admin/products");
-
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[\s]+/g, "-")
-    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    || `product-${Date.now()}`;
-}
 
 async function handleDuplicate(sourceId: string, adminId: string) {
   const source = await db.product.findUnique({
@@ -34,7 +24,7 @@ async function handleDuplicate(sourceId: string, adminId: string) {
 
   // Generate unique slug and name
   const baseName = `${source.name} (副本)`;
-  const baseSlug = generateSlug(baseName) + `-${Date.now().toString(36)}`;
+  const baseSlug = (slugify(baseName) || "product") + `-${Date.now().toString(36)}`;
 
   const product = await db.product.create({
     data: {
@@ -222,7 +212,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate slug from name if not provided
-    const productSlug = slug || generateSlug(name);
+    const productSlug = slug || slugify(name) || `product-${Date.now()}`;
 
     // Check slug uniqueness and name duplicates in parallel
     const [existingSlug, existingName] = await Promise.all([

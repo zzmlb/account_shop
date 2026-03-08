@@ -6,19 +6,9 @@ import { createLogger } from "@/lib/logger";
 import { createArticleSchema, updateArticleSchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { slugify } from "@/lib/utils";
 
 const log = createLogger("admin/articles");
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[\s]+/g, "-")
-    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    || `article-${Date.now()}`;
-}
 
 // GET - List articles with pagination, search, and filters
 export async function GET(request: NextRequest) {
@@ -108,7 +98,7 @@ export async function POST(request: NextRequest) {
     const { title, slug, content, category, isPublished, tags } = parsed.data;
 
     // Generate slug from title if not provided
-    const articleSlug = slug || generateSlug(title);
+    const articleSlug = slug || slugify(title) || `article-${Date.now()}`;
 
     // Check slug uniqueness
     const existing = await db.article.findUnique({

@@ -3,6 +3,7 @@ import { decodeSession, encodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { updateProfileSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("auth/me");
 
@@ -90,22 +91,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { avatar } = body;
-
-    if (avatar !== null && avatar !== undefined && typeof avatar !== "string") {
+    const parsed = updateProfileSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "头像地址格式不正确" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
 
-    // Validate avatar URL if provided
-    if (avatar && avatar.length > 500) {
-      return NextResponse.json(
-        { success: false, message: "头像地址过长" },
-        { status: 400 }
-      );
-    }
+    const { avatar } = parsed.data;
 
     const user = await db.user.update({
       where: { id: session.id },

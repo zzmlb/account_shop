@@ -4,15 +4,9 @@ import { getAdminSession } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 import { createCategorySchema, updateCategorySchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { slugify } from "@/lib/utils";
 
 const log = createLogger("admin/categories");
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fff]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 // GET - List all categories (admin sees all, including inactive)
 export async function GET(request: NextRequest) {

@@ -3,6 +3,7 @@ import { decodeSession, verifyPassword } from "@/lib/auth";
 import { db } from "@/server/db";
 import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
+import { deleteAccountSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("auth/delete-account");
 
@@ -34,14 +35,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { password } = body;
-
-    if (!password || typeof password !== "string") {
+    const parsed = deleteAccountSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "请输入密码确认" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+
+    const { password } = parsed.data;
 
     // Find user and verify password
     const user = await db.user.findUnique({

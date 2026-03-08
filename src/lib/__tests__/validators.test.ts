@@ -18,6 +18,13 @@ import {
   favoriteSchema,
   contactMessageSchema,
   broadcastNotificationSchema,
+  resetPasswordSchema,
+  updateEmailSchema,
+  updateProfileSchema,
+  deleteAccountSchema,
+  refundRequestSchema,
+  claimCouponSchema,
+  validateCouponSchema,
 } from "../validators";
 
 describe("loginSchema", () => {
@@ -741,6 +748,139 @@ describe("broadcastNotificationSchema", () => {
       userIds: ["user-1", "user-2"],
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("resetPasswordSchema", () => {
+  it("accepts valid reset", () => {
+    const result = resetPasswordSchema.safeParse({ token: "abc123", password: "Pass1234" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty token", () => {
+    const result = resetPasswordSchema.safeParse({ token: "", password: "Pass1234" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects short password", () => {
+    const result = resetPasswordSchema.safeParse({ token: "abc", password: "Ab1" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects password without letter", () => {
+    const result = resetPasswordSchema.safeParse({ token: "abc", password: "123456" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects password without number", () => {
+    const result = resetPasswordSchema.safeParse({ token: "abc", password: "abcdef" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateEmailSchema", () => {
+  it("accepts valid email and transforms", () => {
+    const result = updateEmailSchema.safeParse({ email: " Test@Example.COM " });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe("test@example.com");
+    }
+  });
+
+  it("rejects invalid email", () => {
+    const result = updateEmailSchema.safeParse({ email: "not-email" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateProfileSchema", () => {
+  it("accepts avatar url", () => {
+    const result = updateProfileSchema.safeParse({ avatar: "https://example.com/avatar.jpg" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null avatar", () => {
+    const result = updateProfileSchema.safeParse({ avatar: null });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects avatar over 500 chars", () => {
+    const result = updateProfileSchema.safeParse({ avatar: "x".repeat(501) });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("deleteAccountSchema", () => {
+  it("accepts password", () => {
+    const result = deleteAccountSchema.safeParse({ password: "myPassword" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty password", () => {
+    const result = deleteAccountSchema.safeParse({ password: "" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("refundRequestSchema", () => {
+  it("accepts valid refund", () => {
+    const result = refundRequestSchema.safeParse({ orderId: "ord-1", reason: "商品无法使用" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects short reason", () => {
+    const result = refundRequestSchema.safeParse({ orderId: "ord-1", reason: "短" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects reason over 500 chars", () => {
+    const result = refundRequestSchema.safeParse({ orderId: "ord-1", reason: "x".repeat(501) });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty orderId", () => {
+    const result = refundRequestSchema.safeParse({ orderId: "", reason: "退款原因说明" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("claimCouponSchema", () => {
+  it("accepts valid code and transforms to uppercase", () => {
+    const result = claimCouponSchema.safeParse({ code: "  save10  " });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.code).toBe("SAVE10");
+    }
+  });
+
+  it("rejects single char code", () => {
+    const result = claimCouponSchema.safeParse({ code: "A" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects code with special characters", () => {
+    const result = claimCouponSchema.safeParse({ code: "SAVE@10" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("validateCouponSchema", () => {
+  it("accepts valid code and amount", () => {
+    const result = validateCouponSchema.safeParse({ code: "save10", amount: 100 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.code).toBe("SAVE10");
+    }
+  });
+
+  it("rejects zero amount", () => {
+    const result = validateCouponSchema.safeParse({ code: "SAVE10", amount: 0 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects negative amount", () => {
+    const result = validateCouponSchema.safeParse({ code: "SAVE10", amount: -5 });
+    expect(result.success).toBe(false);
   });
 });
 

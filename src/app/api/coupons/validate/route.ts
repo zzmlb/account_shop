@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { validateCouponSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("coupons/validate");
 
@@ -18,25 +19,21 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { code, amount } = body as { code?: string; amount?: number };
 
-    if (!code || typeof code !== "string") {
+    const parsed = validateCouponSchema.safeParse(body);
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "请提供优惠码" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
 
-    if (amount == null || typeof amount !== "number" || amount <= 0) {
-      return NextResponse.json(
-        { success: false, message: "订单金额无效" },
-        { status: 400 }
-      );
-    }
+    const { code, amount } = parsed.data;
 
     // Look up the coupon by code
     const coupon = await db.coupon.findUnique({
-      where: { code: code.trim().toUpperCase() },
+      where: { code },
     });
 
     if (!coupon) {
