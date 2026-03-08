@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
+import { Loader2 } from "lucide-react";
 import LoginContent from "./login-content";
 
 export const metadata: Metadata = {
@@ -7,5 +9,15 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginContent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-12">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
+  );
 }

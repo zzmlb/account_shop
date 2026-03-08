@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 export default function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((s) => s.login);
 
@@ -48,7 +49,8 @@ export default function LoginContent() {
         toast.success("登录成功", {
           description: `欢迎回来，${result.user.username}`,
         });
-        router.push("/");
+        const redirectTo = searchParams.get("from") || "/";
+        router.push(redirectTo);
       } else {
         toast.error("登录失败", {
           description: result.message || "用户名或密码错误",
