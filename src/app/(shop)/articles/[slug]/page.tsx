@@ -25,16 +25,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? article.content.replace(/<[^>]*>/g, "").slice(0, 160) + "..."
     : article.content.replace(/<[^>]*>/g, "");
 
+  const articleUrl = `${SITE_URL}/articles/${slug}`;
   return {
     title: article.title,
     description: excerpt,
     openGraph: {
       title: article.title,
       description: excerpt,
-      url: `${SITE_URL}/articles/${slug}`,
+      url: articleUrl,
       type: "article",
       siteName: SITE_NAME,
     },
+    alternates: { canonical: articleUrl },
   };
 }
 

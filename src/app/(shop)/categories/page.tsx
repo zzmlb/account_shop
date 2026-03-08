@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { db } from "@/server/db";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import AnimatedSection from "@/components/shared/animated-section";
 
 export const revalidate = 120; // ISR: revalidate every 2 minutes
@@ -25,8 +25,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: `商品分类 - ${SITE_NAME}`,
     description: "浏览所有商品分类，快速找到您需要的数字商品和服务",
+    url: `${SITE_URL}/categories`,
     type: "website",
   },
+  alternates: { canonical: `${SITE_URL}/categories` },
 };
 
 const ICON_MAP: Record<string, LucideIcon> = {

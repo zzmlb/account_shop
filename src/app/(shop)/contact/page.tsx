@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Mail, MessageSquare, Clock, Shield } from "lucide-react";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import ContactForm from "./contact-form";
 
 export const metadata: Metadata = {
   title: "联系我们",
   description: `联系 ${SITE_NAME} 客服团队，获取帮助与支持`,
+  openGraph: {
+    title: `联系我们 - ${SITE_NAME}`,
+    description: `联系 ${SITE_NAME} 客服团队，获取帮助与支持`,
+    url: `${SITE_URL}/contact`,
+  },
+  alternates: { canonical: `${SITE_URL}/contact` },
 };
 
 const contactMethods = [
@@ -55,8 +61,25 @@ const faqItems = [
 ];
 
 export default function ContactPage() {
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       {/* Header */}
       <div className="mb-12 text-center">
         <h1 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
