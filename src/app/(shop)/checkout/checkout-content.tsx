@@ -105,32 +105,83 @@ export default function CheckoutContent() {
 
     setIsSubmitting(true);
 
-    // Simulate order creation delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Create order via API
+      const orderRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+          paymentMethod,
+          email,
+        }),
+      });
 
-    const orderId = formatOrderNo();
+      const orderData = await orderRes.json();
+      if (!orderData.success) {
+        setIsSubmitting(false);
+        return;
+      }
 
-    // Store mock order in sessionStorage for the order detail page
-    const orderData = {
-      id: orderId,
-      status: "PAID",
-      email,
-      paymentMethod,
-      items: items.map((item) => ({
-        name: item.name,
-        slug: item.slug,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-      })),
-      total: getTotal(),
-      itemCount: getItemCount(),
-      createdAt: new Date().toISOString(),
-    };
-    sessionStorage.setItem(`order-${orderId}`, JSON.stringify(orderData));
+      // Auto-pay with balance if selected
+      if (paymentMethod === "balance") {
+        const payRes = await fetch(`/api/orders/${orderData.order.id}/pay`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentMethod: "balance" }),
+        });
+        const payData = await payRes.json();
 
-    clearCart();
-    router.push(`/order/${orderId}`);
+        // Store order info for the detail page
+        sessionStorage.setItem(
+          `order-${orderData.order.orderNo}`,
+          JSON.stringify({
+            id: orderData.order.orderNo,
+            status: payData.success ? "DELIVERED" : "PAID",
+            email,
+            paymentMethod,
+            items: items.map((item) => ({
+              name: item.name,
+              slug: item.slug,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+            total: getTotal(),
+            itemCount: getItemCount(),
+            createdAt: new Date().toISOString(),
+            cardKeys: payData.cardKeys || [],
+          })
+        );
+      } else {
+        // For non-balance payments, store as pending
+        sessionStorage.setItem(
+          `order-${orderData.order.orderNo}`,
+          JSON.stringify({
+            id: orderData.order.orderNo,
+            status: "PENDING",
+            email,
+            paymentMethod,
+            items: items.map((item) => ({
+              name: item.name,
+              slug: item.slug,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+            total: getTotal(),
+            itemCount: getItemCount(),
+            createdAt: new Date().toISOString(),
+          })
+        );
+      }
+
+      clearCart();
+      router.push(`/order/${orderData.order.orderNo}`);
+    } catch {
+      setIsSubmitting(false);
+    }
   };
 
   return (

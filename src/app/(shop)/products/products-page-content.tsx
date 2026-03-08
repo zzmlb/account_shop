@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { SlidersHorizontal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ interface ApiResponse {
 }
 
 export default function ProductsPageContent() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -45,10 +47,33 @@ export default function ProductsPageContent() {
   const [total, setTotal] = useState(0);
   const perPage = 9;
 
+  // Read filter params from URL (set by ProductFilters component)
+  const category = searchParams?.get("category") ?? "";
+  const sort = searchParams?.get("sort") ?? "";
+  const search = searchParams?.get("q") ?? searchParams?.get("search") ?? "";
+  const minPrice = searchParams?.get("minPrice") ?? "";
+  const maxPrice = searchParams?.get("maxPrice") ?? "";
+  const inStock = searchParams?.get("inStock") ?? "";
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [category, sort, search, minPrice, maxPrice, inStock]);
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/products?page=${page}&pageSize=${perPage}`);
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", String(perPage));
+      if (category) params.set("category", category);
+      if (sort) params.set("sort", sort);
+      if (search) params.set("search", search);
+      if (minPrice) params.set("minPrice", minPrice);
+      if (maxPrice) params.set("maxPrice", maxPrice);
+      if (inStock === "true") params.set("inStock", "true");
+
+      const res = await fetch(`/api/products?${params.toString()}`);
       const data: ApiResponse = await res.json();
       if (data.success) {
         setProducts(
@@ -70,7 +95,7 @@ export default function ProductsPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, category, sort, search, minPrice, maxPrice, inStock]);
 
   useEffect(() => {
     fetchProducts();
