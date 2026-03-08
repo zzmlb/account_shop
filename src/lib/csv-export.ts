@@ -32,7 +32,7 @@ export function exportToCsv<T>(
   URL.revokeObjectURL(url);
 }
 
-function escapeCsvField(value: string): string {
+export function escapeCsvField(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
     return `"${value.replace(/"/g, '""')}"`;
   }

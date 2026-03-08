@@ -23,7 +23,15 @@ export async function POST(
       request.cookies.get("session")?.value || ""
     );
 
-    const body = await request.json();
+    let body: { paymentMethod?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "请求格式无效" },
+        { status: 400 }
+      );
+    }
     const { paymentMethod } = body;
 
     // Pre-checks outside transaction (read-only)
