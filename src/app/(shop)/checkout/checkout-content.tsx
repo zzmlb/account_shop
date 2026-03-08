@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -302,18 +303,21 @@ export default function CheckoutContent() {
               <Mail className="h-5 w-5 text-[var(--primary)]" />
               联系信息
             </h2>
-            <p className="mb-3 text-sm text-[var(--muted-foreground)]">
+            <Label htmlFor="checkout-email" className="mb-3 block text-sm text-[var(--muted-foreground)]">
               卡密将发送至此邮箱，请确保填写正确
-            </p>
+            </Label>
             <Input
+              id="checkout-email"
               type="email"
               placeholder="请输入您的邮箱地址"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="max-w-md"
+              aria-describedby={email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "email-error" : undefined}
+              aria-invalid={email ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : undefined}
             />
             {email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (
-              <p className="mt-1 text-xs text-[var(--destructive)]">
+              <p id="email-error" className="mt-1 text-xs text-[var(--destructive)]" role="alert">
                 请输入有效的邮箱地址
               </p>
             )}

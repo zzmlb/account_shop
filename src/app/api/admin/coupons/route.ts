@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { createCouponSchema, updateCouponSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("admin/coupons");
 
@@ -97,21 +98,14 @@ export async function POST(request: NextRequest) {
     if (!session) return error!;
 
     const body = await request.json();
-    const { code, type, value, minAmount, maxUses, startAt, expireAt } = body;
-
-    if (!code || !type || value === undefined || !startAt || !expireAt) {
+    const parsed = createCouponSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "缺少必填字段" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
-
-    if (!["FIXED", "PERCENTAGE"].includes(type)) {
-      return NextResponse.json(
-        { success: false, message: "优惠类型无效" },
-        { status: 400 }
-      );
-    }
+    const { code, type, value, minAmount, maxUses, startAt, expireAt } = parsed.data;
 
     // Check if code already exists
     const existing = await db.coupon.findUnique({
@@ -128,9 +122,9 @@ export async function POST(request: NextRequest) {
       data: {
         code: code.toUpperCase(),
         type,
-        value: parseFloat(value),
-        minAmount: minAmount ? parseFloat(minAmount) : null,
-        maxUses: maxUses ? parseInt(maxUses) : null,
+        value,
+        minAmount: minAmount ?? null,
+        maxUses: maxUses ?? null,
         startAt: new Date(startAt),
         expireAt: new Date(expireAt),
         isActive: true,
@@ -163,14 +157,14 @@ export async function PUT(request: NextRequest) {
     if (!session) return error!;
 
     const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
+    const parsed = updateCouponSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "缺少优惠券ID" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+    const { id, ...updates } = parsed.data;
 
     const existing = await db.coupon.findUnique({ where: { id } });
     if (!existing) {
@@ -182,8 +176,8 @@ export async function PUT(request: NextRequest) {
 
     const data: Record<string, unknown> = {};
     if (updates.isActive !== undefined) data.isActive = updates.isActive;
-    if (updates.maxUses !== undefined) data.maxUses = updates.maxUses ? parseInt(updates.maxUses) : null;
-    if (updates.minAmount !== undefined) data.minAmount = updates.minAmount ? parseFloat(updates.minAmount) : null;
+    if (updates.maxUses !== undefined) data.maxUses = updates.maxUses;
+    if (updates.minAmount !== undefined) data.minAmount = updates.minAmount;
     if (updates.expireAt) data.expireAt = new Date(updates.expireAt);
 
     const updated = await db.coupon.update({

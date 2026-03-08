@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { apiLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { decryptCardKey } from "@/lib/crypto";
+import { createOrderSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("orders");
 
@@ -85,14 +86,14 @@ export async function POST(request: NextRequest) {
     );
 
     const body = await request.json();
-    const { items, paymentMethod, email, couponCode } = body;
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    const parsed = createOrderSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "订单商品不能为空" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+    const { items, paymentMethod, email, couponCode } = parsed.data;
 
     // Calculate total from DB prices (never trust frontend prices)
     let totalAmount = 0;

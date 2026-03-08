@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { createArticleSchema, updateArticleSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("admin/articles");
 
@@ -122,15 +123,14 @@ export async function POST(request: NextRequest) {
     if (!session) return error!;
 
     const body = await request.json();
-    const { title, slug, content, category, isPublished, tags } = body;
-
-    // Validate required fields
-    if (!title || !content || !category) {
+    const parsed = createArticleSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "缺少必填字段: title, content, category" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+    const { title, slug, content, category, isPublished, tags } = parsed.data;
 
     // Generate slug from title if not provided
     const articleSlug = slug || generateSlug(title);
@@ -207,7 +207,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, slug, content, category, isPublished, tags } = body;
+    const parsed = updateArticleSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: formatZodError(parsed.error) },
+        { status: 400 }
+      );
+    }
+    const { title, slug, content, category, isPublished, tags } = parsed.data;
 
     // If slug is being changed, check uniqueness
     if (slug && slug !== existing.slug) {

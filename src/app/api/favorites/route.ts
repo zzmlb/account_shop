@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { favoriteSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("favorites");
 
@@ -84,14 +85,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productId } = body;
-
-    if (!productId) {
+    const parsed = favoriteSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "缺少商品ID" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+    const { productId } = parsed.data;
 
     // Check if already favorited
     const existing = await db.favorite.findUnique({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSessionFromRequest } from "@/lib/auth";
 import { createLogger } from "@/lib/logger";
+import { createCategorySchema, updateCategorySchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("admin/categories");
 
@@ -69,14 +70,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, icon, sortOrder } = body;
-
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    const parsed = createCategorySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "分类名称不能为空" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+    const { name, description, icon, sortOrder } = parsed.data;
 
     // Generate slug
     let slug = slugify(name.trim());
@@ -120,14 +121,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, description, icon, sortOrder, isActive } = body;
-
-    if (!id) {
+    const parsed = updateCategorySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "缺少分类ID" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
+    const { id, name, description, icon, sortOrder, isActive } = parsed.data;
 
     const existing = await db.category.findUnique({ where: { id } });
     if (!existing) {
@@ -138,9 +139,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const data: Record<string, unknown> = {};
-    if (name !== undefined && typeof name === "string" && name.trim()) {
+    if (name !== undefined) {
       data.name = name.trim();
-      // Update slug if name changed
       let newSlug = slugify(name.trim());
       if (!newSlug) newSlug = `cat-${Date.now()}`;
       if (newSlug !== existing.slug) {
@@ -151,10 +151,10 @@ export async function PUT(request: NextRequest) {
         data.slug = newSlug;
       }
     }
-    if (description !== undefined) data.description = description?.trim() || null;
-    if (icon !== undefined) data.icon = icon?.trim() || null;
-    if (typeof sortOrder === "number") data.sortOrder = sortOrder;
-    if (typeof isActive === "boolean") data.isActive = isActive;
+    if (description !== undefined) data.description = typeof description === "string" ? description.trim() || null : null;
+    if (icon !== undefined) data.icon = typeof icon === "string" ? icon.trim() || null : null;
+    if (sortOrder !== undefined) data.sortOrder = sortOrder;
+    if (isActive !== undefined) data.isActive = isActive;
 
     const updated = await db.category.update({ where: { id }, data });
 

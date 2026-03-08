@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { createProductSchema, updateProductSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("admin/products");
 
@@ -118,6 +119,14 @@ export async function POST(request: NextRequest) {
     if (!session) return error!;
 
     const body = await request.json();
+    const parsed = createProductSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: formatZodError(parsed.error) },
+        { status: 400 }
+      );
+    }
+
     const {
       name,
       slug,
@@ -131,29 +140,7 @@ export async function POST(request: NextRequest) {
       isActive,
       deliveryType,
       afterSaleHours,
-    } = body;
-
-    // Validate required fields
-    if (!name || !description || price === undefined || !categoryId || stockCount === undefined) {
-      return NextResponse.json(
-        { success: false, message: "缺少必填字段: name, description, price, categoryId, stockCount" },
-        { status: 400 }
-      );
-    }
-
-    if (typeof price !== "number" || price < 0) {
-      return NextResponse.json(
-        { success: false, message: "价格必须为非负数" },
-        { status: 400 }
-      );
-    }
-
-    if (typeof stockCount !== "number" || stockCount < 0 || !Number.isInteger(stockCount)) {
-      return NextResponse.json(
-        { success: false, message: "库存数量必须为非负整数" },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     // Verify category exists
     const category = await db.category.findUnique({
@@ -264,6 +251,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+    const parsed = updateProductSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: formatZodError(parsed.error) },
+        { status: 400 }
+      );
+    }
+
     const {
       name,
       slug,
@@ -278,7 +273,7 @@ export async function PUT(request: NextRequest) {
       sortOrder,
       deliveryType,
       afterSaleHours,
-    } = body;
+    } = parsed.data;
 
     // If categoryId is being changed, verify the new category exists
     if (categoryId && categoryId !== existing.categoryId) {

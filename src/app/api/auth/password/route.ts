@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSessionFromRequest, verifyPassword, hashPassword } from "@/lib/auth";
 import { loginLimiter } from "@/lib/rate-limit";
+import { changePasswordSchema, formatZodError } from "@/lib/validators";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("auth/password");
 
 export async function PUT(request: NextRequest) {
   try {
@@ -25,22 +29,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { currentPassword, newPassword } = body;
-
-    // Validate input
-    if (!currentPassword || !newPassword) {
+    const parsed = changePasswordSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "请提供当前密码和新密码" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
-
-    if (typeof newPassword !== "string" || newPassword.length < 6) {
-      return NextResponse.json(
-        { success: false, message: "新密码至少需要6个字符" },
-        { status: 400 }
-      );
-    }
+    const { currentPassword, newPassword } = parsed.data;
 
     // Find user in database
     const user = await db.user.findUnique({
@@ -74,7 +70,8 @@ export async function PUT(request: NextRequest) {
       success: true,
       message: "密码修改成功",
     });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Password change error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
