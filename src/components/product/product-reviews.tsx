@@ -99,6 +99,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalReviews, setTotalReviews] = useState(0);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
 
   // Review form
   const [showForm, setShowForm] = useState(false);
@@ -109,9 +110,13 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/reviews?productId=${productId}&page=${page}&pageSize=5`
-      );
+      const params = new URLSearchParams({
+        productId,
+        page: String(page),
+        pageSize: "5",
+      });
+      if (ratingFilter) params.set("rating", String(ratingFilter));
+      const res = await fetch(`/api/reviews?${params}`);
       const data = await res.json();
       if (data.success) {
         setReviews(data.reviews);
@@ -124,7 +129,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     } finally {
       setLoading(false);
     }
-  }, [productId, page]);
+  }, [productId, page, ratingFilter]);
 
   useEffect(() => {
     fetchReviews();
@@ -199,21 +204,31 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             </p>
           </div>
 
-          {/* Rating distribution */}
+          {/* Rating distribution (clickable to filter) */}
           <div className="flex flex-1 flex-col justify-center gap-1.5">
             {[5, 4, 3, 2, 1].map((r) => (
-              <div key={r} className="flex items-center gap-2 text-sm">
-                <span className="w-8 text-right text-[var(--muted-foreground)]">
+              <button
+                key={r}
+                type="button"
+                className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 text-sm transition-colors hover:bg-[var(--muted)] ${ratingFilter === r ? "bg-[var(--primary)]/10" : ""}`}
+                onClick={() => {
+                  setRatingFilter(ratingFilter === r ? null : r);
+                  setPage(1);
+                }}
+                aria-label={`筛选${r}星评价`}
+                aria-pressed={ratingFilter === r}
+              >
+                <span className={`w-8 text-right ${ratingFilter === r ? "font-semibold text-[var(--primary)]" : "text-[var(--muted-foreground)]"}`}>
                   {r}星
                 </span>
                 <RatingBar
                   count={stats.ratingCounts[r] || 0}
                   total={stats.total}
                 />
-                <span className="w-8 text-xs text-[var(--muted-foreground)]">
+                <span className={`w-8 text-xs ${ratingFilter === r ? "font-semibold text-[var(--primary)]" : "text-[var(--muted-foreground)]"}`}>
                   {stats.ratingCounts[r] || 0}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -279,10 +294,36 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         </div>
       )}
 
+      {/* Active filter indicator */}
+      {ratingFilter && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+          <span>筛选: {ratingFilter}星评价</span>
+          <button
+            type="button"
+            onClick={() => { setRatingFilter(null); setPage(1); }}
+            className="text-[var(--primary)] hover:underline"
+          >
+            清除筛选
+          </button>
+        </div>
+      )}
+
       {/* Reviews list */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
+        <div className="space-y-4" aria-busy="true">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-[var(--muted)]" />
+                <div className="space-y-1.5">
+                  <div className="h-3 w-20 rounded bg-[var(--muted)]" />
+                  <div className="h-3 w-24 rounded bg-[var(--muted)]" />
+                </div>
+              </div>
+              <div className="h-3 w-full rounded bg-[var(--muted)]" />
+              <div className="mt-1.5 h-3 w-2/3 rounded bg-[var(--muted)]" />
+            </div>
+          ))}
         </div>
       ) : reviews.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] py-12 text-center">

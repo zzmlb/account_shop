@@ -15,6 +15,7 @@ export interface RecentProduct {
 interface RecentlyViewedState {
   items: RecentProduct[];
   addItem: (product: Omit<RecentProduct, "viewedAt">) => void;
+  clearAll: () => void;
   getItems: () => RecentProduct[];
 }
 
@@ -30,6 +31,8 @@ export const useRecentlyViewedStore = create<RecentlyViewedState>()(
         items.unshift({ ...product, viewedAt: Date.now() });
         set({ items: items.slice(0, MAX_ITEMS) });
       },
+
+      clearAll: () => set({ items: [] }),
 
       getItems: () => get().items,
     }),

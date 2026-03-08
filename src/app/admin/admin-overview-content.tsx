@@ -16,6 +16,7 @@ import {
   RefreshCw,
   RotateCcw,
   Shield,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -249,6 +250,47 @@ export default function AdminOverviewPageContent() {
     fetchStats(chartPeriod, false, true);
   };
 
+  const handleExportReport = () => {
+    if (!stats) return;
+    const today = new Date().toISOString().split("T")[0];
+    const lines = [
+      `PJ37 运营报告 - ${today}`,
+      "",
+      "## 今日数据",
+      `今日销售额,¥${stats.todaySales.toLocaleString()}`,
+      `今日订单数,${stats.todayOrders}`,
+      `新增用户,${stats.newUsers}`,
+      `库存告警,${stats.lowStockCount}`,
+      "",
+      "## 累计数据",
+      `总商品数,${stats.totalProducts}`,
+      `总用户数,${stats.totalUsers}`,
+      `总收入,¥${stats.totalRevenue.toLocaleString()}`,
+      `待处理退款,${stats.pendingRefunds}`,
+      "",
+      "## 销售趋势",
+      "日期,金额,订单数",
+      ...salesChart.map((d) => `${d.date},¥${d.amount},${d.orders}`),
+      "",
+      "## 热销商品",
+      "排名,商品名,销量,浏览量,收入",
+      ...hotProducts.map((p) => `${p.rank},${p.name},${p.sales},${p.views},¥${p.revenue}`),
+    ];
+    if (revenueByMethod.length > 0) {
+      lines.push("", "## 支付方式分布", "方式,收入,订单数");
+      revenueByMethod.forEach((m) => lines.push(`${m.method},¥${m.revenue},${m.count}`));
+    }
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pj37_report_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("报告已导出");
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse" aria-busy="true" aria-label="加载中">
@@ -366,6 +408,16 @@ export default function AdminOverviewPageContent() {
               {lastRefresh.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} 更新
             </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportReport}
+            disabled={!stats}
+            className="gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">导出报告</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"

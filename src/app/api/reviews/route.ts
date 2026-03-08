@@ -26,10 +26,18 @@ export async function GET(request: NextRequest) {
 
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize")) || 10));
+    const ratingParam = searchParams.get("rating");
+    const ratingFilter = ratingParam ? Math.min(5, Math.max(1, Number(ratingParam))) : null;
+
+    const where = {
+      productId,
+      isVisible: true as const,
+      ...(ratingFilter ? { rating: ratingFilter } : {}),
+    };
 
     const [reviews, total] = await Promise.all([
       db.review.findMany({
-        where: { productId, isVisible: true },
+        where,
         include: {
           user: { select: { id: true, username: true, avatar: true } },
         },
@@ -37,7 +45,7 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      db.review.count({ where: { productId, isVisible: true } }),
+      db.review.count({ where }),
     ]);
 
     // Calculate rating stats
