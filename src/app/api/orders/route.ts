@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
-import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { apiLimiter, orderLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { safeDecryptCardKey } from "@/lib/crypto";
 import { createOrderSchema, formatZodError } from "@/lib/validators";
@@ -107,13 +107,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const rl = apiLimiter(ip);
-    if (!rl.success) {
-      return NextResponse.json(
-        { success: false, message: "请求过于频繁，请稍后再试" },
-        { status: 429 }
-      );
-    }
+    const rl = orderLimiter(ip);
+    if (!rl.success) return rateLimitResponse(rl);
 
     // Idempotency check: prevent duplicate orders from double-clicks / retries
     const idempotencyKey = request.headers.get("x-idempotency-key");

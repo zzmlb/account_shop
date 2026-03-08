@@ -124,6 +124,12 @@ export const uploadLimiter = rateLimit({ max: 10, windowSeconds: 60 });
 /** Payment endpoint: 5 requests per 60 seconds. */
 export const paymentLimiter = rateLimit({ max: 5, windowSeconds: 60 });
 
+/** Contact form / email sending: 3 requests per 300 seconds (5 minutes). */
+export const contactLimiter = rateLimit({ max: 3, windowSeconds: 300 });
+
+/** Order creation: 10 orders per 60 seconds. */
+export const orderLimiter = rateLimit({ max: 10, windowSeconds: 60 });
+
 /**
  * Extract client IP from a Next.js request.
  */

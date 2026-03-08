@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/auth";
 import { db } from "@/server/db";
 import { sendCardKeyDelivery } from "@/server/services/email";
-import { apiLimiter, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
+import { contactLimiter, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/orders/resend-email");
@@ -16,7 +16,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const rl = apiLimiter(getClientIp(request));
+  const rl = contactLimiter(getClientIp(request) + ":resend");
   if (!rl.success) return rateLimitResponse(rl);
 
   const session = getSessionFromRequest(request);

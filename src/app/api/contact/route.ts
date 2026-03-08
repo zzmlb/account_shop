@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
-import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { contactLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("contact");
@@ -10,7 +10,7 @@ const log = createLogger("contact");
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const rl = apiLimiter(ip);
+    const rl = contactLimiter(ip);
     if (!rl.success) return rateLimitResponse(rl);
 
     const body = await request.json();
