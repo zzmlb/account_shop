@@ -155,12 +155,11 @@ export default function DashboardPageContent() {
   const fetchData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const [ordersRes, couponsRes, notifsRes, loginRes]: any[] = await Promise.all([
-        apiFetch("/api/orders"),
-        apiFetch("/api/coupons").catch(() => ({ success: false })),
-        apiFetch("/api/notifications?pageSize=5").catch(() => ({ success: false })),
-        apiFetch("/api/auth/login-history?limit=1").catch(() => ({ success: false })),
+      const [ordersRes, couponsRes, notifsRes, loginRes] = await Promise.all([
+        apiFetch<{ success: boolean; orders?: Order[] }>("/api/orders"),
+        apiFetch<{ success: boolean; coupons?: { isUsed: boolean; endDate: string }[] }>("/api/coupons").catch(() => ({ success: false as const })),
+        apiFetch<{ success: boolean; notifications?: typeof notifications; unreadCount?: number }>("/api/notifications?pageSize=5").catch(() => ({ success: false as const })),
+        apiFetch<{ success: boolean; logs?: { ip: string; createdAt: string }[] }>("/api/auth/login-history?limit=1").catch(() => ({ success: false as const })),
       ]);
       if (ordersRes.success && Array.isArray(ordersRes.orders)) {
         setOrders(ordersRes.orders);
@@ -168,18 +167,17 @@ export default function DashboardPageContent() {
       } else if (!isRefresh) {
         setFetchError(true);
       }
-      if (couponsRes.success && Array.isArray(couponsRes.coupons)) {
+      if (couponsRes.success && "coupons" in couponsRes && Array.isArray(couponsRes.coupons)) {
         const unused = couponsRes.coupons.filter(
-          (c: { isUsed: boolean; endDate: string }) =>
-            !c.isUsed && new Date(c.endDate) > new Date()
+          (c) => !c.isUsed && new Date(c.endDate) > new Date()
         );
         setCouponCount(unused.length);
       }
-      if (notifsRes.success && Array.isArray(notifsRes.notifications)) {
+      if (notifsRes.success && "notifications" in notifsRes && Array.isArray(notifsRes.notifications)) {
         setNotifications(notifsRes.notifications);
-        setUnreadCount(notifsRes.unreadCount ?? 0);
+        setUnreadCount("unreadCount" in notifsRes ? (notifsRes.unreadCount ?? 0) : 0);
       }
-      if (loginRes.success && Array.isArray(loginRes.logs) && loginRes.logs.length > 0) {
+      if (loginRes.success && "logs" in loginRes && Array.isArray(loginRes.logs) && loginRes.logs.length > 0) {
         const last = loginRes.logs[0];
         setLastLoginInfo({ ip: last.ip, time: last.createdAt });
       }

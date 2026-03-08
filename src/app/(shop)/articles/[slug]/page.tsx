@@ -35,6 +35,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : article.content.replace(/<[^>]*>/g, "");
 
   const articleUrl = `${SITE_URL}/articles/${slug}`;
+  const ogImageMatch = article.content.match(/<img[^>]+src=["']([^"']+)["']/);
+  const ogImage = ogImageMatch ? ogImageMatch[1] : undefined;
+
   return {
     title: article.title,
     description: excerpt,
@@ -44,11 +47,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: articleUrl,
       type: "article",
       siteName: SITE_NAME,
+      ...(ogImage && { images: [{ url: ogImage }] }),
     },
     twitter: {
-      card: "summary",
+      card: ogImage ? "summary_large_image" : "summary",
       title: article.title,
       description: excerpt,
+      ...(ogImage && { images: [ogImage] }),
     },
     alternates: { canonical: articleUrl },
   };
@@ -90,10 +95,18 @@ export default async function ArticleDetailPage({ params }: Props) {
     },
   });
 
+  // Extract description and first image for structured data / social sharing
+  const plainText = article.content.replace(/<[^>]*>/g, "");
+  const articleDescription = plainText.length > 200 ? plainText.slice(0, 200) + "..." : plainText;
+  const imageMatch = article.content.match(/<img[^>]+src=["']([^"']+)["']/);
+  const articleImage = imageMatch ? imageMatch[1] : undefined;
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
+    description: articleDescription,
+    ...(articleImage && { image: articleImage, thumbnailUrl: articleImage }),
     datePublished: article.createdAt.toISOString(),
     dateModified: article.updatedAt.toISOString(),
     url: `${SITE_URL}/articles/${article.slug}`,
@@ -109,7 +122,7 @@ export default async function ArticleDetailPage({ params }: Props) {
     },
     articleSection: article.category,
     keywords: article.tags,
-    wordCount: article.content.replace(/<[^>]*>/g, "").split(/\s+/).length,
+    wordCount: plainText.split(/\s+/).length,
   };
 
   return (

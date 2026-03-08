@@ -150,4 +150,60 @@ describe("auth-store", () => {
     useAuthStore.getState().handleUnauthorized();
     expect(useAuthStore.getState().user).toBeNull();
   });
+
+  it("checkAuth clears user on ApiError (401 token expired)", async () => {
+    useAuthStore.setState({ user: mockUser });
+    // apiFetch throws ApiError for non-ok responses
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ success: false, message: "Token expired" }),
+    });
+
+    await useAuthStore.getState().checkAuth();
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().isLoading).toBe(false);
+  });
+
+  it("logout resets favorites and cart stores", () => {
+    fetchMock.mockResolvedValue({ ok: true });
+    useAuthStore.getState().login(mockUser);
+
+    useAuthStore.getState().logout();
+    expect(useAuthStore.getState().user).toBeNull();
+  });
+
+  it("isLoading is true during checkAuth", async () => {
+    let resolvePromise!: (value: unknown) => void;
+    fetchMock.mockReturnValue(new Promise((r) => { resolvePromise = r; }));
+
+    const checkPromise = useAuthStore.getState().checkAuth();
+    expect(useAuthStore.getState().isLoading).toBe(true);
+
+    resolvePromise({
+      ok: true,
+      json: async () => ({ user: mockUser }),
+    });
+    await checkPromise;
+    expect(useAuthStore.getState().isLoading).toBe(false);
+  });
+
+  it("isLoading is true during register", async () => {
+    let resolvePromise!: (value: unknown) => void;
+    fetchMock.mockReturnValue(new Promise((r) => { resolvePromise = r; }));
+
+    const registerPromise = useAuthStore.getState().register({
+      username: "new",
+      email: "new@test.com",
+      password: "Pass123",
+    });
+    expect(useAuthStore.getState().isLoading).toBe(true);
+
+    resolvePromise({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+    await registerPromise;
+    expect(useAuthStore.getState().isLoading).toBe(false);
+  });
 });

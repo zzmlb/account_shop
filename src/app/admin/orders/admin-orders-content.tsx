@@ -1,25 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
 import {
   Search,
   Download,
-  MoreHorizontal,
-  Eye,
-  ExternalLink,
-  RotateCcw,
   XCircle,
   CalendarDays,
-  Package,
   Loader2,
   Truck,
-  Copy,
-  Mail,
   Clock,
-  Key,
-  User,
-  CreditCard,
   CheckSquare,
   DollarSign,
   ShoppingCart,
@@ -29,28 +18,12 @@ import { toast } from "sonner";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 import { Button } from "@/components/ui/button";
-import PaginationBar from "@/components/shared/pagination";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { formatDateTime } from "@/lib/utils";
+
+import { OrderDetailDialog } from "./order-detail-dialog";
+import { OrdersDesktopTable, OrdersMobileCards } from "./orders-table";
 
 type OrderStatus =
   | "PENDING"
@@ -152,15 +125,6 @@ const paymentMethodMap: Record<string, string> = {
 function formatPaymentMethod(method: string | null): string {
   if (!method) return "-";
   return paymentMethodMap[method] || method;
-}
-
-function getProductSummary(items: OrderItem[]): string {
-  if (items.length === 0) return "-";
-  const first = items[0].productName;
-  if (items.length === 1) {
-    return items[0].quantity > 1 ? `${first} x${items[0].quantity}` : first;
-  }
-  return `${first} 等${items.length}件商品`;
 }
 
 export default function AdminOrdersPageContent() {
@@ -699,675 +663,45 @@ export default function AdminOrdersPageContent() {
       )}
 
       {/* Orders Table - Desktop */}
-      <Card className="hidden md:block">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full" aria-label="订单管理列表">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th className="w-10 px-3 py-3">
-                    <input
-                      type="checkbox"
-                      checked={allSelected && orders.length > 0}
-                      onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
-                      aria-label="全选"
-                    />
-                  </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    订单号
-                  </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    用户
-                  </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    商品
-                  </th>
-                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    金额
-                  </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    支付方式
-                  </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    状态
-                  </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    时间
-                  </th>
-                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse border-b border-[var(--border)]">
-                      <td className="px-3 py-3"><div className="h-4 w-4 rounded bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-4 w-28 rounded bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-5 w-14 rounded-full bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-4 w-14 rounded bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-5 w-12 rounded-full bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3 text-right"><div className="ml-auto h-8 w-8 rounded bg-[var(--muted)]" /></td>
-                    </tr>
-                  ))
-                ) : orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-12">
-                      <Package className="h-10 w-10 mx-auto text-[var(--muted-foreground)] mb-3" />
-                      <p className="text-sm text-[var(--muted-foreground)]">
-                        暂无订单数据
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  orders.map((order) => {
-                    const status = statusConfig[order.status] ?? {
-                      label: order.status,
-                      variant: "outline" as const,
-                    };
-                    const displayEmail =
-                      order.user?.email || order.email || "-";
-                    const displayName =
-                      order.user?.username || displayEmail;
-                    const isSelected = selectedOrders.has(order.id);
-
-                    return (
-                      <tr
-                        key={order.id}
-                        className={`border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors cursor-pointer ${isSelected ? "bg-[var(--primary)]/5" : ""}`}
-                        onClick={() => setDetailOrder(order)}
-                      >
-                        <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectOrder(order.id)}
-                            className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
-                            aria-label={`选择订单 ${order.orderNo}`}
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-mono font-medium text-[var(--foreground)]">
-                            {order.orderNo}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-[var(--foreground)]">
-                              {displayName}
-                            </p>
-                            <p className="text-xs text-[var(--muted-foreground)]">
-                              {displayEmail}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className="text-sm text-[var(--foreground)] max-w-[200px] truncate block"
-                            title={order.items
-                              .map((i) => `${i.productName} x${i.quantity}`)
-                              .join(", ")}
-                          >
-                            {getProductSummary(order.items)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="text-sm font-semibold text-[var(--foreground)]">
-                            ¥{order.payAmount.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-[var(--muted-foreground)]">
-                            {formatPaymentMethod(order.paymentMethod)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge
-                            variant={status.variant}
-                            className={status.className}
-                          >
-                            {status.label}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-[var(--muted-foreground)] whitespace-nowrap">
-                            {formatDateTime(order.createdAt)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 sm:h-8 sm:w-8"
-                                disabled={actionLoading === order.id}
-                                aria-label="订单操作"
-                              >
-                                {actionLoading === order.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <MoreHorizontal className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="gap-2 cursor-pointer"
-                                onClick={() => setDetailOrder(order)}
-                              >
-                                <Eye className="h-4 w-4" />
-                                快速查看
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                                <Link href={`/admin/orders/${order.id}`}>
-                                  <ExternalLink className="h-4 w-4" />
-                                  订单详情页
-                                </Link>
-                              </DropdownMenuItem>
-                              {order.status === "PAID" && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="gap-2 cursor-pointer"
-                                    onClick={() =>
-                                      setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "DELIVERED" })
-                                    }
-                                  >
-                                    <Truck className="h-4 w-4" />
-                                    手动发货
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {(order.status === "PAID" ||
-                                order.status === "DELIVERED") && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="gap-2 cursor-pointer text-[var(--destructive)]"
-                                    onClick={() =>
-                                      setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "REFUNDED" })
-                                    }
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                    退款
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {(order.status === "PENDING" ||
-                                order.status === "PAID") && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="gap-2 cursor-pointer text-[var(--destructive)]"
-                                    onClick={() =>
-                                      setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "CANCELLED" })
-                                    }
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                    取消订单
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {!loading && total > 0 && (
-            <>
-              <Separator />
-              <PaginationBar
-                page={currentPage}
-                totalPages={totalPages}
-                total={total}
-                onPageChange={setCurrentPage}
-                showPageNumbers
-                totalLabel="条订单"
-                className="px-4 py-3"
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <OrdersDesktopTable
+        orders={orders}
+        loading={loading}
+        selectedOrders={selectedOrders}
+        allSelected={allSelected}
+        actionLoading={actionLoading}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onToggleSelectAll={toggleSelectAll}
+        onToggleSelectOrder={toggleSelectOrder}
+        onViewDetail={setDetailOrder}
+        onConfirmAction={setConfirmAction}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Orders Cards - Mobile */}
-      <div className="md:hidden space-y-3">
-        {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="animate-pulse space-y-3 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 w-24 rounded bg-[var(--muted)]" />
-                    <div className="h-5 w-14 rounded-full bg-[var(--muted)]" />
-                  </div>
-                  <div className="h-3 w-2/3 rounded bg-[var(--muted)]" />
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 w-16 rounded bg-[var(--muted)]" />
-                    <div className="h-8 w-8 rounded bg-[var(--muted)]" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : orders.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="h-10 w-10 text-[var(--muted-foreground)] mb-3" />
-              <p className="text-sm text-[var(--muted-foreground)]">暂无订单数据</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {orders.map((order) => {
-              const status = statusConfig[order.status] ?? {
-                label: order.status,
-                variant: "outline" as const,
-              };
-              const displayEmail = order.user?.email || order.email || "-";
-              const displayName = order.user?.username || displayEmail;
-              const isSelected = selectedOrders.has(order.id);
+      <OrdersMobileCards
+        orders={orders}
+        loading={loading}
+        selectedOrders={selectedOrders}
+        actionLoading={actionLoading}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        total={total}
+        onToggleSelectOrder={toggleSelectOrder}
+        onViewDetail={setDetailOrder}
+        onConfirmAction={setConfirmAction}
+        onPageChange={setCurrentPage}
+      />
 
-              return (
-                <Card
-                  key={order.id}
-                  className={`cursor-pointer hover:bg-[var(--muted)]/50 transition-colors ${isSelected ? "ring-1 ring-[var(--primary)]" : ""}`}
-                  onClick={() => setDetailOrder(order)}
-                >
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectOrder(order.id)}
-                            className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
-                            aria-label={`选择订单 ${order.orderNo}`}
-                          />
-                        </div>
-                        <span className="text-sm font-mono font-medium text-[var(--foreground)]">
-                          {order.orderNo}
-                        </span>
-                      </div>
-                      <Badge variant={status.variant} className={status.className}>
-                        {status.label}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1.5 text-[var(--muted-foreground)]">
-                        <User className="h-3.5 w-3.5" />
-                        <span className="truncate max-w-[140px]">{displayName}</span>
-                      </div>
-                      <span className="font-semibold text-[var(--foreground)]">
-                        ¥{order.payAmount.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-                      <span className="truncate max-w-[180px]">{getProductSummary(order.items)}</span>
-                      <span className="whitespace-nowrap flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatDateTime(order.createdAt)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
-                      <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-                        <CreditCard className="h-3 w-3" />
-                        {formatPaymentMethod(order.paymentMethod)}
-                      </span>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              disabled={actionLoading === order.id}
-                              aria-label="订单操作"
-                            >
-                              {actionLoading === order.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <MoreHorizontal className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="gap-2 cursor-pointer"
-                              onClick={() => setDetailOrder(order)}
-                            >
-                              <Eye className="h-4 w-4" />
-                              快速查看
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                              <Link href={`/admin/orders/${order.id}`}>
-                                <ExternalLink className="h-4 w-4" />
-                                订单详情页
-                              </Link>
-                            </DropdownMenuItem>
-                            {order.status === "PAID" && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="gap-2 cursor-pointer"
-                                  onClick={() =>
-                                    setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "DELIVERED" })
-                                  }
-                                >
-                                  <Truck className="h-4 w-4" />
-                                  手动发货
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {(order.status === "PAID" || order.status === "DELIVERED") && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="gap-2 cursor-pointer text-[var(--destructive)]"
-                                  onClick={() =>
-                                    setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "REFUNDED" })
-                                  }
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                  退款
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {(order.status === "PENDING" || order.status === "PAID") && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="gap-2 cursor-pointer text-[var(--destructive)]"
-                                  onClick={() =>
-                                    setConfirmAction({ orderId: order.id, orderNo: order.orderNo, status: "CANCELLED" })
-                                  }
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  取消订单
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-            {total > 0 && (
-              <PaginationBar
-                page={currentPage}
-                totalPages={totalPages}
-                total={total}
-                onPageChange={setCurrentPage}
-                totalLabel="条订单"
-              />
-            )}
-          </>
-        )}
-      </div>
-      {/* Order Detail Dialog */}
-      <Dialog open={!!detailOrder} onOpenChange={(open) => !open && setDetailOrder(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          {detailOrder && (() => {
-            const status = statusConfig[detailOrder.status] ?? {
-              label: detailOrder.status,
-              variant: "outline" as const,
-            };
-            const displayEmail = detailOrder.user?.email || detailOrder.email || "-";
-            const displayName = detailOrder.user?.username || "游客";
-            const totalQty = detailOrder.items.reduce((s, i) => s + i.quantity, 0);
-
-            return (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3">
-                    <span>订单详情</span>
-                    <Badge variant={status.variant} className={status.className}>
-                      {status.label}
-                    </Badge>
-                  </DialogTitle>
-                </DialogHeader>
-
-                {/* Order info grid */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-[var(--muted-foreground)]" />
-                    <div>
-                      <p className="text-[var(--muted-foreground)]">订单号</p>
-                      <p className="font-mono font-medium flex items-center gap-1">
-                        {detailOrder.orderNo}
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(detailOrder.orderNo);
-                            toast.success("已复制订单号");
-                          }}
-                          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </button>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-[var(--muted-foreground)]" />
-                    <div>
-                      <p className="text-[var(--muted-foreground)]">用户</p>
-                      <p className="font-medium">{displayName}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-[var(--muted-foreground)]" />
-                    <div>
-                      <p className="text-[var(--muted-foreground)]">邮箱</p>
-                      <p className="font-medium">{displayEmail}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-[var(--muted-foreground)]" />
-                    <div>
-                      <p className="text-[var(--muted-foreground)]">支付方式</p>
-                      <p className="font-medium">{formatPaymentMethod(detailOrder.paymentMethod)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-[var(--muted-foreground)]" />
-                    <div>
-                      <p className="text-[var(--muted-foreground)]">创建时间</p>
-                      <p className="font-medium">{formatDateTime(detailOrder.createdAt)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-[var(--muted-foreground)]" />
-                    <div>
-                      <p className="text-[var(--muted-foreground)]">支付时间</p>
-                      <p className="font-medium">{detailOrder.paidAt ? formatDateTime(detailOrder.paidAt) : "-"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Order items */}
-                <div>
-                  <h4 className="mb-3 text-sm font-semibold text-[var(--foreground)]">
-                    商品明细（{totalQty} 件）
-                  </h4>
-                  <div className="space-y-3">
-                    {detailOrder.items.map((item) => (
-                      <div key={item.id} className="rounded-[var(--radius-md)] border border-[var(--border)] p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">{item.productName}</span>
-                          <span className="text-sm">
-                            ¥{item.unitPrice.toFixed(2)} x {item.quantity} ={" "}
-                            <span className="font-semibold">
-                              ¥{(item.unitPrice * item.quantity).toFixed(2)}
-                            </span>
-                          </span>
-                        </div>
-
-                        {/* Card keys for delivered orders */}
-                        {item.cardKeys && item.cardKeys.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            <div className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
-                              <Key className="h-3 w-3" />
-                              <span>卡密信息</span>
-                              <button
-                                onClick={() => {
-                                  const keys = item.cardKeys ?? [];
-                                  const text = keys.map((ck) => ck.content).join("\n");
-                                  navigator.clipboard.writeText(text);
-                                  toast.success(`已复制 ${keys.length} 个卡密`);
-                                }}
-                                className="ml-auto text-[var(--primary)] hover:underline"
-                              >
-                                复制全部
-                              </button>
-                            </div>
-                            {item.cardKeys.map((ck, idx) => (
-                              <div
-                                key={ck.id}
-                                className="flex items-center justify-between rounded bg-[var(--muted)]/50 px-2 py-1 font-mono text-xs"
-                              >
-                                <span>
-                                  {idx + 1}. {ck.content}
-                                </span>
-                                <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                  {ck.status === "SOLD" ? "已售" : ck.status}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Price summary */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--muted-foreground)]">商品总额</span>
-                    <span>¥{detailOrder.totalAmount.toFixed(2)}</span>
-                  </div>
-                  {detailOrder.couponId && detailOrder.totalAmount !== detailOrder.payAmount && (
-                    <div className="flex justify-between text-[var(--success)]">
-                      <span>优惠折扣</span>
-                      <span>-¥{(detailOrder.totalAmount - detailOrder.payAmount).toFixed(2)}</span>
-                    </div>
-                  )}
-                  <Separator />
-                  <div className="flex justify-between font-semibold text-base">
-                    <span>实付金额</span>
-                    <span className="text-[var(--primary)]">¥{detailOrder.payAmount.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* Quick actions */}
-                <div className="flex gap-2 pt-2">
-                  {detailOrder.status === "PAID" && (
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => {
-                        setConfirmAction({ orderId: detailOrder.id, orderNo: detailOrder.orderNo, status: "DELIVERED" });
-                        setDetailOrder(null);
-                      }}
-                    >
-                      <Truck className="h-4 w-4" />
-                      手动发货
-                    </Button>
-                  )}
-                  {(detailOrder.status === "PAID" || detailOrder.status === "DELIVERED") && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="gap-1.5"
-                      onClick={() => {
-                        setConfirmAction({ orderId: detailOrder.id, orderNo: detailOrder.orderNo, status: "REFUNDED" });
-                        setDetailOrder(null);
-                      }}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      退款
-                    </Button>
-                  )}
-                  {(detailOrder.status === "PENDING" || detailOrder.status === "PAID") && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-[var(--destructive)]"
-                      onClick={() => {
-                        setConfirmAction({ orderId: detailOrder.id, orderNo: detailOrder.orderNo, status: "CANCELLED" });
-                        setDetailOrder(null);
-                      }}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      取消订单
-                    </Button>
-                  )}
-                </div>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation dialog for order status changes */}
-      <Dialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmAction?.status === "DELIVERED" && "确认发货"}
-              {confirmAction?.status === "REFUNDED" && "确认退款"}
-              {confirmAction?.status === "CANCELLED" && "确认取消"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction?.status === "DELIVERED" &&
-                `确定要将订单 ${confirmAction.orderNo} 标记为已发货吗？系统将自动分配卡密。`}
-              {confirmAction?.status === "REFUNDED" &&
-                `确定要对订单 ${confirmAction.orderNo} 进行退款吗？退款后余额将返还给用户。`}
-              {confirmAction?.status === "CANCELLED" &&
-                `确定要取消订单 ${confirmAction.orderNo} 吗？取消后库存将被释放。`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmAction(null)}>
-              返回
-            </Button>
-            <Button
-              variant={confirmAction?.status === "DELIVERED" ? "default" : "destructive"}
-              onClick={() => {
-                if (confirmAction) {
-                  handleUpdateStatus(confirmAction.orderId, confirmAction.status);
-                  setConfirmAction(null);
-                }
-              }}
-            >
-              {confirmAction?.status === "DELIVERED" && "确认发货"}
-              {confirmAction?.status === "REFUNDED" && "确认退款"}
-              {confirmAction?.status === "CANCELLED" && "确认取消"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Order Detail & Confirmation Dialogs */}
+      <OrderDetailDialog
+        detailOrder={detailOrder}
+        onClose={() => setDetailOrder(null)}
+        confirmAction={confirmAction}
+        onConfirmAction={setConfirmAction}
+        onUpdateStatus={handleUpdateStatus}
+      />
     </div>
   );
 }
