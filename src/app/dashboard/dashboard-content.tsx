@@ -114,6 +114,7 @@ export default function DashboardPageContent() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -122,9 +123,11 @@ export default function DashboardPageContent() {
         const data = await res.json();
         if (data.success && Array.isArray(data.orders)) {
           setOrders(data.orders);
+        } else {
+          setFetchError(true);
         }
       } catch {
-        // silently fail — stats will show 0
+        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -205,6 +208,16 @@ export default function DashboardPageContent() {
     return (
       <div className="flex items-center justify-center py-32">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
+
+  /* ---- Error state ---- */
+  if (fetchError && orders.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <p className="mb-4 text-[var(--muted-foreground)]">加载数据失败，请刷新页面重试</p>
+        <Button onClick={() => window.location.reload()} variant="outline">刷新页面</Button>
       </div>
     );
   }

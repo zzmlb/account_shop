@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import AuthInit from "@/components/providers/auth-init";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -79,6 +80,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AuthInit />
           {children}
           <Toaster
             position="top-right"

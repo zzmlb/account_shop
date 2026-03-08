@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 const mobileNavItems = [
   { label: "首页", href: "/", icon: Home },
   { label: "商品", href: "/products", icon: Package },
-  { label: "订单", href: "/orders", icon: FileText },
-  { label: "我的", href: "/profile", icon: User },
+  { label: "订单", href: "/dashboard/orders", icon: FileText },
+  { label: "我的", href: "/dashboard", icon: User },
 ];
 
 export default function MobileNav() {
