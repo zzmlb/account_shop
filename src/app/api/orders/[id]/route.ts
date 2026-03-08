@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { decryptCardKey } from "@/lib/crypto";
 
 const log = createLogger("orders/detail");
 
@@ -64,7 +65,7 @@ export async function GET(
       })),
       cardKeys: includeCardKeys
         ? order.items.flatMap((item) =>
-            item.cardKeys.map((k) => k.content)
+            item.cardKeys.map((k) => decryptCardKey(k.content))
           )
         : [],
     };

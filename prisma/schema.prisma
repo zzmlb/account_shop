@@ -20,10 +20,11 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  orders      Order[]
-  balanceLogs BalanceLog[]
-  favorites   Favorite[]
-  coupons     UserCoupon[]
+  orders         Order[]
+  balanceLogs    BalanceLog[]
+  favorites      Favorite[]
+  coupons        UserCoupon[]
+  passwordResets PasswordReset[]
 
   @@map("users")
 }
@@ -38,6 +39,21 @@ enum UserStatus {
   ACTIVE
   BANNED
   INACTIVE
+}
+
+// ==================== 密码重置 ====================
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_resets")
 }
 
 // ==================== 商品系统 ====================

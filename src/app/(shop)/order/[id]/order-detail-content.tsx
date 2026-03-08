@@ -117,6 +117,25 @@ export default function OrderDetailContent({ id }: { id: string }) {
     fetchOrder();
   }, [id]);
 
+  // Poll for status updates when order is PENDING or PAID
+  useEffect(() => {
+    if (!order || (order.status !== "PENDING" && order.status !== "PAID")) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/${id}`);
+        const data = await res.json();
+        if (data.success && data.order && data.order.status !== order.status) {
+          setOrder(data.order);
+        }
+      } catch {
+        // Silently retry on next interval
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [id, order?.status, order]);
+
   const toggleKeyReveal = (index: number) => {
     setRevealedKeys((prev) => {
       const next = new Set(prev);

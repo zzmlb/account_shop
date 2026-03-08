@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { apiLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
+import { decryptCardKey } from "@/lib/crypto";
 
 const log = createLogger("orders");
 
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
         productSlug: item.product.slug,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
-        cardKeys: item.cardKeys.map((k) => k.content),
+        cardKeys: item.cardKeys.map((k) => decryptCardKey(k.content)),
       })),
     }));
 

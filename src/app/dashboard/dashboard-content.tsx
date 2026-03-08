@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Package,
@@ -14,6 +14,15 @@ import {
   Zap,
   Loader2,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,6 +178,28 @@ export default function DashboardPageContent() {
 
   const recentOrders = orders.slice(0, 5);
 
+  /* ---- 7-day spending trend data ---- */
+  const spendingData = useMemo(() => {
+    const days: { date: string; amount: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+      const dayOrders = orders.filter(
+        (o) =>
+          o.createdAt.slice(0, 10) === dateStr &&
+          (o.status === "PAID" || o.status === "DELIVERED")
+      );
+      const total = dayOrders.reduce(
+        (sum, o) => sum + parseFloat(String(o.totalAmount)),
+        0
+      );
+      days.push({ date: dayLabel, amount: Math.round(total * 100) / 100 });
+    }
+    return days;
+  }, [orders]);
+
   /* ---- Loading state ---- */
   if (loading) {
     return (
@@ -225,6 +256,67 @@ export default function DashboardPageContent() {
           );
         })}
       </div>
+
+      {/* Spending Trend Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
+            近7天消费趋势
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={spendingData}
+                margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `¥${v}`}
+                  width={60}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "13px",
+                  }}
+                  formatter={(value: number) => [`¥${value.toFixed(2)}`, "消费金额"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="var(--primary)"
+                  strokeWidth={2}
+                  fill="url(#spendingGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Two-column bento: Recent Orders + Quick Actions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

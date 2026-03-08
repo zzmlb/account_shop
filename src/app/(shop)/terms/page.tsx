@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_NAME } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "服务条款",
   description: `${SITE_NAME} 服务条款与用户协议`,

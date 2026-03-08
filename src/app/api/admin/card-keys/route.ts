@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { encryptCardKey, decryptCardKey } from "@/lib/crypto";
 
 const log = createLogger("admin/card-keys");
 
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     const formatted = cardKeys.map((ck) => ({
       id: ck.id,
-      content: ck.content,
+      content: decryptCardKey(ck.content),
       productId: ck.productId,
       product: {
         name: ck.product.name,
@@ -179,11 +180,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Bulk create card keys
+    // Bulk create card keys (encrypted)
     const result = await db.cardKey.createMany({
       data: validKeys.map((content: string) => ({
         productId,
-        content,
+        content: encryptCardKey(content),
         status: "AVAILABLE" as const,
       })),
     });
@@ -281,7 +282,7 @@ export async function PUT(request: NextRequest) {
       success: true,
       cardKey: {
         id: updated.id,
-        content: updated.content,
+        content: decryptCardKey(updated.content),
         productId: updated.productId,
         product: {
           name: updated.product.name,

@@ -1,6 +1,8 @@
 import { db } from "@/server/db";
 import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "帮助中心 - PJ37 数字商品交易平台",
   description: "浏览公告、教程和常见问题，快速找到您需要的帮助",

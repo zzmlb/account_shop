@@ -77,6 +77,7 @@ interface Product {
   categoryId: string;
   price: number;
   originalPrice: number;
+  image: string | null;
   stock: number;
   status: "上架" | "下架";
   sales: number;
@@ -104,6 +105,7 @@ function mapApiProduct(p: ApiProduct): Product {
     categoryId: p.categoryId,
     price: p.price,
     originalPrice: p.originalPrice ?? p.price,
+    image: p.image,
     stock: p.stockCount,
     status: p.isActive ? "上架" : "下架",
     sales: p.soldCount,
@@ -150,6 +152,7 @@ export default function AdminProductsPageContent() {
   const [formOriginalPrice, setFormOriginalPrice] = useState("");
   const [formStockCount, setFormStockCount] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [formImage, setFormImage] = useState("");
   const [formStatus, setFormStatus] = useState<"上架" | "下架">("上架");
 
   // ---------------------------------------------------------------------------
@@ -427,6 +430,7 @@ export default function AdminProductsPageContent() {
           price: priceVal,
           stockCount: stockVal,
           description: formDescription.trim(),
+          image: formImage.trim() || null,
           isActive: formStatus === "上架",
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
@@ -453,6 +457,7 @@ export default function AdminProductsPageContent() {
           price: priceVal,
           stockCount: stockVal,
           description: formDescription.trim(),
+          image: formImage.trim() || null,
           isActive: formStatus === "上架",
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
@@ -490,6 +495,7 @@ export default function AdminProductsPageContent() {
     setFormOriginalPrice("");
     setFormStockCount("");
     setFormDescription("");
+    setFormImage("");
     setFormStatus("上架");
     setEditingProduct(null);
   }
@@ -507,6 +513,7 @@ export default function AdminProductsPageContent() {
     );
     setFormStockCount(String(product.stock));
     setFormDescription(product.description);
+    setFormImage(product.image || "");
     setFormStatus(product.status);
     setDialogOpen(true);
   }
@@ -723,6 +730,35 @@ export default function AdminProductsPageContent() {
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                   />
+                </div>
+
+                {/* 商品图片 */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-image">
+                    商品图片 URL{" "}
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      (可选，支持 http/https 链接)
+                    </span>
+                  </Label>
+                  <Input
+                    id="product-image"
+                    placeholder="https://example.com/image.jpg"
+                    value={formImage}
+                    onChange={(e) => setFormImage(e.target.value)}
+                  />
+                  {formImage.trim() && (
+                    <div className="relative mt-1 h-32 w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={formImage.trim()}
+                        alt="预览"
+                        className="h-full w-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* 状态 */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { sendOrderConfirmation, sendCardKeyDelivery } from "@/server/services/email";
 
 const log = createLogger("orders/pay");
 
@@ -111,6 +112,21 @@ export async function POST(
           },
         });
 
+        // Send order confirmation email (async, don't block response)
+        if (order.email) {
+          sendOrderConfirmation({
+            to: order.email,
+            orderNo: order.orderNo,
+            items: order.items.map((i) => ({
+              name: i.product.name,
+              quantity: i.quantity,
+              unitPrice: Number(i.unitPrice),
+            })),
+            totalAmount: Number(order.payAmount),
+            paymentMethod: paymentMethod || "balance",
+          }).catch(() => {});
+        }
+
         return NextResponse.json({
           success: true,
           message: "支付成功，卡密库存不足，待管理员处理",
@@ -150,6 +166,42 @@ export async function POST(
         paidAt: new Date(),
       },
     });
+
+    // Send emails (async, don't block response)
+    if (order.email) {
+      // Order confirmation
+      sendOrderConfirmation({
+        to: order.email,
+        orderNo: order.orderNo,
+        items: order.items.map((i) => ({
+          name: i.product.name,
+          quantity: i.quantity,
+          unitPrice: Number(i.unitPrice),
+        })),
+        totalAmount: Number(order.payAmount),
+        paymentMethod: paymentMethod || "balance",
+      }).catch(() => {});
+
+      // Card key delivery - group keys by product
+      const keysByProduct: Record<string, { productName: string; cardKeys: string[] }> = {};
+      for (const item of order.items) {
+        const itemKeys = await db.cardKey.findMany({
+          where: { orderId: item.id, status: "SOLD" },
+          select: { content: true },
+        });
+        keysByProduct[item.productId] = {
+          productName: item.product.name,
+          cardKeys: itemKeys.map((k) => k.content),
+        };
+      }
+      sendCardKeyDelivery({
+        to: order.email,
+        orderNo: order.orderNo,
+        items: Object.values(keysByProduct),
+      }).catch(() => {});
+    }
+
+    log.info({ orderNo: order.orderNo, keys: allocatedKeys.length }, "Payment completed, card keys delivered");
 
     return NextResponse.json({
       success: true,

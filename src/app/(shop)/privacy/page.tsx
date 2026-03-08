@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_NAME } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "隐私政策",
   description: `${SITE_NAME} 隐私政策 — 了解我们如何保护您的数据`,
