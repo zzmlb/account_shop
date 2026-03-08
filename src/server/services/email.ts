@@ -238,6 +238,75 @@ export async function sendCardKeyDelivery(data: CardKeyEmailData): Promise<boole
   }
 }
 
+interface RefundEmailData {
+  to: string;
+  orderNo: string;
+  amount: number;
+  status: "approved" | "rejected";
+  adminNote?: string;
+}
+
+function refundNotificationHtml(data: RefundEmailData): string {
+  const isApproved = data.status === "approved";
+  const statusText = isApproved ? "退款已通过" : "退款申请被拒绝";
+  const gradientColors = isApproved
+    ? "#1db954,#148c3e"
+    : "#e50914,#b20710";
+  const statusColor = isApproved ? "#1db954" : "#e50914";
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,${gradientColors});padding:30px;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">${SITE_NAME}</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;">${statusText}</p>
+      </div>
+      <div style="padding:30px;">
+        <p style="color:#333;font-size:16px;margin:0 0 20px;">您的订单 <strong>${data.orderNo}</strong> 的退款申请已处理。</p>
+        <div style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:20px;">
+          <p style="margin:0 0 8px;color:#666;font-size:14px;">处理结果</p>
+          <p style="margin:0;color:${statusColor};font-size:18px;font-weight:600;">${statusText}</p>
+          ${isApproved ? `<p style="margin:8px 0 0;color:#333;font-size:16px;">退款金额：¥${data.amount.toFixed(2)}</p>
+          <p style="margin:4px 0 0;color:#666;font-size:13px;">金额已退还至您的账户余额</p>` : ""}
+        </div>
+        ${data.adminNote ? `
+        <div style="background:#f0f7ff;border-radius:8px;padding:14px;margin-bottom:20px;">
+          <p style="margin:0 0 4px;color:#666;font-size:13px;">管理员备注：</p>
+          <p style="margin:0;color:#333;font-size:14px;">${data.adminNote}</p>
+        </div>` : ""}
+        <div style="text-align:center;margin-top:30px;">
+          <a href="${SITE_URL}/order/${data.orderNo}" style="display:inline-block;background:#6c5ce7;color:#fff;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:600;">查看订单详情</a>
+        </div>
+      </div>
+      <div style="padding:20px 30px;background:#f8f9fa;text-align:center;">
+        <p style="margin:0;color:#999;font-size:12px;">此邮件由 ${SITE_NAME} 自动发送，请勿回复。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendRefundNotification(data: RefundEmailData): Promise<boolean> {
+  try {
+    const statusLabel = data.status === "approved" ? "已通过" : "已拒绝";
+    const sent = await sendEmail(
+      data.to,
+      `退款${statusLabel} - ${data.orderNo} | ${SITE_NAME}`,
+      refundNotificationHtml(data),
+    );
+    if (sent) log.info({ orderNo: data.orderNo, to: data.to, status: data.status }, "Refund notification email sent");
+    return sent;
+  } catch (error) {
+    log.error({ err: error, orderNo: data.orderNo }, "Failed to send refund notification email");
+    return false;
+  }
+}
+
 export async function sendPasswordReset(data: PasswordResetEmailData): Promise<boolean> {
   try {
     const sent = await sendEmail(

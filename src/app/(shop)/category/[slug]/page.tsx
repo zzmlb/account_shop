@@ -87,16 +87,38 @@ export default async function CategoryPage({ params }: Props) {
     icon: c.icon,
   }));
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${category.name} - ${SITE_NAME}`,
+    description:
+      category.description ||
+      `浏览 ${category.name} 分类下的所有数字商品`,
+    url: `${SITE_URL}/category/${category.slug}`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    numberOfItems: formattedProducts.length,
+  };
+
   return (
-    <CategoryPageContent
-      category={{
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        icon: category.icon,
-      }}
-      products={formattedProducts}
-      categories={formattedCategories}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <CategoryPageContent
+        category={{
+          name: category.name,
+          slug: category.slug,
+          description: category.description,
+          icon: category.icon,
+        }}
+        products={formattedProducts}
+        categories={formattedCategories}
+      />
+    </>
   );
 }

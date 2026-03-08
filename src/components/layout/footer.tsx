@@ -49,7 +49,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-[var(--border)] bg-[var(--card)]">
+    <footer aria-label="网站底部" className="border-t border-[var(--border)] bg-[var(--card)]">
       {/* Main footer content */}
       <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { sendRefundNotification } from "@/server/services/email";
 
 const log = createLogger("admin/refunds");
 
@@ -167,7 +168,11 @@ export async function PUT(request: NextRequest) {
             userId: true,
             payAmount: true,
             status: true,
+            email: true,
           },
+        },
+        user: {
+          select: { email: true },
         },
       },
     });
@@ -237,6 +242,20 @@ export async function PUT(request: NextRequest) {
         "退款申请已批准"
       );
 
+      // Send refund approval email
+      const recipientEmail = refund.order.email || refund.user?.email;
+      if (recipientEmail) {
+        sendRefundNotification({
+          to: recipientEmail,
+          orderNo: refund.order.orderNo,
+          amount: Number(refund.amount),
+          status: "approved",
+          adminNote: adminNote || undefined,
+        }).catch((err) => {
+          log.warn({ err, orderNo: refund.order.orderNo }, "Failed to send refund approval email");
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: `退款已批准，¥${Number(refund.amount).toFixed(2)} 已退还至用户余额`,
@@ -259,6 +278,20 @@ export async function PUT(request: NextRequest) {
         },
         "退款申请已拒绝"
       );
+
+      // Send refund rejection email
+      const recipientEmail = refund.order.email || refund.user?.email;
+      if (recipientEmail) {
+        sendRefundNotification({
+          to: recipientEmail,
+          orderNo: refund.order.orderNo,
+          amount: Number(refund.amount),
+          status: "rejected",
+          adminNote: adminNote || undefined,
+        }).catch((err) => {
+          log.warn({ err, orderNo: refund.order.orderNo }, "Failed to send refund rejection email");
+        });
+      }
 
       return NextResponse.json({
         success: true,

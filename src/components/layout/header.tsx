@@ -93,7 +93,7 @@ export default function Header() {
               "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)]/50",
               "transition-all duration-200"
             )}
-            aria-label="Search"
+            aria-label="搜索"
           >
             <Search className="h-4 w-4" />
             <span className="text-xs">搜索</span>
@@ -105,7 +105,7 @@ export default function Header() {
           {/* Mobile search icon */}
           <button
             className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors md:hidden"
-            aria-label="Search"
+            aria-label="搜索"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -114,7 +114,7 @@ export default function Header() {
           <button
             onClick={toggleTheme}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
-            aria-label="Toggle theme"
+            aria-label="切换主题"
           >
             {theme === "dark" ? (
               <Sun className="h-5 w-5" />
@@ -128,7 +128,7 @@ export default function Header() {
             <Link
               href="/admin"
               className="hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors md:flex"
-              aria-label="Admin"
+              aria-label="管理后台"
               title="管理后台"
             >
               <Shield className="h-5 w-5" />
@@ -139,7 +139,7 @@ export default function Header() {
           <Link
             href="/checkout"
             className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
-            aria-label="Cart"
+            aria-label="购物车"
           >
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 && (
@@ -200,7 +200,7 @@ export default function Header() {
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
         <div className="border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-xl md:hidden">
-          <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4">
+          <nav aria-label="移动端菜单" className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4">
             {NAV_LINKS.map((link) => {
               const isActive =
                 link.href === "/"
