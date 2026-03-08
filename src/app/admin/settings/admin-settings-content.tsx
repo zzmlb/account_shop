@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
 // All settings keys managed by this page
@@ -85,22 +86,17 @@ export default function AdminSettingsPageContent() {
   const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/settings");
-      const data = await res.json();
-      if (data.success && data.settings) {
-        const merged = { ...DEFAULT_SETTINGS };
-        for (const key of SETTINGS_KEYS) {
-          if (data.settings[key] !== undefined) {
-            merged[key] = data.settings[key];
-          }
+      const data = await apiFetch<{ settings: Record<string, string> }>("/api/admin/settings");
+      const merged = { ...DEFAULT_SETTINGS };
+      for (const key of SETTINGS_KEYS) {
+        if (data.settings[key] !== undefined) {
+          merged[key] = data.settings[key];
         }
-        setSettings(merged);
-        savedSettingsRef.current = JSON.stringify(merged);
-      } else {
-        toast.error(data.message || "获取设置失败");
       }
-    } catch {
-      toast.error("网络错误，无法加载设置");
+      setSettings(merged);
+      savedSettingsRef.current = JSON.stringify(merged);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，无法加载设置");
     } finally {
       setLoading(false);
     }
@@ -124,21 +120,11 @@ export default function AdminSettingsPageContent() {
         payload[key] = settings[key];
       }
 
-      const res = await fetch("/api/admin/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings: payload }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "设置已保存");
-        savedSettingsRef.current = JSON.stringify(settings);
-      } else {
-        toast.error(data.message || "保存失败");
-      }
-    } catch {
-      toast.error("网络错误，保存失败");
+      const data = await apiMutate<{ message?: string }>("/api/admin/settings", "PUT", { settings: payload });
+      toast.success(data.message || "设置已保存");
+      savedSettingsRef.current = JSON.stringify(settings);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，保存失败");
     } finally {
       setSavingSection(null);
     }
@@ -153,20 +139,11 @@ export default function AdminSettingsPageContent() {
       for (const key of SETTINGS_KEYS) {
         payload[key] = settings[key];
       }
-      const res = await fetch("/api/admin/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings: payload }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("全部设置已保存");
-        savedSettingsRef.current = JSON.stringify(settings);
-      } else {
-        toast.error(data.message || "保存失败");
-      }
-    } catch {
-      toast.error("网络错误，保存失败");
+      await apiMutate("/api/admin/settings", "PUT", { settings: payload });
+      toast.success("全部设置已保存");
+      savedSettingsRef.current = JSON.stringify(settings);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，保存失败");
     } finally {
       setSavingSection(null);
     }
@@ -180,26 +157,17 @@ export default function AdminSettingsPageContent() {
     }
     setSendingTestEmail(true);
     try {
-      const res = await fetch("/api/admin/test-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: testEmailTo,
-          smtpHost: settings.smtp_server,
-          smtpPort: settings.smtp_port,
-          smtpUser: settings.smtp_username,
-          smtpPass: settings.smtp_password,
-          senderName: settings.sender_name,
-        }),
+      const data = await apiMutate<{ message?: string }>("/api/admin/test-email", "POST", {
+        to: testEmailTo,
+        smtpHost: settings.smtp_server,
+        smtpPort: settings.smtp_port,
+        smtpUser: settings.smtp_username,
+        smtpPass: settings.smtp_password,
+        senderName: settings.sender_name,
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "测试邮件已发送");
-      } else {
-        toast.error(data.message || "发送失败");
-      }
-    } catch {
-      toast.error("网络错误，发送失败");
+      toast.success(data.message || "测试邮件已发送");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，发送失败");
     } finally {
       setSendingTestEmail(false);
     }

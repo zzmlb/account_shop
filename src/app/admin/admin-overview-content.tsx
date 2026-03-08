@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import {
   Card,
   CardContent,
@@ -238,24 +239,19 @@ export default function AdminOverviewPageContent() {
     try {
       if (isInitial) setLoading(true);
       else setChartLoading(true);
-      const res = await fetch(`/api/admin/stats?period=${period}`);
-      const data: ApiResponse = await res.json();
-      if (data.success) {
-        setStats(data.stats);
-        setRecentOrders(data.recentOrders);
-        setHotProducts(data.hotProducts);
-        setSalesChart(data.salesChart);
-        if (data.userGrowthChart) setUserGrowthChart(data.userGrowthChart);
-        setOrdersByStatus(data.ordersByStatus || []);
-        setRecentLogins(data.recentLogins || []);
-        setRevenueByMethod(data.revenueByMethod || []);
-        setLowStockProducts(data.lowStockProducts || []);
-        setMonthlyComparison(data.monthlyComparison);
-        setLastRefresh(new Date());
-        if (isManual) toast.success("数据已刷新");
-      } else if (isManual || isInitial) {
-        toast.error("获取统计数据失败");
-      }
+      const data = await apiFetch<ApiResponse>(`/api/admin/stats?period=${period}`);
+      setStats(data.stats);
+      setRecentOrders(data.recentOrders);
+      setHotProducts(data.hotProducts);
+      setSalesChart(data.salesChart);
+      if (data.userGrowthChart) setUserGrowthChart(data.userGrowthChart);
+      setOrdersByStatus(data.ordersByStatus || []);
+      setRecentLogins(data.recentLogins || []);
+      setRevenueByMethod(data.revenueByMethod || []);
+      setLowStockProducts(data.lowStockProducts || []);
+      setMonthlyComparison(data.monthlyComparison);
+      setLastRefresh(new Date());
+      if (isManual) toast.success("数据已刷新");
     } catch {
       if (isManual || isInitial) {
         toast.error("网络错误，获取统计数据失败");
@@ -306,25 +302,16 @@ export default function AdminOverviewPageContent() {
     }
     setBroadcastSending(true);
     try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: broadcastTitle.trim(),
-          content: broadcastContent.trim(),
-        }),
+      const data = await apiMutate<{ message?: string }>("/api/admin/notifications", "POST", {
+        title: broadcastTitle.trim(),
+        content: broadcastContent.trim(),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "发送成功");
-        setShowBroadcast(false);
-        setBroadcastTitle("");
-        setBroadcastContent("");
-      } else {
-        toast.error(data.message || "发送失败");
-      }
-    } catch {
-      toast.error("网络错误，发送失败");
+      toast.success(data.message || "发送成功");
+      setShowBroadcast(false);
+      setBroadcastTitle("");
+      setBroadcastContent("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，发送失败");
     } finally {
       setBroadcastSending(false);
     }

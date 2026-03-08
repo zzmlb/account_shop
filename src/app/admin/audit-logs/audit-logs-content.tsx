@@ -10,6 +10,7 @@ import {
   Clock,
   Globe,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,13 +68,10 @@ export default function AuditLogsContent() {
       if (filter !== "all") {
         params.set("action", filter);
       }
-      const res = await fetch(`/api/admin/audit-logs?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setLogs(data.logs || []);
-        setTotalPages(data.totalPages || 1);
-        setTotal(data.total || 0);
-      }
+      const data = await apiFetch<{ logs: AuditLog[]; totalPages: number; total: number }>(`/api/admin/audit-logs?${params}`);
+      setLogs(data.logs || []);
+      setTotalPages(data.totalPages || 1);
+      setTotal(data.total || 0);
     } catch {
       // Silent
     } finally {

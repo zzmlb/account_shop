@@ -11,6 +11,7 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiMutate } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,35 +53,26 @@ export default function BroadcastContent() {
 
     setSending(true);
     try {
-      const res = await fetch("/api/admin/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          content: content.trim(),
-          href: href.trim() || undefined,
-        }),
+      const data = await apiMutate<{ message?: string; count?: number }>("/api/admin/notifications", "POST", {
+        title: title.trim(),
+        content: content.trim(),
+        href: href.trim() || undefined,
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "发送成功");
-        setSendLogs((prev) => [
-          {
-            id: Date.now(),
-            title: title.trim(),
-            count: data.count || 0,
-            time: new Date().toLocaleString("zh-CN"),
-          },
-          ...prev,
-        ]);
-        setTitle("");
-        setContent("");
-        setHref("");
-      } else {
-        toast.error(data.message || "发送失败");
-      }
-    } catch {
-      toast.error("网络错误，请稍后重试");
+      toast.success(data.message || "发送成功");
+      setSendLogs((prev) => [
+        {
+          id: Date.now(),
+          title: title.trim(),
+          count: data.count || 0,
+          time: new Date().toLocaleString("zh-CN"),
+        },
+        ...prev,
+      ]);
+      setTitle("");
+      setContent("");
+      setHref("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
     } finally {
       setSending(false);
     }

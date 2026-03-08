@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
@@ -85,18 +86,18 @@ export default function AdminUserDetailContent({ userId }: { userId: string }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/users/${userId}`);
-      const data = await res.json();
-      if (data.success) {
-        setUser(data.user);
-        setOrders(data.recentOrders);
-        setBalanceLogs(data.recentBalanceLogs);
-        setLoginLogs(data.recentLoginLogs);
-      } else {
-        setError(data.message || "用户不存在");
-      }
-    } catch {
-      setError("加载失败");
+      const data = await apiFetch<{
+        user: UserDetail;
+        recentOrders: RecentOrder[];
+        recentBalanceLogs: BalanceLog[];
+        recentLoginLogs: LoginLog[];
+      }>(`/api/admin/users/${userId}`);
+      setUser(data.user);
+      setOrders(data.recentOrders);
+      setBalanceLogs(data.recentBalanceLogs);
+      setLoginLogs(data.recentLoginLogs);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
@@ -110,20 +111,11 @@ export default function AdminUserDetailContent({ userId }: { userId: string }) {
     if (!user) return;
     const newStatus = user.status === "BANNED" ? "ACTIVE" : "BANNED";
     try {
-      const res = await fetch(`/api/admin/users?id=${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser((prev) => prev ? { ...prev, status: newStatus } : prev);
-        toast.success(newStatus === "BANNED" ? "用户已封禁" : "用户已解封");
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      await apiMutate(`/api/admin/users?id=${user.id}`, "PUT", { status: newStatus });
+      setUser((prev) => prev ? { ...prev, status: newStatus } : prev);
+      toast.success(newStatus === "BANNED" ? "用户已封禁" : "用户已解封");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误");
     }
   };
 

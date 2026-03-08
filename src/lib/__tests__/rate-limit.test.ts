@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { rateLimit, getClientIp, rateLimitResponse } from "../rate-limit";
+import {
+  rateLimit,
+  getClientIp,
+  rateLimitResponse,
+  loginLimiter,
+  apiLimiter,
+  registerLimiter,
+  uploadLimiter,
+  paymentLimiter,
+  contactLimiter,
+  orderLimiter,
+} from "../rate-limit";
 
 describe("rateLimit", () => {
   it("allows requests within limit", () => {
@@ -122,5 +133,67 @@ describe("rateLimitResponse", () => {
     const response = rateLimitResponse(result);
     const retryAfter = Number(response.headers.get("Retry-After"));
     expect(retryAfter).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("preset limiters", () => {
+  it("loginLimiter allows 5 requests", () => {
+    for (let i = 0; i < 5; i++) {
+      expect(loginLimiter(`preset-login-${Date.now()}-${i}`).success).toBe(true);
+    }
+  });
+
+  it("loginLimiter blocks after 5 requests for same key", () => {
+    const key = `preset-login-block-${Date.now()}`;
+    for (let i = 0; i < 5; i++) loginLimiter(key);
+    expect(loginLimiter(key).success).toBe(false);
+  });
+
+  it("apiLimiter allows 30 requests", () => {
+    const key = `preset-api-${Date.now()}`;
+    for (let i = 0; i < 30; i++) {
+      expect(apiLimiter(key).success).toBe(true);
+    }
+    expect(apiLimiter(key).success).toBe(false);
+  });
+
+  it("registerLimiter allows only 3 requests", () => {
+    const key = `preset-register-${Date.now()}`;
+    for (let i = 0; i < 3; i++) {
+      expect(registerLimiter(key).success).toBe(true);
+    }
+    expect(registerLimiter(key).success).toBe(false);
+  });
+
+  it("paymentLimiter allows 5 requests", () => {
+    const key = `preset-payment-${Date.now()}`;
+    for (let i = 0; i < 5; i++) {
+      expect(paymentLimiter(key).success).toBe(true);
+    }
+    expect(paymentLimiter(key).success).toBe(false);
+  });
+
+  it("contactLimiter allows only 3 requests", () => {
+    const key = `preset-contact-${Date.now()}`;
+    for (let i = 0; i < 3; i++) {
+      expect(contactLimiter(key).success).toBe(true);
+    }
+    expect(contactLimiter(key).success).toBe(false);
+  });
+
+  it("orderLimiter allows 10 requests", () => {
+    const key = `preset-order-${Date.now()}`;
+    for (let i = 0; i < 10; i++) {
+      expect(orderLimiter(key).success).toBe(true);
+    }
+    expect(orderLimiter(key).success).toBe(false);
+  });
+
+  it("uploadLimiter allows 10 requests", () => {
+    const key = `preset-upload-${Date.now()}`;
+    for (let i = 0; i < 10; i++) {
+      expect(uploadLimiter(key).success).toBe(true);
+    }
+    expect(uploadLimiter(key).success).toBe(false);
   });
 });

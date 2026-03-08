@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -87,18 +88,17 @@ export default function AdminLoginLogsContent() {
       params.set("page", String(page));
       params.set("pageSize", "20");
 
-      const res = await fetch(`/api/admin/login-logs?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setLogs(data.logs);
-        setTotalPages(data.pagination.totalPages);
-        setTotal(data.pagination.total);
-        if (data.stats) setStats(data.stats);
-      } else {
-        setError(data.message || "加载失败");
-      }
-    } catch {
-      setError("网络错误");
+      const data = await apiFetch<{
+        logs: LoginLogItem[];
+        pagination: { totalPages: number; total: number };
+        stats?: LoginStats;
+      }>(`/api/admin/login-logs?${params}`);
+      setLogs(data.logs);
+      setTotalPages(data.pagination.totalPages);
+      setTotal(data.pagination.total);
+      if (data.stats) setStats(data.stats);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "网络错误");
     } finally {
       setLoading(false);
     }

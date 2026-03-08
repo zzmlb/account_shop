@@ -23,6 +23,7 @@ import {
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -112,16 +113,11 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
 
   const fetchOrder = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}`);
-      const data = await res.json();
-      if (data.success) {
-        setOrder(data.order);
-        setNoteValue(data.order.adminNote || "");
-      } else {
-        toast.error(data.message || "加载失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiFetch<{ order: OrderDetail }>(`/api/admin/orders/${orderId}`);
+      setOrder(data.order);
+      setNoteValue(data.order.adminNote || "");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误");
     } finally {
       setLoading(false);
     }
@@ -134,20 +130,11 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
   const handleSaveNote = async () => {
     setNoteSaving(true);
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminNote: noteValue }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("备注已保存");
-        if (order) setOrder({ ...order, adminNote: noteValue.trim() || null });
-      } else {
-        toast.error(data.message || "保存失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      await apiMutate(`/api/admin/orders/${orderId}`, "PATCH", { adminNote: noteValue });
+      toast.success("备注已保存");
+      if (order) setOrder({ ...order, adminNote: noteValue.trim() || null });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误");
     } finally {
       setNoteSaving(false);
     }
@@ -157,20 +144,11 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
     if (!order) return;
     setUpdating(true);
     try {
-      const res = await fetch(`/api/admin/orders?id=${order.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "状态已更新");
-        fetchOrder();
-      } else {
-        toast.error(data.message || "更新失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      const data = await apiMutate<{ message?: string }>(`/api/admin/orders?id=${order.id}`, "PUT", { status: newStatus });
+      toast.success(data.message || "状态已更新");
+      fetchOrder();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误");
     } finally {
       setUpdating(false);
     }
@@ -179,24 +157,15 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
   const handleRefundAction = async (refundId: string, action: "approve" | "reject") => {
     setRefundProcessing(refundId);
     try {
-      const res = await fetch("/api/admin/refunds", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: refundId,
-          action,
-          adminNote: refundNotes[refundId]?.trim() || undefined,
-        }),
+      const data = await apiMutate<{ message?: string }>("/api/admin/refunds", "PUT", {
+        id: refundId,
+        action,
+        adminNote: refundNotes[refundId]?.trim() || undefined,
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || (action === "approve" ? "退款已批准" : "退款已拒绝"));
-        fetchOrder();
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("网络错误");
+      toast.success(data.message || (action === "approve" ? "退款已批准" : "退款已拒绝"));
+      fetchOrder();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "网络错误");
     } finally {
       setRefundProcessing(null);
     }

@@ -52,6 +52,34 @@ const typeLabels = {
   article: "文章",
 };
 
+/** Highlight matching portions of text with a background color */
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = text.split(regex);
+
+  if (parts.length === 1) return <>{text}</>;
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark
+            key={i}
+            className="bg-[var(--primary)]/20 text-[var(--foreground)] rounded-sm px-0.5"
+          >
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
 export default function CommandMenu() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -358,7 +386,7 @@ export default function CommandMenu() {
                           <Icon className="h-4 w-4 shrink-0" />
                           <div className="flex-1 truncate">
                             <span className="font-medium text-[var(--foreground)]">
-                              {item.title}
+                              <HighlightText text={item.title} query={query} />
                             </span>
                             {item.description && (
                               <span className="ml-2 text-xs text-[var(--muted-foreground)]">
