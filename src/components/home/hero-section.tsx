@@ -31,16 +31,25 @@ export default function HeroSection() {
   const [stats, setStats] = useState<StatsData | null>(null);
 
   useEffect(() => {
-    fetch("/api/stats")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setStats(data.stats);
+    let cancelled = false;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+
+    const load = async (attempt = 0) => {
+      try {
+        const res = await fetch("/api/stats", { signal: ctrl.signal });
+        const data = await res.json();
+        if (!cancelled && data.success) setStats(data.stats);
+      } catch {
+        if (!cancelled && attempt < 1) {
+          // retry once after 2s
+          setTimeout(() => load(attempt + 1), 2000);
         }
-      })
-      .catch(() => {
-        // silently fail — keep showing placeholders
-      });
+      }
+    };
+
+    load();
+    return () => { cancelled = true; clearTimeout(timer); ctrl.abort(); };
   }, []);
 
   const displayStats = [
@@ -193,6 +202,8 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
+            role="group"
+            aria-label="平台统计数据"
             className="mt-16 flex items-center gap-8 sm:gap-16"
           >
             {displayStats.map((stat, i) => (

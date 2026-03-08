@@ -18,8 +18,10 @@ export async function GET(request: NextRequest) {
     const maxPrice = searchParams.get("maxPrice");
     const slugs = searchParams.get("slugs");
     const limit = searchParams.get("limit");
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = limit ? parseInt(limit, 10) : parseInt(searchParams.get("pageSize") || "12", 10);
+    const rawPage = parseInt(searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const rawSize = limit ? parseInt(limit, 10) : parseInt(searchParams.get("pageSize") || "12", 10);
+    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 100) : 12;
 
     // Build where clause
     const where: Record<string, unknown> = { isActive: true };
@@ -45,8 +47,14 @@ export async function GET(request: NextRequest) {
     }
 
     const priceFilter: { gte?: number; lte?: number } = {};
-    if (minPrice) priceFilter.gte = parseFloat(minPrice);
-    if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
+    if (minPrice) {
+      const v = parseFloat(minPrice);
+      if (Number.isFinite(v) && v >= 0) priceFilter.gte = v;
+    }
+    if (maxPrice) {
+      const v = parseFloat(maxPrice);
+      if (Number.isFinite(v) && v >= 0) priceFilter.lte = v;
+    }
     if (Object.keys(priceFilter).length > 0) {
       where.price = priceFilter;
     }
