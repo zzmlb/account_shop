@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Wallet,
   ArrowUpRight,
@@ -8,47 +8,118 @@ import {
   RotateCcw,
   Plus,
   RefreshCw,
+  Settings,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-type LogType = "RECHARGE" | "PURCHASE" | "REFUND";
+type LogType = "RECHARGE" | "PURCHASE" | "REFUND" | "ADMIN_ADJUST";
 
 interface BalanceLog {
   id: string;
   type: LogType;
   description: string;
-  amount: string;
-  date: string;
-  balance: string;
+  amount: number;
+  createdAt: string;
 }
 
-const TYPE_CONFIG: Record<LogType, { label: string; variant: "success" | "destructive" | "default"; color: string }> = {
+const TYPE_CONFIG: Record<
+  LogType,
+  { label: string; variant: "success" | "destructive" | "default" | "secondary"; color: string }
+> = {
   RECHARGE: { label: "充值", variant: "success", color: "text-[var(--success)]" },
   PURCHASE: { label: "消费", variant: "destructive", color: "text-[var(--destructive)]" },
   REFUND: { label: "退款", variant: "default", color: "text-[var(--accent)]" },
+  ADMIN_ADJUST: { label: "调整", variant: "secondary", color: "text-[var(--muted-foreground)]" },
 };
-
-const BALANCE_LOGS: BalanceLog[] = [
-  { id: "1", type: "RECHARGE", description: "在线充值", amount: "+100.00", date: "2026-03-07 14:30", balance: "¥228.00" },
-  { id: "2", type: "PURCHASE", description: "购买 Gmail 全新账号 x2", amount: "-11.98", date: "2026-03-07 14:35", balance: "¥128.00" },
-  { id: "3", type: "RECHARGE", description: "在线充值", amount: "+50.00", date: "2026-03-06 10:00", balance: "¥139.98" },
-  { id: "4", type: "PURCHASE", description: "购买 ChatGPT Plus 共享账号", amount: "-19.99", date: "2026-03-05 09:45", balance: "¥89.98" },
-  { id: "5", type: "REFUND", description: "订单退款 ORD-20260304-G7H8", amount: "+59.99", date: "2026-03-04 18:00", balance: "¥109.97" },
-  { id: "6", type: "PURCHASE", description: "购买 NordVPN 2 年套餐", amount: "-59.99", date: "2026-03-04 16:20", balance: "¥49.98" },
-  { id: "7", type: "PURCHASE", description: "购买 Spotify Premium 年卡", amount: "-39.99", date: "2026-03-03 11:00", balance: "¥109.97" },
-  { id: "8", type: "RECHARGE", description: "在线充值", amount: "+200.00", date: "2026-03-01 08:00", balance: "¥149.96" },
-];
 
 const RECHARGE_AMOUNTS = [50, 100, 200, 500];
 
+function formatDate(isoString: string): string {
+  const date = new Date(isoString);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const h = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d} ${h}:${min}`;
+}
+
+function getIcon(type: LogType) {
+  switch (type) {
+    case "RECHARGE":
+      return <ArrowDownRight className="h-4 w-4 text-[var(--success)]" />;
+    case "PURCHASE":
+      return <ArrowUpRight className="h-4 w-4 text-[var(--destructive)]" />;
+    case "REFUND":
+      return <RotateCcw className="h-4 w-4 text-[var(--accent)]" />;
+    case "ADMIN_ADJUST":
+      return <Settings className="h-4 w-4 text-[var(--muted-foreground)]" />;
+  }
+}
+
+function getIconBg(type: LogType) {
+  switch (type) {
+    case "RECHARGE":
+      return "bg-[var(--success)]/10";
+    case "PURCHASE":
+      return "bg-[var(--destructive)]/10";
+    case "REFUND":
+      return "bg-[var(--accent)]/10";
+    case "ADMIN_ADJUST":
+      return "bg-[var(--secondary)]/10";
+  }
+}
 
 export default function BalancePageContent() {
   const { user } = useAuthStore();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [logs, setLogs] = useState<BalanceLog[]>([]);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchBalanceLogs = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const res = await fetch("/api/balance-logs");
+      const data = await res.json();
+
+      if (data.success) {
+        setLogs(data.logs);
+        setBalance(data.balance);
+      } else {
+        toast.error(data.message || "获取余额记录失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBalanceLogs();
+  }, [fetchBalanceLogs]);
+
+  const displayBalance = balance !== null ? balance : (user?.balance ?? 0);
+
+  const handleRecharge = () => {
+    toast.info("充值功能开发中", {
+      description: "支付集成即将上线，敬请期待",
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -66,7 +137,7 @@ export default function BalancePageContent() {
           <div>
             <p className="text-sm text-[var(--muted-foreground)]">账户余额</p>
             <p className="mt-1 text-4xl font-bold text-[var(--primary)]">
-              ¥{user?.balance?.toFixed(2) ?? "128.00"}
+              ¥{displayBalance.toFixed(2)}
             </p>
           </div>
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--primary)]/10">
@@ -99,7 +170,12 @@ export default function BalancePageContent() {
               </button>
             ))}
           </div>
-          <Button className="w-full" size="lg" disabled={!selectedAmount}>
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={!selectedAmount}
+            onClick={handleRecharge}
+          >
             <Plus className="mr-2 h-4 w-4" />
             充值 {selectedAmount ? `¥${selectedAmount}` : ""}
           </Button>
@@ -113,82 +189,97 @@ export default function BalancePageContent() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="text-lg">交易记录</CardTitle>
-          <Button variant="ghost" size="sm">
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={refreshing}
+            onClick={() => fetchBalanceLogs(true)}
+          >
+            <RefreshCw
+              className={cn(
+                "mr-1.5 h-3.5 w-3.5",
+                refreshing && "animate-spin"
+              )}
+            />
             刷新
           </Button>
         </CardHeader>
         <CardContent>
-          {/* Table header (desktop only) */}
-          <div className="mb-2 hidden grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-b border-[var(--border)] px-4 pb-2 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] sm:grid">
-            <span>描述</span>
-            <span className="w-16 text-center">类型</span>
-            <span className="w-24 text-right">金额</span>
-            <span className="w-24 text-right">余额</span>
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+              <span className="ml-2 text-sm text-[var(--muted-foreground)]">
+                加载中...
+              </span>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <Wallet className="mb-2 h-10 w-10 opacity-30" />
+              <p className="text-sm">暂无交易记录</p>
+            </div>
+          ) : (
+            <>
+              {/* Table header (desktop only) */}
+              <div className="mb-2 hidden grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-[var(--border)] px-4 pb-2 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] sm:grid">
+                <span>描述</span>
+                <span className="w-16 text-center">类型</span>
+                <span className="w-24 text-right">金额</span>
+              </div>
 
-          <div className="space-y-3">
-            {BALANCE_LOGS.map((log) => {
-              const isPositive = log.amount.startsWith("+");
-              const config = TYPE_CONFIG[log.type];
-              return (
-                <div
-                  key={log.id}
-                  className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] p-4"
-                >
-                  <div className="flex items-center gap-3">
+              <div className="space-y-3">
+                {logs.map((log) => {
+                  const isPositive = log.amount > 0;
+                  const config = TYPE_CONFIG[log.type] ?? TYPE_CONFIG.RECHARGE;
+                  const amountStr = isPositive
+                    ? `+${log.amount.toFixed(2)}`
+                    : log.amount.toFixed(2);
+                  return (
                     <div
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                        log.type === "RECHARGE" && "bg-[var(--success)]/10",
-                        log.type === "PURCHASE" && "bg-[var(--destructive)]/10",
-                        log.type === "REFUND" && "bg-[var(--accent)]/10"
-                      )}
+                      key={log.id}
+                      className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] p-4"
                     >
-                      {log.type === "RECHARGE" && (
-                        <ArrowDownRight className="h-4 w-4 text-[var(--success)]" />
-                      )}
-                      {log.type === "PURCHASE" && (
-                        <ArrowUpRight className="h-4 w-4 text-[var(--destructive)]" />
-                      )}
-                      {log.type === "REFUND" && (
-                        <RotateCcw className="h-4 w-4 text-[var(--accent)]" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {log.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
-                        <span>{log.date}</span>
-                        <Badge
-                          variant={config.variant}
-                          className="h-4 px-1.5 text-[10px]"
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                            getIconBg(log.type)
+                          )}
                         >
-                          {config.label}
-                        </Badge>
+                          {getIcon(log.type)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {log.description}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                            <span>{formatDate(log.createdAt)}</span>
+                            <Badge
+                              variant={config.variant}
+                              className="h-4 px-1.5 text-[10px]"
+                            >
+                              {config.label}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p
+                          className={cn(
+                            "font-mono font-semibold",
+                            isPositive
+                              ? "text-[var(--success)]"
+                              : "text-[var(--destructive)]"
+                          )}
+                        >
+                          {amountStr}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p
-                      className={cn(
-                        "font-mono font-semibold",
-                        isPositive
-                          ? "text-[var(--success)]"
-                          : "text-[var(--destructive)]"
-                      )}
-                    >
-                      {log.amount}
-                    </p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      余额 {log.balance}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
