@@ -82,17 +82,21 @@ export default function ForgotPasswordContent() {
                 placeholder="请输入注册时使用的邮箱"
                 autoComplete="email"
                 maxLength={100}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 className={cn(
                   "bg-[var(--background)]",
                   errors.email && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
                 )}
                 {...register("email")}
               />
-              {errors.email && (
-                <p className="text-xs text-[var(--destructive)]">
-                  {errors.email.message}
-                </p>
-              )}
+              <div aria-live="polite" aria-atomic="true">
+                {errors.email && (
+                  <p id="email-error" role="alert" className="text-xs text-[var(--destructive)]">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button

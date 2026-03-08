@@ -641,23 +641,26 @@ export default function DashboardSettingsPageContent() {
                 </div>
 
                 {/* Message */}
-                {passwordMessage && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm",
-                      passwordMessage.type === "success"
-                        ? "bg-[var(--success)]/10 text-[var(--success)]"
-                        : "bg-[var(--destructive)]/10 text-[var(--destructive)]"
-                    )}
-                  >
-                    {passwordMessage.type === "success" ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                    )}
-                    {passwordMessage.text}
-                  </div>
-                )}
+                <div aria-live="assertive" aria-atomic="true">
+                  {passwordMessage && (
+                    <div
+                      role="alert"
+                      className={cn(
+                        "flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm",
+                        passwordMessage.type === "success"
+                          ? "bg-[var(--success)]/10 text-[var(--success)]"
+                          : "bg-[var(--destructive)]/10 text-[var(--destructive)]"
+                      )}
+                    >
+                      {passwordMessage.type === "success" ? (
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                      )}
+                      {passwordMessage.text}
+                    </div>
+                  )}
+                </div>
 
                 <Button
                   type="submit"
