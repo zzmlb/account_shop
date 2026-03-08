@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { getAdminSession } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
@@ -12,23 +12,8 @@ export async function GET(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
-
-    const role = session.role.toUpperCase();
-    if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
-      return NextResponse.json(
-        { success: false, message: "无管理员权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.slice(0, 200);

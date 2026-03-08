@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { getUserSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
@@ -9,16 +9,11 @@ const log = createLogger("favorites");
 
 export async function GET(request: NextRequest) {
   try {
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
 
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const favorites = await db.favorite.findMany({
       where: { userId: session.id },
@@ -73,16 +68,8 @@ export async function POST(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const parsed = favoriteSchema.safeParse(body);
@@ -127,16 +114,11 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
 
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");

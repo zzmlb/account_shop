@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
@@ -11,23 +11,8 @@ export async function POST(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
-
-    const role = session.role.toUpperCase();
-    if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
-      return NextResponse.json(
-        { success: false, message: "无管理员权限" },
-        { status: 403 }
-      );
-    }
+    const { session, error } = getAdminSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const { to, smtpHost, smtpPort, smtpUser, smtpPass, senderName } = body;

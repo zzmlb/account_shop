@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { getUserSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
@@ -7,28 +7,14 @@ import { parsePagination, paginationMeta } from "@/lib/pagination";
 
 const log = createLogger("notifications");
 
-function getSession(request: NextRequest) {
-  const session = decodeSession(request.cookies.get("session")?.value || "");
-  if (!session) {
-    return {
-      session: null,
-      error: NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      ),
-    };
-  }
-  return { session, error: null };
-}
-
 // GET - List user notifications
 export async function GET(request: NextRequest) {
   try {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const { session, error } = getSession(request);
-    if (!session) return error!;
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });
@@ -84,8 +70,8 @@ export async function PUT(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const { session, error } = getSession(request);
-    if (!session) return error!;
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const { ids, all } = body;
@@ -145,8 +131,8 @@ export async function DELETE(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const { session, error } = getSession(request);
-    if (!session) return error!;
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const id = new URL(request.url).searchParams.get("id");
 

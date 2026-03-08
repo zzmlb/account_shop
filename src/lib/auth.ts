@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -86,4 +86,28 @@ export function getSessionFromRequest(req: NextRequest): SessionUser | null {
   const token = req.cookies.get("session")?.value;
   if (!token) return null;
   return decodeSession(token);
+}
+
+/**
+ * Extract and validate a user session from the request.
+ * Returns { session, error } — if error is non-null, return it directly.
+ */
+export function getUserSession(request: NextRequest):
+  | { session: SessionUser; error: null }
+  | { session: null; error: NextResponse } {
+  const session = decodeSession(
+    request.cookies.get("session")?.value || ""
+  );
+
+  if (!session) {
+    return {
+      session: null,
+      error: NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return { session, error: null };
 }
