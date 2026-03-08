@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Users,
   Loader2,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/csv-export";
 
 type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
 type UserStatus = "ACTIVE" | "BANNED";
@@ -241,9 +243,38 @@ export default function AdminUsersPageContent() {
             共 {totalUsers} 名注册用户
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-          <Users className="h-4 w-4" />
-          活跃 {activeCount} / 封禁 {bannedCount}
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+            <Users className="h-4 w-4" />
+            活跃 {activeCount} / 封禁 {bannedCount}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (users.length === 0) {
+                toast.error("没有可导出的用户数据");
+                return;
+              }
+              exportToCsv(
+                `users_${new Date().toISOString().slice(0, 10)}`,
+                [
+                  { header: "用户名", accessor: (u: ApiUser) => u.username },
+                  { header: "邮箱", accessor: (u: ApiUser) => u.email },
+                  { header: "角色", accessor: (u: ApiUser) => roleConfig[u.role].label },
+                  { header: "状态", accessor: (u: ApiUser) => u.status === "ACTIVE" ? "正常" : "封禁" },
+                  { header: "余额", accessor: (u: ApiUser) => u.balance },
+                  { header: "订单数", accessor: (u: ApiUser) => u.orderCount },
+                  { header: "注册时间", accessor: (u: ApiUser) => formatDate(u.createdAt) },
+                ],
+                users
+              );
+              toast.success(`已导出 ${users.length} 名用户`);
+            }}
+          >
+            <Download className="h-4 w-4" />
+            导出
+          </Button>
         </div>
       </div>
 

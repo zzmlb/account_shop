@@ -50,14 +50,16 @@ export async function GET(
       );
     }
 
-    // Optional email verification for guest users querying card keys
+    // Email verification for guest users querying card keys
     const { searchParams } = new URL(request.url);
     const verifyEmail = searchParams.get("email");
-    const emailVerified = !verifyEmail ||
-      (order.email && order.email.toLowerCase() === verifyEmail.toLowerCase());
+    // Guests MUST provide email and it must match the order email
+    const emailVerified = verifyEmail &&
+      order.email &&
+      order.email.toLowerCase() === verifyEmail.toLowerCase();
 
     // Only include card keys when order is DELIVERED or PAID
-    // For guest queries with email param, require email match for card keys
+    // Logged-in users see their own order keys; guests must verify email
     const includeCardKeys =
       (order.status === "DELIVERED" || order.status === "PAID") &&
       (session || emailVerified);

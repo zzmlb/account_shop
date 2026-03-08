@@ -61,6 +61,30 @@ export function createBulkNotifications(
  * Notify all admin users about a new order.
  * Fire-and-forget — failures are logged but never thrown.
  */
+/**
+ * Notify admins when card key stock is insufficient for an order.
+ */
+export function notifyAdminsStockShortage(orderNo: string, productNames: string[]) {
+  db.user
+    .findMany({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+      select: { id: true },
+    })
+    .then((admins) => {
+      if (admins.length === 0) return;
+      const adminIds = admins.map((a) => a.id);
+      createBulkNotifications(adminIds, {
+        type: "SYSTEM",
+        title: `卡密库存不足 - ${orderNo}`,
+        content: `订单 ${orderNo} 已支付但卡密库存不足，涉及商品: ${productNames.join("、")}。请尽快补货或手动发货。`,
+        href: `/admin/orders`,
+      });
+    })
+    .catch((err) => {
+      log.warn({ err, orderNo }, "Failed to notify admins of stock shortage");
+    });
+}
+
 export function notifyAdminsNewOrder(orderNo: string, payAmount: number, itemCount: number) {
   db.user
     .findMany({

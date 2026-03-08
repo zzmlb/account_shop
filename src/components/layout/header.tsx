@@ -131,6 +131,11 @@ export default function Header() {
 
           {/* Mobile search icon */}
           <button
+            onClick={() => {
+              document.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "k", metaKey: true })
+              );
+            }}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors md:hidden"
             aria-label="搜索"
           >

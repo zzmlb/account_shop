@@ -3,7 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { sendOrderConfirmation, sendCardKeyDelivery } from "@/server/services/email";
-import { createNotification } from "@/server/services/notification";
+import { createNotification, notifyAdminsStockShortage } from "@/server/services/notification";
 import { paymentLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { decryptCardKey } from "@/lib/crypto";
 
@@ -121,6 +121,7 @@ export async function POST(
             productId: item.productId,
             status: "AVAILABLE",
           },
+          orderBy: { createdAt: "asc" },
           take: item.quantity,
         });
 
@@ -243,6 +244,9 @@ export async function POST(
       });
     } else {
       log.warn({ orderNo: order.orderNo }, "Payment completed but insufficient card keys for delivery");
+      // Notify admins about stock shortage (fire-and-forget)
+      const productNames = order.items.map((i) => i.product.name);
+      notifyAdminsStockShortage(order.orderNo, productNames);
       return NextResponse.json({
         success: true,
         message: "支付成功，卡密库存不足，待管理员处理",
