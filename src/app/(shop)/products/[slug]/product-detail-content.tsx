@@ -122,6 +122,8 @@ export default function ProductDetailContent({
       image: product.image,
       categoryName: product.categoryName,
       productId: product.id,
+      stockCount: product.stockCount,
+      soldCount: product.soldCount,
     });
   }, [product.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -604,8 +606,8 @@ export default function ProductDetailContent({
                   price={item.price}
                   originalPrice={item.originalPrice}
                   image={item.image}
-                  stockCount={1}
-                  soldCount={0}
+                  stockCount={item.stockCount ?? 1}
+                  soldCount={item.soldCount ?? 0}
                   categoryName={item.categoryName}
                 />
               ))}

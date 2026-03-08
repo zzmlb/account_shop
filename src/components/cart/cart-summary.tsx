@@ -5,7 +5,7 @@ import { Tag, Loader2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { formatPrice } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 
 interface CouponState {
@@ -186,7 +186,7 @@ export default function CartSummary({
                   handleApplyCoupon();
                 }
               }}
-              className={`flex-1${couponError ? " border-[var(--destructive)] focus-visible:ring-[var(--destructive)]" : ""}`}
+              className={cn("flex-1", couponError && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]")}
               aria-label="优惠码"
               aria-invalid={!!couponError}
               aria-describedby={couponError ? "coupon-error" : undefined}
@@ -231,11 +231,12 @@ export default function CartSummary({
                       }
                     }}
                     disabled={!meetsMin || isValidating}
-                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-xs transition-colors",
                       meetsMin
                         ? "border-[var(--primary)]/30 text-[var(--primary)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5"
                         : "border-[var(--border)] text-[var(--muted-foreground)] opacity-50"
-                    }`}
+                    )}
                     title={
                       c.minAmount && !meetsMin
                         ? `满¥${c.minAmount.toFixed(0)}可用`

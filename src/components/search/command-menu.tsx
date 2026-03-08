@@ -349,7 +349,7 @@ export default function CommandMenu() {
                           key={item.id}
                           onClick={() => navigate(item.href)}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-sm transition-colors",
+                            "group flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-sm transition-colors",
                             globalIdx === selectedIndex
                               ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
                               : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"

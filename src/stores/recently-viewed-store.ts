@@ -9,6 +9,8 @@ export interface RecentProduct {
   image?: string;
   categoryName: string;
   productId?: string;
+  stockCount?: number;
+  soldCount?: number;
   viewedAt: number;
 }
 

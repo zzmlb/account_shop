@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,18 +18,63 @@ export default function ResetPasswordContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [tokenStatus, setTokenStatus] = useState<"checking" | "valid" | "expired" | "used" | "invalid">("checking");
 
-  if (!token) {
+  // Pre-validate token on page load
+  useEffect(() => {
+    if (!token) {
+      setTokenStatus("invalid");
+      return;
+    }
+    fetch(`/api/auth/check-reset-token?token=${encodeURIComponent(token)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.valid) {
+          setTokenStatus("valid");
+        } else if (data.reason === "expired") {
+          setTokenStatus("expired");
+        } else if (data.reason === "used") {
+          setTokenStatus("used");
+        } else {
+          setTokenStatus("invalid");
+        }
+      })
+      .catch(() => {
+        // On network error, allow form submission (backend will validate)
+        setTokenStatus("valid");
+      });
+  }, [token]);
+
+  if (tokenStatus === "checking") {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Loader2 className="mb-4 h-8 w-8 animate-spin text-[var(--primary)]" />
+        <p className="text-sm text-[var(--muted-foreground)]">正在验证链接...</p>
+      </div>
+    );
+  }
+
+  if (tokenStatus === "invalid" || tokenStatus === "expired" || tokenStatus === "used") {
+    const messages = {
+      invalid: { title: "无效的重置链接", desc: "此链接无效，请重新申请密码重置" },
+      expired: { title: "链接已过期", desc: "此重置链接已过期，请重新申请密码重置" },
+      used: { title: "链接已使用", desc: "此重置链接已被使用，如需再次修改请重新申请" },
+    };
+    const msg = messages[tokenStatus];
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="mb-4 rounded-full bg-[var(--destructive)]/10 p-4">
-          <AlertCircle className="h-8 w-8 text-[var(--destructive)]" />
+          {tokenStatus === "expired" ? (
+            <Clock className="h-8 w-8 text-[var(--destructive)]" />
+          ) : (
+            <AlertCircle className="h-8 w-8 text-[var(--destructive)]" />
+          )}
         </div>
         <h2 className="mb-2 text-xl font-semibold text-[var(--foreground)]">
-          无效的重置链接
+          {msg.title}
         </h2>
         <p className="mb-6 text-sm text-[var(--muted-foreground)]">
-          此链接无效或已过期，请重新申请密码重置
+          {msg.desc}
         </p>
         <Button asChild>
           <Link href="/forgot-password">重新申请</Link>
