@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import AuthInit from "@/components/providers/auth-init";
+import ErrorHandler from "@/components/providers/error-handler";
 import NetworkStatus from "@/components/shared/network-status";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -120,6 +121,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthInit />
+          <ErrorHandler />
           <NetworkStatus />
           {children}
           <Toaster
