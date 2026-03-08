@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_LINKS, SITE_NAME } from "@/lib/constants";
+import { NAV_LINKS } from "@/lib/constants";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCartStore } from "@/stores/cart-store";
+import { useSiteSettingsStore } from "@/stores/site-settings-store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Header() {
@@ -17,6 +18,11 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const cartCount = useCartStore((s) => s.getItemCount());
+  const { siteName, load: loadSettings } = useSiteSettingsStore();
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -42,7 +48,7 @@ export default function Header() {
               "bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent"
             )}
           >
-            {SITE_NAME}
+            {siteName}
           </span>
         </Link>
 

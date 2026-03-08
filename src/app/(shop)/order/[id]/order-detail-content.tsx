@@ -16,11 +16,20 @@ import {
   AlertCircle,
   Copy,
   XCircle,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn, formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 
@@ -139,6 +148,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
@@ -193,8 +203,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
 
   const handleCancelOrder = async () => {
     if (!order || order.status !== "PENDING") return;
-    if (!confirm("确定要取消此订单吗？取消后无法恢复。")) return;
-
+    setCancelDialogOpen(false);
     setCancelling(true);
     try {
       const res = await fetch(`/api/orders/${id}`, {
@@ -535,18 +544,39 @@ export default function OrderDetailContent({ id }: { id: string }) {
             <p className="text-xs text-[var(--muted-foreground)]">
               卡密信息已同步发送至您的邮箱。请妥善保管卡密，避免泄露。
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(order.cardKeys.join("\n"));
-                toast.success("已复制全部卡密");
-              }}
-              className="gap-1.5 shrink-0"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              复制全部
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const content = order.cardKeys.map((k, i) => `${i + 1}. ${k}`).join("\n");
+                  const blob = new Blob([`订单号: ${order.orderNo}\n日期: ${order.createdAt}\n\n卡密列表:\n${content}\n`], { type: "text/plain;charset=utf-8" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `卡密_${order.orderNo}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success("卡密文件已下载");
+                }}
+                className="gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                下载
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(order.cardKeys.join("\n"));
+                  toast.success("已复制全部卡密");
+                }}
+                className="gap-1.5"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                复制全部
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -564,7 +594,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleCancelOrder}
+            onClick={() => setCancelDialogOpen(true)}
             disabled={cancelling}
             className="gap-1.5 text-[var(--destructive)] hover:text-[var(--destructive)]"
           >
@@ -577,6 +607,29 @@ export default function OrderDetailContent({ id }: { id: string }) {
           </Button>
         </div>
       )}
+
+      {/* Cancel order confirmation dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-[var(--destructive)]" />
+              确认取消订单
+            </DialogTitle>
+            <DialogDescription>
+              取消后订单将无法恢复，库存将被释放。确定要取消此订单吗？
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+              返回
+            </Button>
+            <Button variant="destructive" onClick={handleCancelOrder}>
+              确认取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Actions */}
       <div className="mt-8 flex flex-wrap gap-3">
