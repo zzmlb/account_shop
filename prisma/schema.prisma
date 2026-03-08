@@ -27,6 +27,7 @@ model User {
   passwordResets PasswordReset[]
   reviews        Review[]
   refundRequests RefundRequest[]
+  loginLogs      LoginLog[]
 
   @@map("users")
 }
@@ -315,6 +316,24 @@ enum RefundStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+// ==================== 登录日志 ====================
+model LoginLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  username  String
+  success   Boolean
+  ip        String?
+  userAgent String?  @db.Text
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([ip])
+  @@map("login_logs")
 }
 
 // ==================== 系统配置 ====================
