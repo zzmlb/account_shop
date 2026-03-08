@@ -240,6 +240,27 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // ---------- Recent Login Activity (last 10) ----------
+
+    const recentLoginsRaw = await db.loginLog.findMany({
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        username: true,
+        success: true,
+        ip: true,
+        createdAt: true,
+      },
+    });
+    const recentLogins = recentLoginsRaw.map((l) => ({
+      id: l.id,
+      username: l.username,
+      success: l.success,
+      ip: l.ip,
+      createdAt: l.createdAt.toISOString(),
+    }));
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -265,6 +286,7 @@ export async function GET(request: NextRequest) {
       salesChart,
       chartPeriod,
       ordersByStatus,
+      recentLogins,
     });
   } catch (error) {
     log.error({ err: error }, "Admin stats GET error");

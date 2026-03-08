@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { Loader2 } from "lucide-react";
 import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -6,13 +7,19 @@ import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
 
 export const revalidate = 120; // ISR: revalidate every 2 minutes
 
-export const metadata = {
-  title: "帮助中心 - PJ37 数字商品交易平台",
+export const metadata: Metadata = {
+  title: `帮助中心 - ${SITE_NAME}`,
   description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
   openGraph: {
-    title: "帮助中心 - PJ37 Digital",
+    title: `帮助中心 - ${SITE_NAME}`,
     description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
-    type: "website" as const,
+    url: `${SITE_URL}/articles`,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: `帮助中心 - ${SITE_NAME}`,
+    description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
   },
   alternates: { canonical: `${SITE_URL}/articles` },
 };

@@ -28,6 +28,11 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/categories`,
     type: "website",
   },
+  twitter: {
+    card: "summary",
+    title: `商品分类 - ${SITE_NAME}`,
+    description: "浏览所有商品分类，快速找到您需要的数字商品和服务",
+  },
   alternates: { canonical: `${SITE_URL}/categories` },
 };
 

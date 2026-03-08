@@ -94,8 +94,10 @@ export default function Footer() {
                   key={method.label}
                   className="flex items-center gap-1 text-[var(--muted-foreground)]"
                   title={method.label}
+                  aria-label={method.label}
+                  role="img"
                 >
-                  <method.icon className="h-4 w-4" />
+                  <method.icon className="h-4 w-4" aria-hidden="true" />
                 </div>
               ))}
             </div>

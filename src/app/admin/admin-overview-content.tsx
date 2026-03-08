@@ -16,6 +16,7 @@ import {
   Loader2,
   RefreshCw,
   RotateCcw,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -85,6 +86,14 @@ interface SalesChartItem {
   orders: number;
 }
 
+interface RecentLogin {
+  id: string;
+  username: string;
+  success: boolean;
+  ip: string | null;
+  createdAt: string;
+}
+
 interface ApiResponse {
   success: boolean;
   stats: StatsData;
@@ -93,6 +102,7 @@ interface ApiResponse {
   salesChart: SalesChartItem[];
   chartPeriod: number;
   ordersByStatus: OrderStatusCount[];
+  recentLogins?: RecentLogin[];
 }
 
 /* ---------- Status Mapping ---------- */
@@ -168,6 +178,7 @@ export default function AdminOverviewPageContent() {
   const [salesChart, setSalesChart] = useState<SalesChartItem[]>([]);
   const [chartPeriod, setChartPeriod] = useState(7);
   const [ordersByStatus, setOrdersByStatus] = useState<OrderStatusCount[]>([]);
+  const [recentLogins, setRecentLogins] = useState<RecentLogin[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -186,6 +197,7 @@ export default function AdminOverviewPageContent() {
         setHotProducts(data.hotProducts);
         setSalesChart(data.salesChart);
         setOrdersByStatus(data.ordersByStatus || []);
+        setRecentLogins(data.recentLogins || []);
         setLastRefresh(new Date());
         if (isManual) toast.success("数据已刷新");
       } else if (isManual || isInitial) {
@@ -775,6 +787,61 @@ export default function AdminOverviewPageContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Login Activity */}
+      {recentLogins.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Shield className="h-4 w-4 text-[var(--primary)]" />
+              最近登录活动
+            </CardTitle>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/admin/login-logs">查看全部</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
+                    <th className="pb-2 font-medium">用户</th>
+                    <th className="pb-2 font-medium">状态</th>
+                    <th className="pb-2 font-medium">IP</th>
+                    <th className="pb-2 font-medium text-right">时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentLogins.slice(0, 8).map((login) => (
+                    <tr
+                      key={login.id}
+                      className="border-b border-[var(--border)] last:border-0"
+                    >
+                      <td className="py-2 font-medium">{login.username}</td>
+                      <td className="py-2">
+                        <Badge variant={login.success ? "success" : "destructive"}>
+                          {login.success ? "成功" : "失败"}
+                        </Badge>
+                      </td>
+                      <td className="py-2 font-mono text-xs text-[var(--muted-foreground)]">
+                        {login.ip || "-"}
+                      </td>
+                      <td className="py-2 text-right text-xs text-[var(--muted-foreground)]">
+                        {new Date(login.createdAt).toLocaleString("zh-CN", {
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
