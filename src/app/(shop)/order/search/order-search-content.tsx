@@ -161,10 +161,11 @@ export default function OrderSearchPageContent() {
       <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">
+            <label htmlFor="order-no" className="mb-2 block text-sm font-medium text-[var(--foreground)]">
               订单号 <span className="text-[var(--destructive)]">*</span>
             </label>
             <Input
+              id="order-no"
               placeholder="例如: PJ37-20260308-A1B2"
               value={orderNo}
               onChange={(e) => {
@@ -175,17 +176,21 @@ export default function OrderSearchPageContent() {
                 if (e.key === "Enter") handleSearch();
               }}
               autoFocus
+              aria-required="true"
+              aria-invalid={!!searchError}
+              aria-describedby={searchError ? "search-error" : undefined}
               className="font-mono"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">
+            <label htmlFor="order-email" className="mb-2 block text-sm font-medium text-[var(--foreground)]">
               邮箱{" "}
               <span className="text-xs text-[var(--muted-foreground)]">
                 (可选，用于验证身份)
               </span>
             </label>
             <Input
+              id="order-email"
               type="email"
               placeholder="购买时填写的邮箱"
               value={email}
@@ -196,9 +201,11 @@ export default function OrderSearchPageContent() {
             />
           </div>
 
-          {searchError && (
-            <p className="text-sm text-[var(--destructive)]">{searchError}</p>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {searchError && (
+              <p id="search-error" role="alert" className="text-sm text-[var(--destructive)]">{searchError}</p>
+            )}
+          </div>
 
           <Button
             onClick={handleSearch}

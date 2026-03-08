@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
         orderNo: r.order.orderNo,
         reason: r.reason,
         status: r.status,
-        adminNote: r.adminNote,
+        // adminNote intentionally excluded — internal admin-only data
+        rejectReason: r.status === "REJECTED" ? r.adminNote : undefined,
         amount: Number(r.amount),
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),

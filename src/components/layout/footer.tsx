@@ -55,7 +55,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {footerSections.map((section) => (
-            <div key={section.title}>
+            <nav key={section.title} aria-label={section.title}>
               <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">
                 {section.title}
               </h3>
@@ -71,7 +71,7 @@ export default function Footer() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </nav>
           ))}
         </div>
       </div>

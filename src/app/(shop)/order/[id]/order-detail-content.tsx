@@ -493,6 +493,57 @@ export default function OrderDetailContent({ id }: { id: string }) {
         </div>
       )}
 
+      {/* Cancelled banner */}
+      {order.status === "CANCELLED" && (
+        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--destructive)]/15">
+            <XCircle className="h-6 w-6 text-[var(--destructive)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              订单已取消
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+              该订单已被取消，库存已释放
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Refunded banner */}
+      {order.status === "REFUNDED" && (
+        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--muted-foreground)]/30 bg-[var(--muted)]/50 p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--muted-foreground)]/15">
+            <RotateCcw className="h-6 w-6 text-[var(--muted-foreground)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              订单已退款
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+              退款已处理，金额已退回您的账户余额
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Expired banner */}
+      {order.status === "EXPIRED" && (
+        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--warning)]/15">
+            <Clock className="h-6 w-6 text-[var(--warning)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              订单已过期
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+              订单未在规定时间内完成支付，已自动取消
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Status timeline */}
       {activeStepIndex >= 0 && (
         <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">

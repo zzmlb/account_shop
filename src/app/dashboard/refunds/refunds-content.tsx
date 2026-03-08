@@ -20,7 +20,7 @@ interface RefundItem {
   orderNo: string;
   reason: string;
   status: string;
-  adminNote: string | null;
+  rejectReason?: string | null;
   amount: number;
   createdAt: string;
   updatedAt: string;
@@ -178,10 +178,10 @@ export default function RefundsContent() {
                         <p className="text-xs text-[var(--muted-foreground)]">退款原因：</p>
                         <p className="mt-0.5 text-sm">{refund.reason}</p>
                       </div>
-                      {refund.adminNote && (
-                        <div className="rounded-[var(--radius-md)] border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-3 py-2">
-                          <p className="text-xs font-medium text-[var(--primary)]">管理员回复：</p>
-                          <p className="mt-0.5 text-sm">{refund.adminNote}</p>
+                      {refund.rejectReason && refund.status === "REJECTED" && (
+                        <div className="rounded-[var(--radius-md)] border border-[var(--destructive)]/20 bg-[var(--destructive)]/5 px-3 py-2">
+                          <p className="text-xs font-medium text-[var(--destructive)]">拒绝原因：</p>
+                          <p className="mt-0.5 text-sm">{refund.rejectReason}</p>
                         </div>
                       )}
                     </div>
