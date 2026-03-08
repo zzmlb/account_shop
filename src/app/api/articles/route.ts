@@ -15,9 +15,11 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category");
     const tag = searchParams.get("tag");
     const search = searchParams.get("search");
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const rawPage = parseInt(searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
     const pageSize = searchParams.get("pageSize");
-    const limit = Math.max(1, Math.min(50, parseInt(pageSize || searchParams.get("limit") || "20", 10)));
+    const rawLimit = parseInt(pageSize || searchParams.get("limit") || "20", 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : 20;
 
     const where: Record<string, unknown> = { isPublished: true };
 

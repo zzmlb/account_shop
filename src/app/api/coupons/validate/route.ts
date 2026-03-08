@@ -9,7 +9,15 @@ export async function POST(request: NextRequest) {
   try {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "请求格式错误" },
+        { status: 400 }
+      );
+    }
     const { code, amount } = body as { code?: string; amount?: number };
 
     if (!code || typeof code !== "string") {

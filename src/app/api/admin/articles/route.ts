@@ -62,8 +62,10 @@ export async function GET(request: NextRequest) {
     if (!session) return error!;
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "20", 10)));
+    const rawPage = parseInt(searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const rawLimit = parseInt(searchParams.get("limit") || "20", 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
     const search = searchParams.get("search");
     const category = searchParams.get("category");
     const isPublished = searchParams.get("isPublished");

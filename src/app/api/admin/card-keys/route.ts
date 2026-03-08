@@ -53,11 +53,10 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get("productId");
     const status = searchParams.get("status");
     const search = searchParams.get("search");
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const pageSize = Math.max(
-      1,
-      Math.min(100, parseInt(searchParams.get("pageSize") || "50", 10))
-    );
+    const rawPage = parseInt(searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const rawSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const pageSize = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 100) : 50;
 
     const where: Record<string, unknown> = {};
 

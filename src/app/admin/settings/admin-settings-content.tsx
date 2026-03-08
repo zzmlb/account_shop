@@ -172,14 +172,32 @@ export default function AdminSettingsPageContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleSaveAll]);
 
-  // Loading state
+  // Loading state - skeleton matching settings layout
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-          <p className="text-sm text-[var(--muted-foreground)]">加载设置中...</p>
+      <div className="space-y-6" aria-busy="true">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-28 animate-pulse rounded bg-[var(--muted)]" />
+            <div className="h-4 w-52 animate-pulse rounded bg-[var(--muted)]" />
+          </div>
+          <div className="h-9 w-24 animate-pulse rounded bg-[var(--muted)]" />
         </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
+            <div className="mb-4 h-5 w-24 rounded bg-[var(--muted)]" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <div className="h-3 w-16 rounded bg-[var(--muted)]" />
+                <div className="h-10 w-full rounded-[var(--radius-md)] bg-[var(--muted)]" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-16 rounded bg-[var(--muted)]" />
+                <div className="h-10 w-full rounded-[var(--radius-md)] bg-[var(--muted)]" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

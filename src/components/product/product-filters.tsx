@@ -190,6 +190,8 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
         <div className="flex items-center gap-2">
           <Input
             type="number"
+            min="0"
+            step="0.01"
             placeholder="最低价"
             value={localMinPrice}
             onChange={(e) => {
@@ -201,6 +203,8 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
           <span className="text-[var(--muted-foreground)]">-</span>
           <Input
             type="number"
+            min="0"
+            step="0.01"
             placeholder="最高价"
             value={localMaxPrice}
             onChange={(e) => {
