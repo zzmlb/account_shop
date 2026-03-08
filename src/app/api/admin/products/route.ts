@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
         slug: p.category.slug,
       },
       image: p.image,
+      images: p.images,
       tags: p.tags,
       stockCount: p.stockCount,
       soldCount: p.soldCount,
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
       originalPrice,
       tags,
       image,
+      images,
       isActive,
       deliveryType,
       afterSaleHours,
@@ -184,6 +186,7 @@ export async function POST(request: NextRequest) {
         originalPrice: originalPrice ?? undefined,
         tags: tags ?? [],
         image: image ?? undefined,
+        images,
         isActive: isActive ?? true,
         deliveryType: deliveryType ?? undefined,
         afterSaleHours: afterSaleHours ?? undefined,
@@ -209,6 +212,7 @@ export async function POST(request: NextRequest) {
           slug: product.category.slug,
         },
         image: product.image,
+        images: product.images,
         tags: product.tags,
         stockCount: product.stockCount,
         soldCount: product.soldCount,
@@ -273,6 +277,7 @@ export async function PUT(request: NextRequest) {
       originalPrice,
       tags,
       image,
+      images,
       isActive,
       sortOrder,
       deliveryType,
@@ -316,6 +321,7 @@ export async function PUT(request: NextRequest) {
     if (originalPrice !== undefined) updateData.originalPrice = originalPrice;
     if (tags !== undefined) updateData.tags = tags;
     if (image !== undefined) updateData.image = image;
+    if (images !== undefined) updateData.images = images;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
     if (deliveryType !== undefined) updateData.deliveryType = deliveryType;
@@ -345,6 +351,7 @@ export async function PUT(request: NextRequest) {
           slug: product.category.slug,
         },
         image: product.image,
+        images: product.images,
         tags: product.tags,
         stockCount: product.stockCount,
         soldCount: product.soldCount,

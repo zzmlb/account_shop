@@ -59,6 +59,7 @@ interface ApiProduct {
     slug: string;
   };
   image: string | null;
+  images: string[];
   tags: string[];
   stockCount: number;
   soldCount: number;
@@ -79,6 +80,7 @@ interface Product {
   price: number;
   originalPrice: number;
   image: string | null;
+  images: string[];
   stock: number;
   status: "上架" | "下架";
   sales: number;
@@ -107,6 +109,7 @@ function mapApiProduct(p: ApiProduct): Product {
     price: p.price,
     originalPrice: p.originalPrice ?? p.price,
     image: p.image,
+    images: p.images || [],
     stock: p.stockCount,
     status: p.isActive ? "上架" : "下架",
     sales: p.soldCount,
@@ -154,6 +157,7 @@ export default function AdminProductsPageContent() {
   const [formStockCount, setFormStockCount] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formImage, setFormImage] = useState("");
+  const [formImages, setFormImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [formStatus, setFormStatus] = useState<"上架" | "下架">("上架");
 
@@ -464,6 +468,7 @@ export default function AdminProductsPageContent() {
           stockCount: stockVal,
           description: formDescription.trim(),
           image: formImage.trim() || null,
+          images: formImages.filter((u) => u.trim()),
           isActive: formStatus === "上架",
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
@@ -491,6 +496,7 @@ export default function AdminProductsPageContent() {
           stockCount: stockVal,
           description: formDescription.trim(),
           image: formImage.trim() || null,
+          images: formImages.filter((u) => u.trim()),
           isActive: formStatus === "上架",
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
@@ -545,6 +551,30 @@ export default function AdminProductsPageContent() {
     }
   }
 
+  async function handleAdditionalImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.success) {
+        setFormImages((prev) => [...prev, data.url]);
+        toast.success("附加图片上传成功");
+      } else {
+        toast.error(data.message || "上传失败");
+      }
+    } catch {
+      toast.error("上传失败");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  }
+
   function resetForm() {
     setFormName("");
     setFormSlug("");
@@ -554,6 +584,7 @@ export default function AdminProductsPageContent() {
     setFormStockCount("");
     setFormDescription("");
     setFormImage("");
+    setFormImages([]);
     setFormStatus("上架");
     setEditingProduct(null);
   }
@@ -572,6 +603,7 @@ export default function AdminProductsPageContent() {
     setFormStockCount(String(product.stock));
     setFormDescription(product.description);
     setFormImage(product.image || "");
+    setFormImages(product.images || []);
     setFormStatus(product.status);
     setDialogOpen(true);
   }
@@ -840,6 +872,69 @@ export default function AdminProductsPageContent() {
                       />
                     </div>
                   )}
+                </div>
+
+                {/* 附加图片 */}
+                <div className="grid gap-2">
+                  <Label>
+                    附加图片{" "}
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      (可选，用于图片画廊)
+                    </span>
+                  </Label>
+                  {formImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formImages.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className="group relative h-16 w-16 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)]"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img}
+                            alt={`附加图片 ${idx + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormImages((prev) =>
+                                prev.filter((_, i) => i !== idx)
+                              )
+                            }
+                            className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading || formImages.length >= 8}
+                    onClick={() =>
+                      document
+                        .getElementById("additional-image-upload")
+                        ?.click()
+                    }
+                  >
+                    {isUploading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="mr-2 h-4 w-4" />
+                    )}
+                    添加图片 ({formImages.length}/8)
+                  </Button>
+                  <input
+                    id="additional-image-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                    className="hidden"
+                    onChange={handleAdditionalImageUpload}
+                  />
                 </div>
 
                 {/* 状态 */}

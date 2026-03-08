@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
       salesCount: p.soldCount,
       description: p.description,
       image: p.image,
+      images: p.images,
       tags: p.tags,
       avgRating: avgRatingMap.get(p.id) ?? 0,
       reviewCount: p._count.reviews,
