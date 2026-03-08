@@ -178,6 +178,16 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session cookie on page navigation to extend session lifetime
   const response = NextResponse.next();
+
+  // Add request ID for debugging and tracing
+  const requestId = crypto.randomUUID().slice(0, 8);
+  response.headers.set("X-Request-Id", requestId);
+
+  // Add Server-Timing header for API routes
+  if (pathname.startsWith("/api/")) {
+    response.headers.set("X-Request-Start", Date.now().toString());
+  }
+
   if (isAuthenticated && sessionCookie && !pathname.startsWith("/api/")) {
     response.cookies.set("session", sessionCookie, {
       httpOnly: true,
