@@ -232,7 +232,43 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-[var(--background)]">
       {/* Prevent admin pages from being indexed */}
       <meta name="robots" content="noindex, nofollow" />
-      {/* ========== Desktop Sidebar ========== */}
+      {/* ========== Collapsed sidebar (tablet: md-lg) ========== */}
+      <aside className="hidden w-16 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)] md:flex lg:hidden">
+        <div className="flex h-16 items-center justify-center border-b border-[var(--border)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)]">
+            <LayoutDashboard className="h-4 w-4 text-white" />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="flex flex-col items-center gap-1">
+            {sidebarLinks.map((link) => {
+              const active = isActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  title={link.label}
+                  className={cn(
+                    "relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors",
+                    active
+                      ? "bg-[var(--primary)]/10 text-[var(--primary)]"
+                      : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+                  )}
+                >
+                  <link.icon className="h-5 w-5" />
+                  {(sidebarBadges[link.href] || 0) > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--destructive)] text-[9px] font-bold text-white">
+                      {sidebarBadges[link.href] > 9 ? "9+" : sidebarBadges[link.href]}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+
+      {/* ========== Desktop Sidebar (full width) ========== */}
       <aside className="hidden w-64 shrink-0 border-r border-[var(--border)] bg-[var(--card)] lg:flex lg:flex-col">
         {/* Sidebar header / logo */}
         <div className="flex h-16 items-center gap-2 border-b border-[var(--border)] px-6">
@@ -286,7 +322,7 @@ export default function AdminLayout({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="lg:hidden"
+                  className="md:hidden"
                 >
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">打开菜单</span>
@@ -309,8 +345,8 @@ export default function AdminLayout({
               </SheetContent>
             </Sheet>
 
-            {/* Breadcrumbs for desktop */}
-            <nav aria-label="面包屑" className="hidden items-center gap-1.5 text-sm lg:flex">
+            {/* Breadcrumbs */}
+            <nav aria-label="面包屑" className="hidden items-center gap-1.5 text-sm md:flex">
               <Link
                 href="/admin"
                 className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
@@ -341,7 +377,7 @@ export default function AdminLayout({
             </nav>
 
             {/* Mobile logo */}
-            <span className="text-sm font-bold bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent lg:hidden">
+            <span className="text-sm font-bold bg-gradient-to-r from-[#6c5ce7] to-[#a855f7] bg-clip-text text-transparent md:hidden">
               {SITE_NAME}
             </span>
 
@@ -350,7 +386,7 @@ export default function AdminLayout({
               onClick={() => {
                 document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
               }}
-              className="hidden items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--secondary)] px-2.5 py-1 text-xs text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)] lg:flex"
+              className="hidden items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--secondary)] px-2.5 py-1 text-xs text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)] md:flex"
             >
               <Search className="h-3 w-3" />
               <span>快速跳转</span>
