@@ -73,6 +73,12 @@ export async function GET(request: NextRequest) {
       total,
       page,
       limit,
+      pagination: {
+        page,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
     response.headers.set(
       "Cache-Control",

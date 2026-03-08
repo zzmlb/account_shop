@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AdminMessagesContent from "./admin-messages-content";
 
 export const metadata: Metadata = {
-  title: "留言管理",
+  title: "留言管理 - 管理后台",
 };
 
 export default function AdminMessagesPage() {
