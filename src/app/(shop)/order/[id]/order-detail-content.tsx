@@ -19,6 +19,7 @@ import {
   XCircle,
   Download,
   RotateCcw,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -978,6 +979,16 @@ export default function OrderDetailContent({ id }: { id: string }) {
         <Button asChild variant="outline">
           <Link href="/order/search">查询卡密</Link>
         </Button>
+        {(order.status === "DELIVERED" || order.status === "PAID") && (
+          <Button
+            variant="outline"
+            onClick={() => window.print()}
+            className="no-print gap-1.5"
+          >
+            <Printer className="h-4 w-4" />
+            打印订单
+          </Button>
+        )}
       </div>
     </div>
   );

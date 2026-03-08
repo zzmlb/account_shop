@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Save,
   Globe,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
 // All settings keys managed by this page
 const SETTINGS_KEYS = [
@@ -71,6 +72,11 @@ export default function AdminSettingsPageContent() {
   const [settings, setSettings] = useState<SettingsMap>({ ...DEFAULT_SETTINGS });
   const [loading, setLoading] = useState(true);
   const [savingSection, setSavingSection] = useState<string | null>(null);
+  const savedSettingsRef = useRef<string>("");
+
+  // Track unsaved changes
+  const isDirty = !loading && JSON.stringify(settings) !== savedSettingsRef.current;
+  useUnsavedChanges(isDirty);
 
   // Fetch settings from API on mount
   const fetchSettings = useCallback(async () => {
@@ -86,6 +92,7 @@ export default function AdminSettingsPageContent() {
           }
         }
         setSettings(merged);
+        savedSettingsRef.current = JSON.stringify(merged);
       } else {
         toast.error(data.message || "获取设置失败");
       }
@@ -123,6 +130,7 @@ export default function AdminSettingsPageContent() {
       const data = await res.json();
       if (data.success) {
         toast.success(data.message || "设置已保存");
+        savedSettingsRef.current = JSON.stringify(settings);
       } else {
         toast.error(data.message || "保存失败");
       }
@@ -150,6 +158,7 @@ export default function AdminSettingsPageContent() {
       const data = await res.json();
       if (data.success) {
         toast.success("全部设置已保存");
+        savedSettingsRef.current = JSON.stringify(settings);
       } else {
         toast.error(data.message || "保存失败");
       }
