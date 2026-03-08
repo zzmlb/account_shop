@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Copy,
@@ -23,7 +24,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { decryptCardKey } from "@/lib/crypto";
+// decryptCardKey available if card key decryption is needed
 
 interface OrderDetail {
   id: string;
@@ -266,11 +267,13 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                 <div key={item.id} className="px-5 py-4">
                   <div className="flex items-start gap-4">
                     {item.productImage ? (
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
-                        <img
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
+                        <Image
                           src={item.productImage}
                           alt={item.productName}
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="56px"
                         />
                       </div>
                     ) : (

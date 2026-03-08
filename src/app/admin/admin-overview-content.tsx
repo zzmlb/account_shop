@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   DollarSign,
@@ -14,6 +14,7 @@ import {
   Bell,
   Crown,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -163,8 +164,12 @@ export default function AdminOverviewPageContent() {
   const [chartPeriod, setChartPeriod] = useState(7);
   const [ordersByStatus, setOrdersByStatus] = useState<OrderStatusCount[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  const fetchStats = async (period: number, isInitial = false) => {
+  const periodRef = useRef(chartPeriod);
+  periodRef.current = chartPeriod;
+
+  const fetchStats = useCallback(async (period: number, isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
       else setChartLoading(true);
@@ -176,22 +181,32 @@ export default function AdminOverviewPageContent() {
         setHotProducts(data.hotProducts);
         setSalesChart(data.salesChart);
         setOrdersByStatus(data.ordersByStatus || []);
+        setLastRefresh(new Date());
       }
-    } catch (err) {
-      console.error("Failed to fetch admin stats:", err);
+    } catch {
+      // silently fail for background refresh
     } finally {
       setLoading(false);
       setChartLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchStats(chartPeriod, true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Auto-refresh stats every 60 seconds
+    const interval = setInterval(() => {
+      fetchStats(periodRef.current);
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePeriodChange = (period: number) => {
     setChartPeriod(period);
     fetchStats(period);
+  };
+
+  const handleManualRefresh = () => {
+    fetchStats(chartPeriod);
   };
 
   if (loading) {
@@ -251,13 +266,32 @@ export default function AdminOverviewPageContent() {
   return (
     <div className="space-y-6">
       {/* Page title */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">
-          管理概览
-        </h1>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          欢迎回来，以下是今日平台运营数据概览
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            管理概览
+          </h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            欢迎回来，以下是今日平台运营数据概览
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastRefresh && (
+            <span className="hidden text-xs text-[var(--muted-foreground)] sm:inline">
+              {lastRefresh.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} 更新
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={chartLoading}
+            className="gap-1.5"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", chartLoading && "animate-spin")} />
+            刷新
+          </Button>
+        </div>
       </div>
 
       {/* ========== Stats Cards ========== */}

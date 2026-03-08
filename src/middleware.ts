@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_SECRET =
-  process.env.NEXTAUTH_SECRET || "pj37-dev-fallback-secret-change-in-prod";
+  process.env.NEXTAUTH_SECRET || "pj37-dev-fallback-secret";
 
 /**
  * Verify HMAC signature using Web Crypto API (Edge Runtime compatible).

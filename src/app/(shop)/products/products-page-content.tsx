@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -331,8 +332,8 @@ export default function ProductsPageContent() {
                   className="group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--primary)]/50 hover:bg-[var(--card-hover)]"
                 >
                   {product.image ? (
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
-                      <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
+                      <Image src={product.image} alt={product.name} fill className="object-cover" sizes="80px" />
                     </div>
                   ) : (
                     <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5">
@@ -351,7 +352,7 @@ export default function ProductsPageContent() {
                       <StockBadge stockCount={product.stockCount} />
                     </div>
                   </div>
-                  <ShoppingCart className="h-5 w-5 shrink-0 text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors" />
+                  <ShoppingCart className="h-5 w-5 shrink-0 text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors" aria-hidden="true" />
                 </Link>
               ))}
             </div>

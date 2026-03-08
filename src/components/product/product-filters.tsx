@@ -60,10 +60,13 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
     [searchParams]
   );
 
-  const updateFilter = (params: Record<string, string | null>) => {
-    const qs = createQueryString(params);
-    router.push(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
-  };
+  const updateFilter = useCallback(
+    (params: Record<string, string | null>) => {
+      const qs = createQueryString(params);
+      router.push(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [createQueryString, router]
+  );
 
   const selectedCategory = searchParams?.get("category") ?? "";
   const urlMinPrice = searchParams?.get("minPrice") ?? "";
@@ -87,7 +90,6 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
         updateFilter({ [key]: value || null });
       }, 500);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [updateFilter]
   );
 

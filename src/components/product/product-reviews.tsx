@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Star, Loader2, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -295,10 +296,12 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {review.avatar ? (
-                    <img
+                    <Image
                       src={review.avatar}
                       alt={review.username}
-                      className="h-8 w-8 rounded-full object-cover"
+                      width={32}
+                      height={32}
+                      className="rounded-full object-cover"
                     />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)]/10 text-sm font-bold text-[var(--primary)]">

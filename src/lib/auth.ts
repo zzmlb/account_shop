@@ -3,8 +3,13 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 const SALT_ROUNDS = 12;
-const SESSION_SECRET =
-  process.env.NEXTAUTH_SECRET || "pj37-dev-fallback-secret-change-in-prod";
+const SESSION_SECRET = (() => {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("NEXTAUTH_SECRET must be set in production");
+  }
+  return secret || "pj37-dev-fallback-secret";
+})();
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
