@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Inbox,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,19 @@ function timeAgo(dateStr: string): string {
   if (days < 30) return `${days}天前`;
 
   return new Date(dateStr).toLocaleDateString("zh-CN");
+}
+
+function getDateGroup(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+  const weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+  if (date >= today) return "今天";
+  if (date >= yesterday) return "昨天";
+  if (date >= weekAgo) return "本周";
+  return "更早";
 }
 
 export default function NotificationsContent() {
@@ -154,6 +168,37 @@ export default function NotificationsContent() {
       router.push(notification.href);
     }
   };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        const deleted = notifications.find((n) => n.id === id);
+        if (deleted && !deleted.isRead) setUnreadCount((c) => Math.max(0, c - 1));
+        toast.success("通知已删除");
+      }
+    } catch {
+      toast.error("删除失败");
+    }
+  };
+
+  // Group notifications by date
+  const groupedNotifications = notifications.reduce<{ group: string; items: Notification[] }[]>(
+    (groups, n) => {
+      const group = getDateGroup(n.createdAt);
+      const last = groups[groups.length - 1];
+      if (last && last.group === group) {
+        last.items.push(n);
+      } else {
+        groups.push({ group, items: [n] });
+      }
+      return groups;
+    },
+    []
+  );
 
   return (
     <div className="space-y-6">
@@ -274,63 +319,75 @@ export default function NotificationsContent() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {notifications.map((n) => {
-            const config = typeConfig[n.type];
-            const Icon = config.icon;
-            return (
-              <button
-                key={n.id}
-                onClick={() => handleNotificationClick(n)}
-                aria-label={`${n.isRead ? "" : "未读 - "}${n.title}`}
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-[var(--radius-lg)] border p-4 text-left transition-all",
-                  n.isRead
-                    ? "border-[var(--border)] bg-transparent hover:bg-[var(--muted)]/50"
-                    : "border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10",
-                  n.href && "cursor-pointer"
-                )}
-              >
-                <div
-                  className={cn(
-                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    config.bg
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4", config.color)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
+        <div className="space-y-4">
+          {groupedNotifications.map(({ group, items }) => (
+            <div key={group}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                {group}
+              </p>
+              <div className="space-y-2">
+                {items.map((n) => {
+                  const config = typeConfig[n.type];
+                  const Icon = config.icon;
+                  return (
+                    <div
+                      key={n.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleNotificationClick(n)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleNotificationClick(n); }}
+                      aria-label={`${n.isRead ? "" : "未读 - "}${n.title}`}
                       className={cn(
-                        "text-sm font-medium",
+                        "group flex w-full items-start gap-3 rounded-[var(--radius-lg)] border p-4 text-left transition-all",
                         n.isRead
-                          ? "text-[var(--foreground)]"
-                          : "text-[var(--foreground)]"
+                          ? "border-[var(--border)] bg-transparent hover:bg-[var(--muted)]/50"
+                          : "border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10",
+                        n.href && "cursor-pointer"
                       )}
                     >
-                      {n.title}
-                    </span>
-                    {!n.isRead && (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--primary)]" />
-                    )}
-                    <Badge
-                      variant="outline"
-                      className="ml-auto shrink-0 text-[10px]"
-                    >
-                      {config.label}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-sm text-[var(--muted-foreground)] line-clamp-2">
-                    {n.content}
-                  </p>
-                  <span className="mt-1.5 block text-xs text-[var(--muted-foreground)]">
-                    {timeAgo(n.createdAt)}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+                      <div
+                        className={cn(
+                          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                          config.bg
+                        )}
+                      >
+                        <Icon className={cn("h-4 w-4", config.color)} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-[var(--foreground)]">
+                            {n.title}
+                          </span>
+                          {!n.isRead && (
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--primary)]" />
+                          )}
+                          <Badge
+                            variant="outline"
+                            className="ml-auto shrink-0 text-[10px]"
+                          >
+                            {config.label}
+                          </Badge>
+                          <button
+                            onClick={(e) => handleDelete(e, n.id)}
+                            className="shrink-0 rounded p-1 text-[var(--muted-foreground)] opacity-0 transition-opacity hover:text-[var(--destructive)] group-hover:opacity-100"
+                            aria-label="删除通知"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <p className="mt-1 text-sm text-[var(--muted-foreground)] line-clamp-2">
+                          {n.content}
+                        </p>
+                        <span className="mt-1.5 block text-xs text-[var(--muted-foreground)]">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

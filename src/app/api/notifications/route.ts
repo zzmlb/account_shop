@@ -139,3 +139,34 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+// DELETE - Delete a notification
+export async function DELETE(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getSession(request);
+    if (!session) return error!;
+
+    const id = new URL(request.url).searchParams.get("id");
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "缺少通知ID" },
+        { status: 400 }
+      );
+    }
+
+    await db.notification.deleteMany({
+      where: { id, userId: session.id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    log.error({ err: error }, "删除通知失败");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}

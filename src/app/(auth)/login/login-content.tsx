@@ -85,16 +85,16 @@ export default function LoginContent() {
 
       {/* Login Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Username */}
+        {/* Username / Email */}
         <div className="space-y-2">
-          <Label htmlFor="username">用户名</Label>
+          <Label htmlFor="username">用户名或邮箱</Label>
           <Input
             id="username"
-            placeholder="请输入用户名"
+            placeholder="请输入用户名或邮箱"
             autoComplete="username"
             autoFocus
             minLength={2}
-            maxLength={20}
+            maxLength={100}
             className={cn(
               "bg-[var(--background)]",
               errors.username && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"

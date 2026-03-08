@@ -3,8 +3,8 @@ import { z } from "zod";
 export const loginSchema = z.object({
   username: z
     .string()
-    .min(2, "用户名至少2个字符")
-    .max(20, "用户名最多20个字符"),
+    .min(2, "请输入用户名或邮箱")
+    .max(100, "输入内容过长"),
   password: z
     .string()
     .min(6, "密码至少6个字符")
