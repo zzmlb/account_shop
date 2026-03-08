@@ -348,6 +348,12 @@ export async function PUT(request: NextRequest) {
       });
     }
   } catch (error) {
+    if (error instanceof Error && error.message === "ALREADY_PROCESSED") {
+      return NextResponse.json(
+        { success: false, message: "该退款申请已处理" },
+        { status: 400 }
+      );
+    }
     log.error({ err: error }, "处理退款申请失败");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },

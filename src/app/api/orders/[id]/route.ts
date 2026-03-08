@@ -137,11 +137,21 @@ export async function PATCH(
       );
     }
 
-    // Verify ownership: user must be logged in and own the order, or order must be guest
+    // Verify ownership
     if (order.userId) {
+      // Registered user order - must be the owner
       if (!session || session.id !== order.userId) {
         return NextResponse.json(
           { success: false, message: "无权操作此订单" },
+          { status: 403 }
+        );
+      }
+    } else {
+      // Guest order - require logged-in admin, or reject
+      const isAdmin = session && (session.role.toUpperCase() === "ADMIN" || session.role.toUpperCase() === "SUPER_ADMIN");
+      if (!isAdmin) {
+        return NextResponse.json(
+          { success: false, message: "游客订单仅管理员可取消" },
           { status: 403 }
         );
       }

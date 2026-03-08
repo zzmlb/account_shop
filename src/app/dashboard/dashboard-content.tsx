@@ -356,6 +356,9 @@ export default function DashboardPageContent() {
               <TrendingUp className="mb-2 h-8 w-8 opacity-20" />
               <p className="text-sm">暂无消费记录</p>
               <p className="mt-1 text-xs">购买商品后将显示消费趋势</p>
+              <Button variant="ghost" size="sm" asChild className="mt-2">
+                <Link href="/products">浏览商品</Link>
+              </Button>
             </div>
           ) : (
             <div className="h-[220px] w-full">
@@ -553,6 +556,11 @@ export default function DashboardPageContent() {
             <div className="flex flex-col items-center py-4 text-[var(--muted-foreground)]">
               <Bell className="mb-1 h-6 w-6 opacity-20" />
               <p className="text-xs">暂无新通知</p>
+              <Button variant="ghost" size="sm" asChild className="mt-1">
+                <Link href="/dashboard/notifications" className="text-xs">
+                  查看历史通知
+                </Link>
+              </Button>
             </div>
           )}
         </div>

@@ -125,18 +125,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const coupon = await db.coupon.create({
-      data: {
-        code: code.toUpperCase(),
-        type,
-        value,
-        minAmount: minAmount ?? null,
-        maxUses: maxUses ?? null,
-        startAt: new Date(startAt),
-        expireAt: new Date(expireAt),
-        isActive: true,
-      },
-    });
+    let coupon;
+    try {
+      coupon = await db.coupon.create({
+        data: {
+          code: code.toUpperCase(),
+          type,
+          value,
+          minAmount: minAmount ?? null,
+          maxUses: maxUses ?? null,
+          startAt: new Date(startAt),
+          expireAt: new Date(expireAt),
+          isActive: true,
+        },
+      });
+    } catch (createErr: unknown) {
+      // Handle unique constraint violation (race condition with duplicate code)
+      if (typeof createErr === "object" && createErr !== null && "code" in createErr && (createErr as { code: string }).code === "P2002") {
+        return NextResponse.json(
+          { success: false, message: "优惠码已存在" },
+          { status: 400 }
+        );
+      }
+      throw createErr;
+    }
 
     log.info(
       { adminId: session.id, couponId: coupon.id, code: coupon.code, type, value },

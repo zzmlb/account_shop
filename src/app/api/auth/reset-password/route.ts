@@ -77,19 +77,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash new password and update user
+    // Hash new password and update user (with optimistic lock on usedAt)
     const passwordHash = await hashPassword(password);
 
-    await db.$transaction([
-      db.user.update({
+    await db.$transaction(async (tx) => {
+      // Re-check token hasn't been used (prevents race condition)
+      const updated = await tx.passwordReset.updateMany({
+        where: { id: resetRecord.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      if (updated.count === 0) {
+        throw new Error("TOKEN_ALREADY_USED");
+      }
+
+      await tx.user.update({
         where: { id: resetRecord.userId },
         data: { passwordHash },
-      }),
-      db.passwordReset.update({
-        where: { id: resetRecord.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
+      });
+    });
 
     log.info({ userId: resetRecord.userId }, "Password reset completed");
 
@@ -98,6 +103,12 @@ export async function POST(request: NextRequest) {
       message: "密码重置成功，请使用新密码登录",
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "TOKEN_ALREADY_USED") {
+      return NextResponse.json(
+        { success: false, message: "此重置链接已使用" },
+        { status: 400 }
+      );
+    }
     log.error({ err: error }, "Reset password error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
