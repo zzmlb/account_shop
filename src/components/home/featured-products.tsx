@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowRight } from "lucide-react";
 import { db } from "@/server/db";
+import FavoriteButton from "@/components/product/favorite-button";
 
 const GRADIENTS = [
   "linear-gradient(135deg, #6c5ce7 0%, #00d2ff 100%)",
@@ -66,12 +67,18 @@ function ProductCard({ product }: { product: Product }) {
             -{discount}%
           </Badge>
         )}
-        <Badge
-          variant={product.stock < 100 ? "destructive" : "success"}
-          className="absolute right-3 top-3"
-        >
-          {product.stock < 100 ? "库存紧张" : "有货"}
-        </Badge>
+        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+          <Badge
+            variant={product.stock < 100 ? "destructive" : "success"}
+          >
+            {product.stock < 100 ? "库存紧张" : "有货"}
+          </Badge>
+          <FavoriteButton
+            productId={product.id}
+            size="sm"
+            className="bg-[var(--background)]/70 backdrop-blur-sm hover:bg-[var(--background)]/90"
+          />
+        </div>
       </div>
 
       {/* Content */}

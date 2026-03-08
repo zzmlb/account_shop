@@ -19,6 +19,7 @@ import StockBadge from "@/components/shared/stock-badge";
 import QuantitySelector from "@/components/product/quantity-selector";
 import ProductCard from "@/components/product/product-card";
 import FavoriteButton from "@/components/product/favorite-button";
+import ShareButtons from "@/components/product/share-buttons";
 import { useCartStore } from "@/stores/cart-store";
 import { useRecentlyViewedStore } from "@/stores/recently-viewed-store";
 
@@ -170,12 +171,15 @@ export default function ProductDetailContent({
 
         {/* Right: Product info */}
         <div className="flex flex-col">
-          {/* Category + Favorite */}
+          {/* Category + Actions */}
           <div className="mb-2 flex items-center justify-between">
             <span className="inline-block rounded-full bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
               {product.categoryName}
             </span>
-            <FavoriteButton productId={product.id} size="md" />
+            <div className="flex items-center gap-1">
+              <FavoriteButton productId={product.id} size="md" />
+              <ShareButtons title={product.name} />
+            </div>
           </div>
 
           {/* Name */}
