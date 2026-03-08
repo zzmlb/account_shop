@@ -252,6 +252,121 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH - Batch operations (admin only)
+export async function PATCH(request: NextRequest) {
+  try {
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { action, ids } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "请选择至少一个卡密" },
+        { status: 400 }
+      );
+    }
+
+    if (ids.length > 500) {
+      return NextResponse.json(
+        { success: false, message: "单次最多操作500个卡密" },
+        { status: 400 }
+      );
+    }
+
+    if (!["enable", "disable", "delete"].includes(action)) {
+      return NextResponse.json(
+        { success: false, message: "无效的操作类型" },
+        { status: 400 }
+      );
+    }
+
+    // Get all targeted card keys
+    const targets = await db.cardKey.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, status: true, productId: true },
+    });
+
+    // Filter out SOLD keys (can't modify sold keys)
+    const operable = targets.filter((t) => t.status !== "SOLD");
+
+    if (operable.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "所选卡密均为已售状态，无法操作" },
+        { status: 400 }
+      );
+    }
+
+    const operableIds = operable.map((t) => t.id);
+
+    if (action === "enable") {
+      const disabled = operable.filter((t) => t.status === "DISABLED");
+      await db.cardKey.updateMany({
+        where: { id: { in: disabled.map((t) => t.id) } },
+        data: { status: "AVAILABLE" },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `已启用 ${disabled.length} 个卡密`,
+        count: disabled.length,
+      });
+    }
+
+    if (action === "disable") {
+      const available = operable.filter((t) => t.status === "AVAILABLE");
+      await db.cardKey.updateMany({
+        where: { id: { in: available.map((t) => t.id) } },
+        data: { status: "DISABLED" },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `已禁用 ${available.length} 个卡密`,
+        count: available.length,
+      });
+    }
+
+    if (action === "delete") {
+      // Count AVAILABLE keys per product for stock adjustment
+      const stockAdjustments: Record<string, number> = {};
+      for (const t of operable) {
+        if (t.status === "AVAILABLE") {
+          stockAdjustments[t.productId] = (stockAdjustments[t.productId] || 0) + 1;
+        }
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.cardKey.deleteMany({
+          where: { id: { in: operableIds } },
+        });
+        for (const [productId, count] of Object.entries(stockAdjustments)) {
+          await tx.product.update({
+            where: { id: productId },
+            data: { stockCount: { decrement: count } },
+          });
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `已删除 ${operable.length} 个卡密`,
+        count: operable.length,
+      });
+    }
+
+    return NextResponse.json(
+      { success: false, message: "未知操作" },
+      { status: 400 }
+    );
+  } catch (error) {
+    log.error({ err: error }, "Admin card-keys PATCH error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
 // PUT - Update card key status (admin only, ?id= query param)
 export async function PUT(request: NextRequest) {
   try {

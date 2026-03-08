@@ -16,6 +16,7 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  FileUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -190,6 +192,14 @@ export default function AdminCardKeysPageContent() {
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  // Batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchAction, setBatchAction] = useState<string | null>(null);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+
+  // File upload ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Track whether initial load is done
   const initialized = useRef(false);
@@ -450,6 +460,139 @@ export default function AdminCardKeysPageContent() {
   };
 
   // ---------------------------------------------------------------------------
+  // Batch selection handlers
+  // ---------------------------------------------------------------------------
+
+  const toggleSelectAll = () => {
+    const selectableIds = cardKeys
+      .filter((k) => k.status !== "SOLD")
+      .map((k) => k.id);
+    if (selectableIds.length === 0) return;
+    const allSelected = selectableIds.every((id) => selectedIds.has(id));
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableIds));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBatchAction = async () => {
+    if (!batchAction || selectedIds.size === 0) return;
+    setMutating(true);
+    try {
+      const res = await fetch("/api/admin/card-keys", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: batchAction,
+          ids: Array.from(selectedIds),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "批量操作失败");
+      }
+      toast.success(data.message);
+      setSelectedIds(new Set());
+      setBatchDialogOpen(false);
+      setBatchAction(null);
+      await refreshAfterMutation();
+    } catch (err) {
+      toast.error("批量操作失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // File upload handler
+  // ---------------------------------------------------------------------------
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      if (text) {
+        setImportContent((prev) => (prev ? prev + "\n" + text : text));
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be uploaded again
+    e.target.value = "";
+  };
+
+  // ---------------------------------------------------------------------------
+  // Export handler
+  // ---------------------------------------------------------------------------
+
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set("pageSize", "10000");
+      if (activeTab !== "all") params.set("status", activeTab);
+      if (productFilter !== "all") params.set("productId", productFilter);
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+
+      const res = await fetch(`/api/admin/card-keys?${params.toString()}`);
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.cardKeys)) {
+        throw new Error(data.message || "导出失败");
+      }
+
+      const rows = [
+        ["商品", "卡密内容", "状态", "订单号", "添加时间", "售出时间"].join(","),
+        ...data.cardKeys.map((ck: ApiCardKey) =>
+          [
+            `"${ck.product.name}"`,
+            `"${ck.content}"`,
+            statusLabel(ck.status),
+            ck.orderNo || "",
+            ck.createdAt.slice(0, 16).replace("T", " "),
+            ck.soldAt ? ck.soldAt.slice(0, 16).replace("T", " ") : "",
+          ].join(",")
+        ),
+      ];
+
+      const bom = "\uFEFF";
+      const blob = new Blob([bom + rows.join("\n")], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `卡密导出_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`已导出 ${data.cardKeys.length} 条卡密`);
+    } catch (err) {
+      toast.error("导出失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    }
+  };
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, productFilter, debouncedSearch, currentPage]);
+
+  // ---------------------------------------------------------------------------
   // Render: Loading skeleton
   // ---------------------------------------------------------------------------
 
@@ -506,7 +649,7 @@ export default function AdminCardKeysPageContent() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             导出
           </Button>
@@ -544,11 +687,31 @@ export default function AdminCardKeysPageContent() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>卡密内容</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>卡密内容</Label>
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".txt,.csv,.text"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FileUp className="mr-1 h-3.5 w-3.5" />
+                        从文件导入
+                      </Button>
+                    </div>
+                  </div>
                   <textarea
                     className="flex min-h-[160px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
                     placeholder={
-                      "每行一个卡密，例如：\nGMAL-8K2F-J9X3-Q7WN\nGMAL-3P7R-M1D5-H8YC"
+                      "每行一个卡密，例如：\nGMAL-8K2F-J9X3-Q7WN\nGMAL-3P7R-M1D5-H8YC\n\n也可点击上方按钮从 .txt/.csv 文件导入"
                     }
                     value={importContent}
                     onChange={(e) => setImportContent(e.target.value)}
@@ -683,11 +846,75 @@ export default function AdminCardKeysPageContent() {
         </div>
       </div>
 
+      {/* Batch action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-3">
+          <span className="text-sm font-medium">
+            已选择 {selectedIds.size} 项
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setBatchAction("enable");
+                setBatchDialogOpen(true);
+              }}
+            >
+              <CheckCircle className="mr-1 h-3.5 w-3.5" />
+              批量启用
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setBatchAction("disable");
+                setBatchDialogOpen(true);
+              }}
+            >
+              <Ban className="mr-1 h-3.5 w-3.5" />
+              批量禁用
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                setBatchAction("delete");
+                setBatchDialogOpen(true);
+              }}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              批量删除
+            </Button>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto"
+          >
+            取消选择
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
+              <th className="w-10 px-4 py-3">
+                <Checkbox
+                  checked={
+                    cardKeys.filter((k) => k.status !== "SOLD").length > 0 &&
+                    cardKeys
+                      .filter((k) => k.status !== "SOLD")
+                      .every((k) => selectedIds.has(k.id))
+                  }
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="全选"
+                />
+              </th>
               <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
                 商品
               </th>
@@ -714,7 +941,7 @@ export default function AdminCardKeysPageContent() {
           <tbody>
             {cardKeys.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-16 text-center">
+                <td colSpan={8} className="py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="mb-4 rounded-full bg-[var(--muted)] p-4">
                       <Key className="h-10 w-10 text-[var(--muted-foreground)]" />
@@ -731,6 +958,17 @@ export default function AdminCardKeysPageContent() {
                   key={key.id}
                   className="border-b border-[var(--border)] last:border-b-0 transition-colors hover:bg-[var(--card-hover)]"
                 >
+                  <td className="w-10 px-4 py-3">
+                    {key.status !== "SOLD" ? (
+                      <Checkbox
+                        checked={selectedIds.has(key.id)}
+                        onCheckedChange={() => toggleSelect(key.id)}
+                        aria-label={`选择 ${key.product.name} 卡密`}
+                      />
+                    ) : (
+                      <div className="h-4 w-4" />
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium">
                     {key.product.name}
                   </td>
@@ -900,6 +1138,50 @@ export default function AdminCardKeysPageContent() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch action confirmation dialog */}
+      <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className={cn(
+                "h-5 w-5",
+                batchAction === "delete"
+                  ? "text-[var(--destructive)]"
+                  : "text-[var(--primary)]"
+              )} />
+              确认批量{batchAction === "enable" ? "启用" : batchAction === "disable" ? "禁用" : "删除"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            确定要{batchAction === "enable" ? "启用" : batchAction === "disable" ? "禁用" : "删除"}{" "}
+            {selectedIds.size} 个卡密吗？
+            {batchAction === "delete" && "此操作不可撤销。"}
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBatchDialogOpen(false);
+                setBatchAction(null);
+              }}
+              disabled={mutating}
+            >
+              取消
+            </Button>
+            <Button
+              variant={batchAction === "delete" ? "destructive" : "default"}
+              disabled={mutating}
+              onClick={handleBatchAction}
+            >
+              {mutating && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              确认
             </Button>
           </DialogFooter>
         </DialogContent>
