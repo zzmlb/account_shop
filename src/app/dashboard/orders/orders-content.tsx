@@ -56,6 +56,7 @@ const STATUS_MAP: Record<string, string> = {
   DELIVERED: "已完成",
   CANCELLED: "已取消",
   REFUNDED: "已退款",
+  EXPIRED: "已过期",
 };
 
 const STATUS_VARIANT: Record<string, "default" | "success" | "secondary" | "destructive"> = {
@@ -64,6 +65,7 @@ const STATUS_VARIANT: Record<string, "default" | "success" | "secondary" | "dest
   DELIVERED: "success",
   CANCELLED: "destructive",
   REFUNDED: "destructive",
+  EXPIRED: "secondary",
 };
 
 const PAYMENT_MAP: Record<string, string> = {

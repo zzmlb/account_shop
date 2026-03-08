@@ -46,6 +46,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDateTime } from "@/lib/utils";
 
 type OrderStatus =
   | "PENDING"
@@ -140,16 +141,6 @@ const paymentMethodMap: Record<string, string> = {
 function formatPaymentMethod(method: string | null): string {
   if (!method) return "-";
   return paymentMethodMap[method] || method;
-}
-
-function formatDateTime(isoString: string): string {
-  const date = new Date(isoString);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const h = String(date.getHours()).padStart(2, "0");
-  const min = String(date.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${d} ${h}:${min}`;
 }
 
 function getProductSummary(items: OrderItem[]): string {

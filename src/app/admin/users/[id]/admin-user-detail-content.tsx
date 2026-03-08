@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 
 interface UserDetail {
   id: string;
@@ -76,12 +76,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "destruct
   EXPIRED: { label: "已过期", variant: "outline" },
 };
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -91,7 +85,7 @@ function timeAgo(iso: string): string {
   if (hours < 24) return `${hours}小时前`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}天前`;
-  return formatDate(iso);
+  return formatDateTime(iso);
 }
 
 export default function AdminUserDetailContent({ userId }: { userId: string }) {
@@ -207,7 +201,7 @@ export default function AdminUserDetailContent({ userId }: { userId: string }) {
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  注册于 {formatDate(user.createdAt)}
+                  注册于 {formatDateTime(user.createdAt)}
                 </span>
               </div>
             </div>

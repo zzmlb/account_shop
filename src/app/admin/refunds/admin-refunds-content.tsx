@@ -27,6 +27,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { formatDateTime } from "@/lib/utils";
 
 type StatusFilter = "all" | "PENDING" | "APPROVED" | "REJECTED";
 
@@ -63,12 +64,6 @@ const statusTabs: { value: StatusFilter; label: string }[] = [
   { value: "APPROVED", label: "已通过" },
   { value: "REJECTED", label: "已拒绝" },
 ];
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export default function AdminRefundsContent() {
   const [refunds, setRefunds] = useState<RefundItem[]>([]);
@@ -242,7 +237,7 @@ export default function AdminRefundsContent() {
                           {refund.orderNo}
                         </span>
                         <span className="text-xs text-[var(--muted-foreground)]">
-                          {formatDate(refund.createdAt)}
+                          {formatDateTime(refund.createdAt)}
                         </span>
                       </div>
                       <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
@@ -314,7 +309,7 @@ export default function AdminRefundsContent() {
                           )}
                           {refund.status !== "PENDING" && (
                             <span className="text-xs text-[var(--muted-foreground)]">
-                              处理于 {formatDate(refund.updatedAt)}
+                              处理于 {formatDateTime(refund.updatedAt)}
                             </span>
                           )}
                         </div>

@@ -41,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
@@ -138,16 +138,6 @@ function maskContent(content: string): string {
     return `${content.slice(0, 4)}****${content.slice(-4)}`;
   }
   return "****";
-}
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return iso.slice(0, 16).replace("T", " ");
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -985,10 +975,10 @@ export default function AdminCardKeysPageContent() {
                     </Badge>
                   </td>
                   <td className="hidden px-4 py-3 text-[var(--muted-foreground)] md:table-cell">
-                    {formatDate(key.createdAt)}
+                    {formatDateTime(key.createdAt)}
                   </td>
                   <td className="hidden px-4 py-3 text-[var(--muted-foreground)] lg:table-cell">
-                    {key.soldAt ? formatDate(key.soldAt) : "-"}
+                    {key.soldAt ? formatDateTime(key.soldAt) : "-"}
                   </td>
                   <td className="hidden px-4 py-3 text-[var(--muted-foreground)] lg:table-cell">
                     {key.orderNo ? (

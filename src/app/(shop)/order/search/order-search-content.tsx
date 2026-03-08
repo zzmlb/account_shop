@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   DELIVERED: "已发货",
   CANCELLED: "已取消",
   REFUNDED: "已退款",
+  EXPIRED: "已过期",
 };
 
 const STATUS_VARIANTS: Record<string, "default" | "success" | "destructive" | "outline" | "secondary"> = {
@@ -43,6 +44,7 @@ const STATUS_VARIANTS: Record<string, "default" | "success" | "destructive" | "o
   DELIVERED: "success",
   CANCELLED: "destructive",
   REFUNDED: "secondary",
+  EXPIRED: "secondary",
 };
 
 function maskKey(key: string): string {
@@ -142,7 +144,7 @@ export default function OrderSearchPageContent() {
               订单号 <span className="text-[var(--destructive)]">*</span>
             </label>
             <Input
-              placeholder="例如: ORD-20260308-A1B2"
+              placeholder="例如: PJ37-20260308-A1B2"
               value={orderNo}
               onChange={(e) => {
                 setOrderNo(e.target.value);
@@ -343,7 +345,9 @@ export default function OrderSearchPageContent() {
                   ? "订单尚未支付，支付完成后即可查看卡密"
                   : result.status === "CANCELLED"
                     ? "订单已取消"
-                    : "暂无卡密信息"}
+                    : result.status === "EXPIRED"
+                      ? "订单已过期"
+                      : "暂无卡密信息"}
               </p>
             </div>
           )}

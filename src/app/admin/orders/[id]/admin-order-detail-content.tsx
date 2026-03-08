@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { formatDateTime } from "@/lib/utils";
 // decryptCardKey available if card key decryption is needed
 
 interface OrderDetail {
@@ -88,16 +89,6 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   REFUNDED: { label: "已退款", variant: "destructive", icon: RefreshCw },
   EXPIRED: { label: "已过期", variant: "outline", icon: AlertTriangle },
 };
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).then(
@@ -359,7 +350,7 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                           : "待处理"}
                       </Badge>
                       <span className="text-xs text-[var(--muted-foreground)]">
-                        {formatDate(r.createdAt)}
+                        {formatDateTime(r.createdAt)}
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-[var(--foreground)]">
@@ -428,21 +419,21 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
             <div className="space-y-3 px-5 py-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-[var(--muted-foreground)]">创建时间</span>
-                <span className="text-[var(--foreground)]">{formatDate(order.createdAt)}</span>
+                <span className="text-[var(--foreground)]">{formatDateTime(order.createdAt)}</span>
               </div>
               {order.paidAt && (
                 <div className="flex justify-between">
                   <span className="text-[var(--muted-foreground)]">支付时间</span>
-                  <span className="text-[var(--foreground)]">{formatDate(order.paidAt)}</span>
+                  <span className="text-[var(--foreground)]">{formatDateTime(order.paidAt)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-[var(--muted-foreground)]">过期时间</span>
-                <span className="text-[var(--foreground)]">{formatDate(order.expireAt)}</span>
+                <span className="text-[var(--foreground)]">{formatDateTime(order.expireAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--muted-foreground)]">更新时间</span>
-                <span className="text-[var(--foreground)]">{formatDate(order.updatedAt)}</span>
+                <span className="text-[var(--foreground)]">{formatDateTime(order.updatedAt)}</span>
               </div>
               {order.paymentMethod && (
                 <div className="flex justify-between">
@@ -485,7 +476,7 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[var(--muted-foreground)]">注册时间</span>
-                    <span className="text-[var(--foreground)]">{formatDate(order.user.createdAt)}</span>
+                    <span className="text-[var(--foreground)]">{formatDateTime(order.user.createdAt)}</span>
                   </div>
                 </>
               ) : (

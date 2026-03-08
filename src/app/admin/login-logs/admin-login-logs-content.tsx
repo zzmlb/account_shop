@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDateTimeFull } from "@/lib/utils";
 
 type StatusFilter = "all" | "success" | "failed";
 
@@ -42,12 +43,6 @@ const statusTabs: { value: StatusFilter; label: string }[] = [
   { value: "success", label: "成功" },
   { value: "failed", label: "失败" },
 ];
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
 
 function parseUA(ua: string | null): string {
   if (!ua) return "-";
@@ -214,7 +209,7 @@ export default function AdminLoginLogsContent() {
                         {item.reason || "-"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--muted-foreground)]">
-                        {formatDate(item.createdAt)}
+                        {formatDateTimeFull(item.createdAt)}
                       </td>
                     </tr>
                   ))}

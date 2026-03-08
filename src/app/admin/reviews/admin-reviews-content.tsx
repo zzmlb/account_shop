@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   Trash2,
+  Download,
   MessageSquare,
   Reply,
   ChevronLeft,
@@ -26,6 +27,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { formatDateTime } from "@/lib/utils";
+import { exportToCsv } from "@/lib/csv-export";
 
 /* ---------- types ---------- */
 
@@ -69,12 +72,6 @@ function Stars({ rating }: { rating: number }) {
       ))}
     </div>
   );
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 /* ---------- component ---------- */
@@ -211,11 +208,37 @@ export default function AdminReviewsContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">评价管理</h1>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          管理用户商品评价，共 {total} 条
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">评价管理</h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            管理用户商品评价，共 {total} 条
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() =>
+            exportToCsv(
+              `reviews-${new Date().toISOString().slice(0, 10)}`,
+              [
+                { header: "用户", accessor: (r: AdminReview) => r.user.username },
+                { header: "商品", accessor: (r: AdminReview) => r.product.name },
+                { header: "评分", accessor: (r: AdminReview) => r.rating },
+                { header: "内容", accessor: (r: AdminReview) => r.content },
+                { header: "可见", accessor: (r: AdminReview) => r.isVisible ? "是" : "否" },
+                { header: "管理员回复", accessor: (r: AdminReview) => r.adminReply || "" },
+                { header: "时间", accessor: (r: AdminReview) => formatDateTime(r.createdAt) },
+              ],
+              reviews
+            )
+          }
+          disabled={reviews.length === 0}
+        >
+          <Download className="h-4 w-4" />
+          导出
+        </Button>
       </div>
 
       {/* Filters */}
@@ -320,7 +343,7 @@ export default function AdminReviewsContent() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-[var(--muted-foreground)] whitespace-nowrap">
-                    {formatDate(review.createdAt)}
+                    {formatDateTime(review.createdAt)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
