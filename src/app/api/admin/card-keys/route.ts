@@ -123,9 +123,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (keys.length > 5000) {
+    if (keys.length > 1000) {
       return NextResponse.json(
-        { success: false, message: "单次最多导入5000个卡密" },
+        { success: false, message: "单次最多导入1000个卡密，大量导入请分批提交" },
         { status: 400 }
       );
     }

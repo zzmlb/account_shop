@@ -28,6 +28,12 @@ export async function POST(request: NextRequest) {
     // Use provided SMTP config or fallback to env vars
     const host = smtpHost || process.env.SMTP_HOST;
     const port = parseInt(smtpPort || process.env.SMTP_PORT || "587", 10);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      return NextResponse.json(
+        { success: false, message: "SMTP端口号无效，必须为1-65535之间的整数" },
+        { status: 400 }
+      );
+    }
     const user = smtpUser || process.env.SMTP_USER;
     const pass = smtpPass || process.env.SMTP_PASS;
     const from = senderName
