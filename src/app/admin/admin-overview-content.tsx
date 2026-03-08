@@ -1,18 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   DollarSign,
   ShoppingCart,
   UserPlus,
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
   Package,
   ArrowUpRight,
   Upload,
   Bell,
   Crown,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,128 +33,54 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-/* ---------- Mock Data ---------- */
+/* ---------- Types ---------- */
 
-const statsCards = [
-  {
-    label: "今日销售额",
-    value: "¥1,234.56",
-    change: "+12.5%",
-    trend: "up" as const,
-    icon: DollarSign,
-    color: "var(--primary)",
-  },
-  {
-    label: "今日订单数",
-    value: "28",
-    change: "+8.2%",
-    trend: "up" as const,
-    icon: ShoppingCart,
-    color: "var(--accent)",
-  },
-  {
-    label: "新用户数",
-    value: "12",
-    change: "+23.1%",
-    trend: "up" as const,
-    icon: UserPlus,
-    color: "var(--success)",
-  },
-  {
-    label: "库存告警",
-    value: "3",
-    change: "-2",
-    trend: "down" as const,
-    icon: AlertTriangle,
-    color: "var(--warning)",
-  },
-];
+interface StatsData {
+  todaySales: number;
+  todayOrders: number;
+  newUsers: number;
+  lowStockCount: number;
+}
 
-const salesChartData = [
-  { date: "03/02", amount: 980 },
-  { date: "03/03", amount: 1450 },
-  { date: "03/04", amount: 1120 },
-  { date: "03/05", amount: 1680 },
-  { date: "03/06", amount: 1320 },
-  { date: "03/07", amount: 1890 },
-  { date: "03/08", amount: 1234 },
-];
+interface RecentOrder {
+  id: string;
+  product: string;
+  quantity: number;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
 
-const recentOrders = [
-  {
-    id: "ORD-20260308-A1B2",
-    product: "ChatGPT Plus 账号",
-    amount: "¥199.00",
-    status: "已完成",
-    statusVariant: "success" as const,
-    date: "2026-03-08 14:32",
-  },
-  {
-    id: "ORD-20260308-C3D4",
-    product: "Netflix 高级会员",
-    amount: "¥89.00",
-    status: "待支付",
-    statusVariant: "secondary" as const,
-    date: "2026-03-08 13:15",
-  },
-  {
-    id: "ORD-20260308-E5F6",
-    product: "Spotify Premium 年卡",
-    amount: "¥128.00",
-    status: "已完成",
-    statusVariant: "success" as const,
-    date: "2026-03-08 12:48",
-  },
-  {
-    id: "ORD-20260308-G7H8",
-    product: "Adobe Creative Cloud",
-    amount: "¥399.00",
-    status: "处理中",
-    statusVariant: "default" as const,
-    date: "2026-03-08 11:20",
-  },
-  {
-    id: "ORD-20260307-I9J0",
-    product: "Windows 11 Pro 密钥",
-    amount: "¥258.00",
-    status: "已退款",
-    statusVariant: "destructive" as const,
-    date: "2026-03-07 22:05",
-  },
-];
+interface HotProduct {
+  rank: number;
+  name: string;
+  sales: number;
+  revenue: number;
+}
 
-const hotProducts = [
-  {
-    rank: 1,
-    name: "ChatGPT Plus 账号",
-    sales: 156,
-    revenue: "¥31,044.00",
-  },
-  {
-    rank: 2,
-    name: "Netflix 高级会员",
-    sales: 132,
-    revenue: "¥11,748.00",
-  },
-  {
-    rank: 3,
-    name: "Spotify Premium 年卡",
-    sales: 98,
-    revenue: "¥12,544.00",
-  },
-  {
-    rank: 4,
-    name: "Adobe Creative Cloud",
-    sales: 67,
-    revenue: "¥26,733.00",
-  },
-  {
-    rank: 5,
-    name: "Windows 11 Pro 密钥",
-    sales: 54,
-    revenue: "¥13,932.00",
-  },
-];
+interface SalesChartItem {
+  date: string;
+  amount: number;
+}
+
+interface ApiResponse {
+  success: boolean;
+  stats: StatsData;
+  recentOrders: RecentOrder[];
+  hotProducts: HotProduct[];
+  salesChart: SalesChartItem[];
+}
+
+/* ---------- Status Mapping ---------- */
+
+const orderStatusMap: Record<string, { label: string; variant: "success" | "secondary" | "default" | "destructive" | "outline" }> = {
+  PENDING: { label: "待支付", variant: "secondary" },
+  PAID: { label: "已支付", variant: "default" },
+  DELIVERED: { label: "已完成", variant: "success" },
+  CANCELLED: { label: "已取消", variant: "outline" },
+  REFUNDED: { label: "已退款", variant: "destructive" },
+  EXPIRED: { label: "已过期", variant: "outline" },
+};
 
 /* ---------- Custom Tooltip for the Chart ---------- */
 
@@ -201,8 +127,68 @@ function RankBadge({ rank }: { rank: number }) {
 
 /* ---------- Page Component ---------- */
 
-
 export default function AdminOverviewPageContent() {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [hotProducts, setHotProducts] = useState<HotProduct[]>([]);
+  const [salesChart, setSalesChart] = useState<SalesChartItem[]>([]);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch("/api/admin/stats");
+        const data: ApiResponse = await res.json();
+        if (data.success) {
+          setStats(data.stats);
+          setRecentOrders(data.recentOrders);
+          setHotProducts(data.hotProducts);
+          setSalesChart(data.salesChart);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
+
+  const statsCards = [
+    {
+      label: "今日销售额",
+      value: `¥${(stats?.todaySales ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      color: "var(--primary)",
+    },
+    {
+      label: "今日订单数",
+      value: String(stats?.todayOrders ?? 0),
+      icon: ShoppingCart,
+      color: "var(--accent)",
+    },
+    {
+      label: "新用户数",
+      value: String(stats?.newUsers ?? 0),
+      icon: UserPlus,
+      color: "var(--success)",
+    },
+    {
+      label: "库存告警",
+      value: String(stats?.lowStockCount ?? 0),
+      icon: AlertTriangle,
+      color: "var(--warning)",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Page title */}
@@ -219,7 +205,6 @@ export default function AdminOverviewPageContent() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statsCards.map((stat) => {
           const Icon = stat.icon;
-          const isUp = stat.trend === "up";
           return (
             <Card key={stat.label} className="overflow-hidden">
               <CardContent className="p-6">
@@ -231,26 +216,6 @@ export default function AdminOverviewPageContent() {
                     <span className="text-2xl font-bold text-[var(--foreground)]">
                       {stat.value}
                     </span>
-                    <div className="flex items-center gap-1 mt-1">
-                      {isUp ? (
-                        <TrendingUp className="h-3.5 w-3.5 text-[var(--success)]" />
-                      ) : (
-                        <TrendingDown className="h-3.5 w-3.5 text-[var(--warning)]" />
-                      )}
-                      <span
-                        className={cn(
-                          "text-xs font-medium",
-                          isUp
-                            ? "text-[var(--success)]"
-                            : "text-[var(--warning)]"
-                        )}
-                      >
-                        {stat.change}
-                      </span>
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        较昨日
-                      </span>
-                    </div>
                   </div>
                   <div
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
@@ -284,7 +249,7 @@ export default function AdminOverviewPageContent() {
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={salesChartData}
+                  data={salesChart}
                   margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
                   <defs>
@@ -332,30 +297,36 @@ export default function AdminOverviewPageContent() {
               热门商品
             </CardTitle>
             <span className="text-xs text-[var(--muted-foreground)]">
-              本月
+              按销量排序
             </span>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {hotProducts.map((product) => (
-                <div
-                  key={product.rank}
-                  className="flex items-center gap-3"
-                >
-                  <RankBadge rank={product.rank} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--foreground)] truncate">
-                      {product.name}
-                    </p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      销量 {product.sales} 件
-                    </p>
+              {hotProducts.length === 0 ? (
+                <p className="text-sm text-[var(--muted-foreground)] text-center py-4">
+                  暂无数据
+                </p>
+              ) : (
+                hotProducts.map((product) => (
+                  <div
+                    key={product.rank}
+                    className="flex items-center gap-3"
+                  >
+                    <RankBadge rank={product.rank} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--foreground)] truncate">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        销量 {product.sales} 件
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-[var(--foreground)] whitespace-nowrap">
+                      ¥{product.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold text-[var(--foreground)] whitespace-nowrap">
-                    {product.revenue}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -401,38 +372,57 @@ export default function AdminOverviewPageContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentOrders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="border-b border-[var(--border)] last:border-0"
-                    >
-                      <td className="py-3 pr-4">
-                        <span className="font-mono text-xs text-[var(--foreground)]">
-                          {order.id}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className="text-[var(--foreground)]">
-                          {order.product}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right pr-4">
-                        <span className="font-semibold text-[var(--foreground)]">
-                          {order.amount}
-                        </span>
-                      </td>
-                      <td className="py-3 text-center">
-                        <Badge variant={order.statusVariant}>
-                          {order.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 text-right">
-                        <span className="text-xs text-[var(--muted-foreground)] whitespace-nowrap">
-                          {order.date}
-                        </span>
+                  {recentOrders.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-8 text-center text-sm text-[var(--muted-foreground)]"
+                      >
+                        暂无订单数据
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    recentOrders.map((order) => {
+                      const statusInfo = orderStatusMap[order.status] ?? {
+                        label: order.status,
+                        variant: "secondary" as const,
+                      };
+                      const orderDate = new Date(order.createdAt);
+                      const formattedDate = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, "0")}-${String(orderDate.getDate()).padStart(2, "0")} ${String(orderDate.getHours()).padStart(2, "0")}:${String(orderDate.getMinutes()).padStart(2, "0")}`;
+                      return (
+                        <tr
+                          key={order.id}
+                          className="border-b border-[var(--border)] last:border-0"
+                        >
+                          <td className="py-3 pr-4">
+                            <span className="font-mono text-xs text-[var(--foreground)]">
+                              {order.id}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span className="text-[var(--foreground)]">
+                              {order.product}
+                            </span>
+                          </td>
+                          <td className="py-3 text-right pr-4">
+                            <span className="font-semibold text-[var(--foreground)]">
+                              ¥{order.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="py-3 text-center">
+                            <Badge variant={statusInfo.variant}>
+                              {statusInfo.label}
+                            </Badge>
+                          </td>
+                          <td className="py-3 text-right">
+                            <span className="text-xs text-[var(--muted-foreground)] whitespace-nowrap">
+                              {formattedDate}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -499,7 +489,7 @@ export default function AdminOverviewPageContent() {
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium">查看告警</span>
                     <span className="text-[10px] text-[var(--muted-foreground)]">
-                      3 个商品库存不足
+                      {stats?.lowStockCount ?? 0} 个商品库存不足
                     </span>
                   </div>
                 </Link>

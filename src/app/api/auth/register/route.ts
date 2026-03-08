@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { hashPassword, encodeSession } from "@/lib/auth";
+import { registerLimiter } from "@/lib/rate-limit";
 
 const registerBodySchema = z.object({
   username: z
@@ -18,6 +19,15 @@ const registerBodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = registerLimiter(ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, message: "注册请求过于频繁，请5分钟后再试" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     const body = await request.json();
 
     const parsed = registerBodySchema.safeParse(body);

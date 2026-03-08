@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validators";
 import { db } from "@/server/db";
 import { verifyPassword, encodeSession } from "@/lib/auth";
+import { loginLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = loginLimiter(ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, message: "登录尝试过于频繁，请稍后再试" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     const body = await request.json();
 
     const parsed = loginSchema.safeParse(body);

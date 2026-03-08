@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { apiLimiter } from "@/lib/rate-limit";
 
 function generateOrderNo(): string {
   const now = new Date();
@@ -66,6 +67,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = apiLimiter(ip);
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, message: "请求过于频繁，请稍后再试" },
+        { status: 429 }
+      );
+    }
+
     const session = decodeSession(
       request.cookies.get("session")?.value || ""
     );
