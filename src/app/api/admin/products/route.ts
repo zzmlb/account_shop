@@ -51,6 +51,75 @@ function generateSlug(name: string): string {
     || `product-${Date.now()}`;
 }
 
+async function handleDuplicate(sourceId: string, adminId: string) {
+  const source = await db.product.findUnique({
+    where: { id: sourceId },
+    include: { category: { select: { id: true, name: true, slug: true } } },
+  });
+
+  if (!source) {
+    return NextResponse.json(
+      { success: false, message: "源商品不存在" },
+      { status: 404 }
+    );
+  }
+
+  // Generate unique slug and name
+  const baseName = `${source.name} (副本)`;
+  const baseSlug = generateSlug(baseName) + `-${Date.now().toString(36)}`;
+
+  const product = await db.product.create({
+    data: {
+      name: baseName,
+      slug: baseSlug,
+      description: source.description,
+      price: source.price,
+      originalPrice: source.originalPrice,
+      categoryId: source.categoryId,
+      image: source.image,
+      images: source.images,
+      tags: source.tags,
+      isActive: false, // Start as inactive so admin can review
+      sortOrder: source.sortOrder,
+      deliveryType: source.deliveryType,
+      afterSaleHours: source.afterSaleHours,
+      stockCount: 0, // New product starts with 0 stock
+    },
+    include: { category: { select: { id: true, name: true, slug: true } } },
+  });
+
+  log.info(
+    { adminId, sourceId, newProductId: product.id, newSlug: baseSlug },
+    "Admin duplicated product"
+  );
+
+  return NextResponse.json({
+    success: true,
+    message: "商品已复制，请修改名称和slug后上架",
+    product: {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      description: product.description,
+      price: Number(product.price),
+      originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+      categoryId: product.categoryId,
+      category: product.category,
+      image: product.image,
+      images: product.images,
+      tags: product.tags,
+      stockCount: product.stockCount,
+      soldCount: product.soldCount,
+      isActive: product.isActive,
+      sortOrder: product.sortOrder,
+      deliveryType: product.deliveryType,
+      afterSaleHours: product.afterSaleHours,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+    },
+  });
+}
+
 // GET - List all products (admin only)
 export async function GET(request: NextRequest) {
   try {
@@ -141,6 +210,13 @@ export async function POST(request: NextRequest) {
 
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
+
+    // Handle product duplication
+    const { searchParams } = new URL(request.url);
+    const duplicateId = searchParams.get("duplicateId");
+    if (duplicateId) {
+      return handleDuplicate(duplicateId, session.id);
+    }
 
     const body = await request.json();
     const parsed = createProductSchema.safeParse(body);
