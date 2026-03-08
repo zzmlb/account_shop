@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -18,6 +18,8 @@ import {
   Menu,
   ShieldAlert,
   ChevronRight,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -33,6 +35,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+interface Notification {
+  id: string;
+  type: "warning" | "alert" | "info";
+  title: string;
+  description: string;
+  href: string;
+}
 
 const sidebarLinks = [
   { label: "概览", href: "/admin", icon: LayoutDashboard },
@@ -54,6 +70,34 @@ export default function AdminLayout({
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/admin/notifications")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setNotifications(data.notifications || []);
+          setNotifCount(data.count || 0);
+        }
+      })
+      .catch(() => {});
+    // Refresh every 60 seconds
+    const timer = setInterval(() => {
+      fetch("/api/admin/notifications")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            setNotifications(data.notifications || []);
+            setNotifCount(data.count || 0);
+          }
+        })
+        .catch(() => {});
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [user]);
 
   /* ---------- Not logged in ---------- */
   if (!user) {
@@ -243,13 +287,44 @@ export default function AdminLayout({
           {/* Right side: notifications, avatar, logout */}
           <div className="flex items-center gap-2">
             {/* Notification bell */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5 text-[var(--muted-foreground)]" />
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--destructive)] text-[10px] font-bold text-white">
-                3
-              </span>
-              <span className="sr-only">通知</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5 text-[var(--muted-foreground)]" />
+                  {notifCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--destructive)] text-[10px] font-bold text-white">
+                      {notifCount > 9 ? "9+" : notifCount}
+                    </span>
+                  )}
+                  <span className="sr-only">通知</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-[var(--muted-foreground)]">
+                    暂无通知
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <DropdownMenuItem key={n.id} asChild className="cursor-pointer">
+                      <Link href={n.href} className="flex items-start gap-3 px-3 py-2.5">
+                        {n.type === "warning" ? (
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                        ) : n.type === "alert" ? (
+                          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--destructive)]" />
+                        ) : (
+                          <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-[var(--foreground)]">{n.title}</p>
+                          <p className="text-xs text-[var(--muted-foreground)]">{n.description}</p>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Separator orientation="vertical" className="hidden h-6 sm:block" />
 
@@ -294,7 +369,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 lg:p-8">
           {children}
         </main>
       </div>

@@ -12,7 +12,7 @@ export default function ShopLayout({
   return (
     <div className="relative flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 pt-16 pb-16 md:pb-0">{children}</main>
+      <main id="main-content" className="flex-1 pt-16 pb-16 md:pb-0">{children}</main>
       <Footer />
       <MobileNav />
       <CommandMenu />

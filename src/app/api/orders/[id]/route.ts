@@ -95,3 +95,71 @@ export async function GET(
     );
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { action } = body;
+
+    if (action !== "cancel") {
+      return NextResponse.json(
+        { success: false, message: "不支持的操作" },
+        { status: 400 }
+      );
+    }
+
+    const session = decodeSession(
+      request.cookies.get("session")?.value || ""
+    );
+
+    const order = await db.order.findFirst({
+      where: { orderNo: id },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { success: false, message: "订单不存在" },
+        { status: 404 }
+      );
+    }
+
+    // Verify ownership: user must be logged in and own the order, or order must be guest
+    if (order.userId) {
+      if (!session || session.id !== order.userId) {
+        return NextResponse.json(
+          { success: false, message: "无权操作此订单" },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (order.status !== "PENDING") {
+      return NextResponse.json(
+        { success: false, message: "只能取消待支付的订单" },
+        { status: 400 }
+      );
+    }
+
+    await db.order.update({
+      where: { id: order.id },
+      data: { status: "CANCELLED" },
+    });
+
+    log.info({ orderNo: id }, "Order cancelled by user");
+
+    return NextResponse.json({
+      success: true,
+      message: "订单已取消",
+    });
+  } catch (error) {
+    log.error({ err: error }, "Order cancel API error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}

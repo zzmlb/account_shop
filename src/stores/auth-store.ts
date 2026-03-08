@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useFavoritesStore } from "@/stores/favorites-store";
+import { useCartStore } from "@/stores/cart-store";
 
 export interface AuthUser {
   id: string;
@@ -54,13 +55,11 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: () => {
         set({ user: null });
-        // Reset favorites store on logout
+        // Reset client stores on logout
         useFavoritesStore.getState().reset();
-        // Clear the session cookie by calling a logout endpoint or
-        // letting the cookie expire. For now, clear local state.
-        fetch("/api/auth/logout", { method: "POST" }).catch(() => {
-          // Ignore logout API errors — local state is already cleared
-        });
+        useCartStore.getState().clearCart();
+        // Clear the session cookie
+        fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
       },
 
       checkAuth: async () => {

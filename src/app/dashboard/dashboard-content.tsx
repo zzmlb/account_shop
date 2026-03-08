@@ -114,18 +114,28 @@ export default function DashboardPageContent() {
   const { user } = useAuthStore();
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [couponCount, setCouponCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
-    async function fetchOrders() {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/orders");
-        const data = await res.json();
-        if (data.success && Array.isArray(data.orders)) {
-          setOrders(data.orders);
+        const [ordersRes, couponsRes] = await Promise.all([
+          fetch("/api/orders").then((r) => r.json()),
+          fetch("/api/coupons").then((r) => r.json()).catch(() => ({ success: false })),
+        ]);
+        if (ordersRes.success && Array.isArray(ordersRes.orders)) {
+          setOrders(ordersRes.orders);
         } else {
           setFetchError(true);
+        }
+        if (couponsRes.success && Array.isArray(couponsRes.coupons)) {
+          const unused = couponsRes.coupons.filter(
+            (c: { isUsed: boolean; endDate: string }) =>
+              !c.isUsed && new Date(c.endDate) > new Date()
+          );
+          setCouponCount(unused.length);
         }
       } catch {
         setFetchError(true);
@@ -133,7 +143,7 @@ export default function DashboardPageContent() {
         setLoading(false);
       }
     }
-    fetchOrders();
+    fetchData();
   }, []);
 
   /* ---- Computed stats ---- */
@@ -171,7 +181,7 @@ export default function DashboardPageContent() {
     },
     {
       label: "优惠券",
-      value: "0",
+      value: String(couponCount),
       icon: Ticket,
       href: "/dashboard/coupons",
       color: "text-[var(--accent)]",

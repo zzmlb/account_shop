@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertCircle,
   Copy,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
@@ -187,6 +189,31 @@ export default function OrderDetailContent({ id }: { id: string }) {
       }
       return next;
     });
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order || order.status !== "PENDING") return;
+    if (!confirm("确定要取消此订单吗？取消后无法恢复。")) return;
+
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrder((prev) => prev ? { ...prev, status: "CANCELLED" } : prev);
+        toast.success("订单已取消");
+      } else {
+        toast.error(data.message || "取消失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setCancelling(false);
+    }
   };
 
   if (loading) {
@@ -531,9 +558,23 @@ export default function OrderDetailContent({ id }: { id: string }) {
           <h3 className="mb-1 text-lg font-semibold text-[var(--foreground)]">
             等待支付
           </h3>
-          <p className="text-sm text-[var(--muted-foreground)]">
+          <p className="mb-4 text-sm text-[var(--muted-foreground)]">
             请在 15 分钟内完成支付，超时订单将自动取消
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancelOrder}
+            disabled={cancelling}
+            className="gap-1.5 text-[var(--destructive)] hover:text-[var(--destructive)]"
+          >
+            {cancelling ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <XCircle className="h-3.5 w-3.5" />
+            )}
+            取消订单
+          </Button>
         </div>
       )}
 
