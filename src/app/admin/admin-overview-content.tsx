@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Area,
+  AreaChart,
   Bar,
   ComposedChart,
   XAxis,
@@ -120,12 +121,18 @@ interface LowStockProduct {
   price: number;
 }
 
+interface UserGrowthItem {
+  date: string;
+  users: number;
+}
+
 interface ApiResponse {
   success: boolean;
   stats: StatsData;
   recentOrders: RecentOrder[];
   hotProducts: HotProduct[];
   salesChart: SalesChartItem[];
+  userGrowthChart?: UserGrowthItem[];
   chartPeriod: number;
   ordersByStatus: OrderStatusCount[];
   revenueByMethod?: PaymentMethodStat[];
@@ -210,6 +217,7 @@ export default function AdminOverviewPageContent() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [hotProducts, setHotProducts] = useState<HotProduct[]>([]);
   const [salesChart, setSalesChart] = useState<SalesChartItem[]>([]);
+  const [userGrowthChart, setUserGrowthChart] = useState<UserGrowthItem[]>([]);
   const [chartPeriod, setChartPeriod] = useState(7);
   const [ordersByStatus, setOrdersByStatus] = useState<OrderStatusCount[]>([]);
   const [recentLogins, setRecentLogins] = useState<RecentLogin[]>([]);
@@ -237,6 +245,7 @@ export default function AdminOverviewPageContent() {
         setRecentOrders(data.recentOrders);
         setHotProducts(data.hotProducts);
         setSalesChart(data.salesChart);
+        if (data.userGrowthChart) setUserGrowthChart(data.userGrowthChart);
         setOrdersByStatus(data.ordersByStatus || []);
         setRecentLogins(data.recentLogins || []);
         setRevenueByMethod(data.revenueByMethod || []);
@@ -647,6 +656,71 @@ export default function AdminOverviewPageContent() {
             </div>
           </CardContent>
         </Card>
+
+        {/* User Growth Chart */}
+        {userGrowthChart.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-[var(--success)]" />
+                用户增长趋势
+              </CardTitle>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                近{chartPeriod}天新注册用户
+              </span>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[200px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={userGrowthChart}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="userGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#00b894" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#00b894" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius-md)",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value: number) => [`${value} 人`, "新增用户"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="users"
+                      stroke="#00b894"
+                      strokeWidth={2}
+                      fill="url(#userGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Hot Products Ranking */}
         <Card>

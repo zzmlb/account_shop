@@ -236,6 +236,34 @@ export async function GET(request: NextRequest) {
       return { date: key, amount: data?.amount ?? 0, orders: data?.orders ?? 0 };
     });
 
+    // ---------- User Growth Chart ----------
+
+    const userGrowthRaw = await db.$queryRaw<Array<{ day: Date; count: bigint }>>`
+      SELECT
+        DATE("createdAt") as day,
+        COUNT(*) as count
+      FROM users
+      WHERE "createdAt" >= ${chartStart}
+      GROUP BY DATE("createdAt")
+      ORDER BY day ASC
+    `;
+
+    const userGrowthMap = new Map(
+      userGrowthRaw.map((r) => {
+        const d = new Date(r.day);
+        const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+        return [key, Number(r.count)];
+      })
+    );
+
+    const userGrowthChart = Array.from({ length: chartPeriod }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (chartPeriod - 1 - i));
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const key = `${mm}/${dd}`;
+      return { date: key, users: userGrowthMap.get(key) ?? 0 };
+    });
+
     // ---------- Monthly Revenue Comparison ----------
 
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -349,6 +377,7 @@ export async function GET(request: NextRequest) {
       recentOrders,
       hotProducts,
       salesChart,
+      userGrowthChart,
       chartPeriod,
       ordersByStatus,
       revenueByMethod,

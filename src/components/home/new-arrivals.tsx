@@ -37,7 +37,7 @@ function isWithin7Days(date: Date): boolean {
   return diff < 7 * 24 * 60 * 60 * 1000;
 }
 
-function NewArrivalCard({ product }: { product: Product }) {
+function NewArrivalCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const discount =
     product.originalPrice && product.originalPrice > product.price
       ? Math.round(
@@ -66,6 +66,8 @@ function NewArrivalCard({ product }: { product: Product }) {
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority}
+            loading={priority ? "eager" : "lazy"}
           />
         )}
         <div className="absolute left-3 top-3 flex gap-1.5">
@@ -173,8 +175,8 @@ export default async function NewArrivals() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((product) => (
-          <NewArrivalCard key={product.id} product={product} />
+        {products.map((product, idx) => (
+          <NewArrivalCard key={product.id} product={product} priority={idx < 4} />
         ))}
       </div>
 

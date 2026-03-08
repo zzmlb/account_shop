@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import AdminOverviewPageContent from "./admin-overview-content";
+import nextDynamic from "next/dynamic";
+
+const AdminOverviewPageContent = nextDynamic(
+  () => import("./admin-overview-content")
+);
 
 export const dynamic = "force-dynamic";
 

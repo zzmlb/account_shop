@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import DashboardPageContent from "./dashboard-content";
+import nextDynamic from "next/dynamic";
+
+const DashboardPageContent = nextDynamic(
+  () => import("./dashboard-content")
+);
 
 export const dynamic = "force-dynamic";
 
