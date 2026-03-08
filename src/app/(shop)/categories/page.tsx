@@ -56,8 +56,22 @@ export default async function CategoriesPage() {
     },
   });
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `商品分类 - ${SITE_NAME}`,
+    description: "浏览所有商品分类，快速找到您需要的数字商品和服务",
+    url: `${SITE_URL}/categories`,
+    isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
+    numberOfItems: categories.length,
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Header */}
       <AnimatedSection className="mb-10 text-center">
         <h1 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">

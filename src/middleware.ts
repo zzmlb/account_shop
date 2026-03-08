@@ -176,7 +176,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return NextResponse.next();
+  // Refresh session cookie on page navigation to extend session lifetime
+  const response = NextResponse.next();
+  if (isAuthenticated && sessionCookie && !pathname.startsWith("/api/")) {
+    response.cookies.set("session", sessionCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days from now
+    });
+  }
+
+  return response;
 }
 
 export const config = {
@@ -186,5 +198,8 @@ export const config = {
     "/admin/:path*",
     "/login",
     "/register",
+    "/checkout",
+    "/products/:path*",
+    "/order/:path*",
   ],
 };

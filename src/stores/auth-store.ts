@@ -22,6 +22,8 @@ interface AuthActions {
   register: (data: { username: string; email: string; password: string }) => Promise<boolean>;
   logout: () => void;
   checkAuth: () => Promise<void>;
+  /** Call when an API returns 401 to clear stale auth state */
+  handleUnauthorized: () => void;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -74,9 +76,24 @@ export const useAuthStore = create<AuthStore>()(
               return;
             }
           }
+          // Session invalid - clear stale persisted user data
           set({ user: null, isLoading: false });
         } catch {
-          set({ user: null, isLoading: false });
+          // Network error - keep existing user data to avoid logout on transient failures
+          set({ isLoading: false });
+        }
+      },
+
+      handleUnauthorized: () => {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          set({ user: null });
+          useFavoritesStore.getState().reset();
+          // Redirect to login with current path
+          if (typeof window !== "undefined") {
+            const from = window.location.pathname;
+            window.location.href = `/login?from=${encodeURIComponent(from)}&expired=1`;
+          }
         }
       },
     }),

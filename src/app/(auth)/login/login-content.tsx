@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -22,6 +22,13 @@ export default function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const login = useAuthStore((s) => s.login);
+
+  // Show toast if redirected due to session expiry
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      toast.info("登录已过期，请重新登录");
+    }
+  }, [searchParams]);
 
   const {
     register,
