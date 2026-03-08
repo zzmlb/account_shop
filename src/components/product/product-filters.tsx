@@ -57,11 +57,11 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
     router.push(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
   };
 
-  const selectedCategories = searchParams.get("category")?.split(",") ?? [];
-  const minPrice = searchParams.get("minPrice") ?? "";
-  const maxPrice = searchParams.get("maxPrice") ?? "";
-  const inStock = searchParams.get("inStock") === "true";
-  const sort = searchParams.get("sort") ?? "default";
+  const selectedCategories = searchParams?.get("category")?.split(",") ?? [];
+  const minPrice = searchParams?.get("minPrice") ?? "";
+  const maxPrice = searchParams?.get("maxPrice") ?? "";
+  const inStock = searchParams?.get("inStock") === "true";
+  const sort = searchParams?.get("sort") ?? "default";
 
   const toggleCategory = (categoryId: string) => {
     const updated = selectedCategories.includes(categoryId)
