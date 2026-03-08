@@ -88,11 +88,19 @@ export default async function ArticleDetailPage({ params }: Props) {
     datePublished: article.createdAt.toISOString(),
     dateModified: article.updatedAt.toISOString(),
     url: `${SITE_URL}/articles/${article.slug}`,
+    author: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,
+      url: SITE_URL,
     },
     articleSection: article.category,
+    keywords: article.tags,
+    wordCount: article.content.replace(/<[^>]*>/g, "").split(/\s+/).length,
   };
 
   return (

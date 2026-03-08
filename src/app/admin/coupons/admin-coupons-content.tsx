@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useMemo } from "react";
 import {
   Ticket,
   Plus,
@@ -9,6 +10,8 @@ import {
   EyeOff,
   Loader2,
   Copy,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +54,7 @@ export default function AdminCouponsContent() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -220,6 +224,25 @@ export default function AdminCouponsContent() {
 
   const isExpired = (expireAt: string) => new Date(expireAt) < new Date();
 
+  // Computed stats
+  const stats = useMemo(() => {
+    const now = new Date();
+    const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const active = coupons.filter((c) => c.isActive && new Date(c.expireAt) > now).length;
+    const expired = coupons.filter((c) => new Date(c.expireAt) <= now).length;
+    const expiringSoon = coupons.filter(
+      (c) => c.isActive && new Date(c.expireAt) > now && new Date(c.expireAt) <= sevenDays
+    ).length;
+    return { active, expired, expiringSoon };
+  }, [coupons]);
+
+  // Filtered coupons
+  const filteredCoupons = useMemo(() => {
+    if (!searchQuery.trim()) return coupons;
+    const q = searchQuery.trim().toUpperCase();
+    return coupons.filter((c) => c.code.toUpperCase().includes(q));
+  }, [coupons, searchQuery]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -255,13 +278,48 @@ export default function AdminCouponsContent() {
         </Button>
       </div>
 
+      {/* Stats badges */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
+          <Ticket className="h-3.5 w-3.5" />
+          有效 {stats.active}
+        </Badge>
+        {stats.expiringSoon > 0 && (
+          <Badge variant="outline" className="gap-1.5 border-[var(--warning)] text-[var(--warning)] px-3 py-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            即将过期 {stats.expiringSoon}
+          </Badge>
+        )}
+        <Badge variant="outline" className="gap-1.5 px-3 py-1.5">
+          已过期 {stats.expired}
+        </Badge>
+      </div>
+
+      {/* Search */}
+      {coupons.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Input
+            placeholder="搜索优惠码..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      )}
+
       {/* Coupon list */}
-      {coupons.length === 0 ? (
+      {filteredCoupons.length === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-12 text-center">
           <Ticket className="mx-auto h-12 w-12 text-[var(--muted-foreground)]" />
           <p className="mt-4 text-[var(--muted-foreground)]">
-            暂无优惠券，点击上方按钮创建
+            {searchQuery ? "未找到匹配的优惠券" : "暂无优惠券，点击上方按钮创建"}
           </p>
+          {searchQuery && (
+            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setSearchQuery("")}>
+              清除搜索
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] overflow-hidden">
@@ -274,7 +332,7 @@ export default function AdminCouponsContent() {
             <span className="w-20 text-center">操作</span>
           </div>
 
-          {coupons.map((coupon) => (
+          {filteredCoupons.map((coupon) => (
             <div
               key={coupon.id}
               className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 sm:gap-4 items-center border-b last:border-b-0 border-[var(--border)] px-4 py-3 hover:bg-[var(--secondary)]/30 transition-colors"
