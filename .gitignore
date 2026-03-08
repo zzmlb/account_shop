@@ -38,3 +38,4 @@ public/uploads/*
 local.config.*
 *.local
 docker-compose.override.yml
+.github/

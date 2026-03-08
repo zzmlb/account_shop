@@ -24,9 +24,16 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = request.nextUrl;
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize")) || 20));
+    const pageSize = Math.min(500, Math.max(1, Number(searchParams.get("pageSize")) || 200));
+    const typeFilter = searchParams.get("type");
 
-    const where = { userId: session.id };
+    const validTypes = ["RECHARGE", "PURCHASE", "REFUND", "ADMIN_ADJUST"] as const;
+    type BalanceType = (typeof validTypes)[number];
+    const isValidType = (v: string): v is BalanceType => (validTypes as readonly string[]).includes(v);
+    const where = {
+      userId: session.id,
+      ...(typeFilter && isValidType(typeFilter) ? { type: typeFilter as BalanceType } : {}),
+    };
 
     const [logs, total, user] = await Promise.all([
       db.balanceLog.findMany({
