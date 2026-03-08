@@ -29,6 +29,7 @@ import ProductGrid, {
 } from "@/components/product/product-grid";
 import ProductFilters from "@/components/product/product-filters";
 import FavoriteButton from "@/components/product/favorite-button";
+import RecentlyViewed from "@/components/home/recently-viewed";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
 import { BLUR_DATA_URL } from "@/lib/constants";
@@ -520,6 +521,9 @@ export default function ProductsPageContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Recently viewed */}
+      <RecentlyViewed />
     </div>
   );
 }

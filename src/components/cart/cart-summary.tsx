@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Tag, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Tag, Loader2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -12,6 +12,13 @@ interface CouponState {
   code: string;
   couponId: string;
   discount: number;
+}
+
+interface AvailableCoupon {
+  code: string;
+  type: string;
+  value: number;
+  minAmount: number | null;
 }
 
 interface CartSummaryProps {
@@ -33,6 +40,34 @@ export default function CartSummary({
   const [couponError, setCouponError] = useState("");
   const [discount, setDiscount] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+
+  // Fetch user's available coupons for quick-apply
+  useEffect(() => {
+    async function fetchCoupons() {
+      try {
+        const res = await fetch("/api/coupons");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.coupons)) {
+          const now = new Date();
+          const usable = data.coupons
+            .filter((c: { isUsed: boolean; endDate: string; startDate: string }) =>
+              !c.isUsed && new Date(c.endDate) > now && new Date(c.startDate) <= now
+            )
+            .map((c: { code: string; type: string; value: number; minAmount: number | null }) => ({
+              code: c.code,
+              type: c.type,
+              value: c.value,
+              minAmount: c.minAmount,
+            }));
+          setAvailableCoupons(usable);
+        }
+      } catch {
+        // Silent - coupons are optional
+      }
+    }
+    fetchCoupons();
+  }, []);
 
   const subtotal = getTotal();
   const total = subtotal - discount;
@@ -174,6 +209,46 @@ export default function CartSummary({
           <p id="coupon-error" className="mt-1 text-xs text-[var(--destructive)]" role="alert">
             {couponError}
           </p>
+        )}
+        {/* Quick-apply available coupons */}
+        {!couponApplied && availableCoupons.length > 0 && (
+          <div className="mt-2">
+            <p className="mb-1.5 flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
+              <Ticket className="h-3 w-3" />
+              可用优惠券:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {availableCoupons.slice(0, 4).map((c) => {
+                const meetsMin = !c.minAmount || subtotal >= c.minAmount;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      if (meetsMin) {
+                        setCouponCode(c.code);
+                        setCouponError("");
+                      }
+                    }}
+                    disabled={!meetsMin || isValidating}
+                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                      meetsMin
+                        ? "border-[var(--primary)]/30 text-[var(--primary)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5"
+                        : "border-[var(--border)] text-[var(--muted-foreground)] opacity-50"
+                    }`}
+                    title={
+                      c.minAmount && !meetsMin
+                        ? `满¥${c.minAmount.toFixed(0)}可用`
+                        : `点击使用: ${c.code}`
+                    }
+                  >
+                    {c.type === "PERCENTAGE" ? `${c.value}%折` : `¥${c.value}`}
+                    {c.minAmount ? ` (满${c.minAmount})` : ""}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 

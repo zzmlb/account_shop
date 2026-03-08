@@ -90,6 +90,7 @@ interface Product {
   views: number;
   description: string;
   tags: string[];
+  afterSaleHours: number | null;
 }
 
 interface Category {
@@ -120,6 +121,7 @@ function mapApiProduct(p: ApiProduct): Product {
     views: p.viewCount ?? 0,
     description: p.description,
     tags: p.tags,
+    afterSaleHours: p.afterSaleHours,
   };
 }
 
@@ -165,6 +167,8 @@ export default function AdminProductsPageContent() {
   const [formImages, setFormImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [formStatus, setFormStatus] = useState<"上架" | "下架">("上架");
+  const [formTags, setFormTags] = useState("");
+  const [formAfterSaleHours, setFormAfterSaleHours] = useState("");
 
   // ---------------------------------------------------------------------------
   // Data fetching
@@ -535,6 +539,9 @@ export default function AdminProductsPageContent() {
       return;
     }
 
+    const parsedTags = formTags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+    const parsedAfterSale = formAfterSaleHours ? parseInt(formAfterSaleHours, 10) : null;
+
     setMutating(true);
     try {
       if (editingProduct) {
@@ -548,6 +555,8 @@ export default function AdminProductsPageContent() {
           image: formImage.trim() || null,
           images: formImages.filter((u) => u.trim()),
           isActive: formStatus === "上架",
+          tags: parsedTags,
+          afterSaleHours: parsedAfterSale,
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
         if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
@@ -576,6 +585,8 @@ export default function AdminProductsPageContent() {
           image: formImage.trim() || null,
           images: formImages.filter((u) => u.trim()),
           isActive: formStatus === "上架",
+          tags: parsedTags,
+          afterSaleHours: parsedAfterSale,
         };
         if (formSlug.trim()) body.slug = formSlug.trim();
         if (originalPriceVal !== undefined) body.originalPrice = originalPriceVal;
@@ -664,6 +675,8 @@ export default function AdminProductsPageContent() {
     setFormImage("");
     setFormImages([]);
     setFormStatus("上架");
+    setFormTags("");
+    setFormAfterSaleHours("");
     setEditingProduct(null);
   }
 
@@ -683,6 +696,8 @@ export default function AdminProductsPageContent() {
     setFormImage(product.image || "");
     setFormImages(product.images || []);
     setFormStatus(product.status);
+    setFormTags(product.tags.join(", "));
+    setFormAfterSaleHours(product.afterSaleHours != null ? String(product.afterSaleHours) : "");
     setDialogOpen(true);
   }
 
@@ -897,6 +912,41 @@ export default function AdminProductsPageContent() {
                     placeholder="输入商品描述"
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
+                  />
+                </div>
+
+                {/* 标签 */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-tags">
+                    标签{" "}
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      (用逗号分隔，如：热销, 限时, 推荐)
+                    </span>
+                  </Label>
+                  <Input
+                    id="product-tags"
+                    placeholder="热销, 限时, 推荐"
+                    value={formTags}
+                    onChange={(e) => setFormTags(e.target.value)}
+                  />
+                </div>
+
+                {/* 售后时长 */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-aftersale">
+                    售后时长（小时）{" "}
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      (可选，留空为默认)
+                    </span>
+                  </Label>
+                  <Input
+                    id="product-aftersale"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="如 24、48、72"
+                    value={formAfterSaleHours}
+                    onChange={(e) => setFormAfterSaleHours(e.target.value)}
                   />
                 </div>
 
@@ -1280,6 +1330,18 @@ export default function AdminProductsPageContent() {
                           <span className="font-medium text-[var(--foreground)]">
                             {product.name}
                           </span>
+                          {product.tags.length > 0 && (
+                            <div className="mt-0.5 flex flex-wrap gap-1">
+                              {product.tags.slice(0, 3).map((tag) => (
+                                <span key={tag} className="inline-block rounded bg-[var(--primary)]/10 px-1.5 py-0 text-[10px] text-[var(--primary)]">
+                                  {tag}
+                                </span>
+                              ))}
+                              {product.tags.length > 3 && (
+                                <span className="text-[10px] text-[var(--muted-foreground)]">+{product.tags.length - 3}</span>
+                              )}
+                            </div>
+                          )}
                           <span className="text-xs text-[var(--muted-foreground)]">
                             {product.id}
                           </span>

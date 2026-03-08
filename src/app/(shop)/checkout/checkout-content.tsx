@@ -95,12 +95,24 @@ export default function CheckoutContent() {
     setMounted(true);
   }, []);
 
-  // Auto-fill email from user session
+  // Auto-fill email from user session or localStorage
   useEffect(() => {
     if (user?.email && !email) {
       setEmail(user.email);
+    } else if (!email) {
+      const saved = localStorage.getItem("pj37-checkout-email");
+      if (saved) setEmail(saved);
     }
   }, [user, email]);
+
+  // Save email to localStorage when it changes (debounced)
+  useEffect(() => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem("pj37-checkout-email", email);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [email]);
 
   // Validate cart prices and stock against server on mount and periodically
   useEffect(() => {
