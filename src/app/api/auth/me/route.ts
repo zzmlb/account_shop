@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession, encodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("auth/me");
 
@@ -68,6 +69,10 @@ export async function GET(request: NextRequest) {
 // PUT - Update user profile (avatar)
 export async function PUT(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter(ip);
+    if (!rl.success) return rateLimitResponse(rl);
+
     const token = request.cookies.get("session")?.value;
     if (!token) {
       return NextResponse.json(

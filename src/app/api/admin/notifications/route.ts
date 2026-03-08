@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       newUsers,
       expiringCoupons,
       pendingRefunds,
+      pendingMessages,
     ] = await Promise.all([
       db.order.count({ where: { status: "PENDING" } }),
       db.product.count({
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
         },
       }),
       db.refundRequest.count({ where: { status: "PENDING" } }),
+      db.contactMessage.count({ where: { status: "PENDING" } }),
     ]);
 
     const notifications = [];
@@ -101,6 +103,16 @@ export async function GET(request: NextRequest) {
         title: `${pendingRefunds} 个待处理退款申请`,
         description: "用户提交了退款申请，请尽快审核",
         href: "/admin/refunds",
+      });
+    }
+
+    if (pendingMessages > 0) {
+      notifications.push({
+        id: "pending-messages",
+        type: "info",
+        title: `${pendingMessages} 条待处理留言`,
+        description: "用户提交了留言反馈，请查看处理",
+        href: "/admin/messages",
       });
     }
 

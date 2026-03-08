@@ -13,6 +13,7 @@ import {
   BookOpen,
   Ticket,
   MessageSquare,
+  Mails,
   Settings,
   RotateCcw,
   Shield,
@@ -64,6 +65,7 @@ const sidebarLinks = [
   { label: "优惠券管理", href: "/admin/coupons", icon: Ticket },
   { label: "评价管理", href: "/admin/reviews", icon: MessageSquare },
   { label: "退款管理", href: "/admin/refunds", icon: RotateCcw },
+  { label: "留言管理", href: "/admin/messages", icon: Mails },
   { label: "登录日志", href: "/admin/login-logs", icon: Shield },
   { label: "系统设置", href: "/admin/settings", icon: Settings },
 ];

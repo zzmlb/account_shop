@@ -12,6 +12,9 @@ import {
   Mail,
   ShieldCheck,
   ShoppingBag,
+  Zap,
+  Clock,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -417,6 +420,25 @@ export default function CheckoutContent() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Delivery info badges */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-center">
+              <Zap className="mb-1.5 h-5 w-5 text-[var(--success)]" />
+              <span className="text-xs font-semibold text-[var(--foreground)]">即时交付</span>
+              <span className="text-[10px] text-[var(--muted-foreground)]">付款后秒级发货</span>
+            </div>
+            <div className="flex flex-col items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-center">
+              <Lock className="mb-1.5 h-5 w-5 text-[var(--primary)]" />
+              <span className="text-xs font-semibold text-[var(--foreground)]">安全加密</span>
+              <span className="text-[10px] text-[var(--muted-foreground)]">AES-256 保护</span>
+            </div>
+            <div className="flex flex-col items-center rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-center">
+              <Clock className="mb-1.5 h-5 w-5 text-[var(--accent)]" />
+              <span className="text-xs font-semibold text-[var(--foreground)]">售后保障</span>
+              <span className="text-[10px] text-[var(--muted-foreground)]">48小时内申请</span>
             </div>
           </div>
 

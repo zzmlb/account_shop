@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("auth/email");
 
 export async function PUT(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter(ip);
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = decodeSession(
       request.cookies.get("session")?.value || ""
     );

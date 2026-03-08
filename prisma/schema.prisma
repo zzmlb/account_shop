@@ -362,6 +362,28 @@ enum NotificationType {
   COUPON
 }
 
+// ==================== 联系留言 ====================
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String        @db.Text
+  status    MessageStatus @default(PENDING)
+  adminNote String?       @db.Text
+  createdAt DateTime      @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+enum MessageStatus {
+  PENDING
+  REPLIED
+  CLOSED
+}
+
 // ==================== 系统配置 ====================
 model SiteSetting {
   id    String @id @default(cuid())

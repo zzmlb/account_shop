@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Mail, MessageSquare, Clock, Shield } from "lucide-react";
 import { SITE_NAME } from "@/lib/constants";
+import ContactForm from "./contact-form";
 
 export const metadata: Metadata = {
   title: "联系我们",
@@ -98,6 +99,14 @@ export default function ContactPage() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Contact Form */}
+      <div className="mb-16">
+        <h2 className="mb-6 text-center text-2xl font-bold text-[var(--foreground)]">
+          留言反馈
+        </h2>
+        <ContactForm />
       </div>
 
       {/* FAQ Section */}
