@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { db } from "@/server/db";
+import { hashPassword, encodeSession } from "@/lib/auth";
 
-// Server-side validation schema (no confirmPassword needed)
 const registerBodySchema = z.object({
   username: z
     .string()
@@ -19,7 +20,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input
     const parsed = registerBodySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -32,31 +32,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { username, email } = parsed.data;
+    const { username, email, password } = parsed.data;
 
-    // Mock: In future, this will:
-    // 1. Check if username/email already exists in database
-    // 2. Hash password with bcrypt
-    // 3. Create user record in database
-    // 4. Send verification email
+    // Check if username already exists
+    const existingUsername = await db.user.findUnique({
+      where: { username },
+    });
+    if (existingUsername) {
+      return NextResponse.json(
+        { success: false, message: "用户名已被注册" },
+        { status: 409 }
+      );
+    }
 
-    // For now, always succeed
-    return NextResponse.json({
+    // Check if email already exists
+    const existingEmail = await db.user.findUnique({
+      where: { email },
+    });
+    if (existingEmail) {
+      return NextResponse.json(
+        { success: false, message: "邮箱已被注册" },
+        { status: 409 }
+      );
+    }
+
+    // Hash password and create user
+    const passwordHash = await hashPassword(password);
+    const user = await db.user.create({
+      data: {
+        username,
+        email,
+        passwordHash,
+        role: "USER",
+        balance: 0,
+      },
+    });
+
+    // Create session token
+    const token = encodeSession({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+    });
+
+    const response = NextResponse.json({
       success: true,
       message: "注册成功",
       user: {
-        id: `usr_${Date.now()}`,
-        username,
-        email,
-        role: "user",
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role.toLowerCase(),
+        balance: 0,
       },
     });
+
+    response.cookies.set("session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
   } catch {
     return NextResponse.json(
-      {
-        success: false,
-        message: "服务器内部错误",
-      },
+      { success: false, message: "服务器内部错误" },
       { status: 500 }
     );
   }

@@ -185,9 +185,8 @@ const PRODUCTS = [
 
 const PAGE_SIZE = 5;
 
-export const dynamic = "force-dynamic";
 
-export default function CardKeysPage() {
+export default function AdminCardKeysPageContent() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);

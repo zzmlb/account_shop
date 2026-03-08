@@ -108,7 +108,8 @@ const MOCK_FAVORITES: FavoriteProduct[] = [
   },
 ];
 
-export default function FavoritesPage() {
+
+export default function FavoritesPageContent() {
   const [favorites, setFavorites] = useState<FavoriteProduct[]>(MOCK_FAVORITES);
   const [removingId, setRemovingId] = useState<string | null>(null);
 

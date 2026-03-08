@@ -45,9 +45,8 @@ const BALANCE_LOGS: BalanceLog[] = [
 
 const RECHARGE_AMOUNTS = [50, 100, 200, 500];
 
-export const dynamic = "force-dynamic";
 
-export default function BalancePage() {
+export default function BalancePageContent() {
   const { user } = useAuthStore();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
 

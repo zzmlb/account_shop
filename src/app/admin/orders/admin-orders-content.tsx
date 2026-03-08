@@ -175,9 +175,8 @@ const statusTabs = [
   { value: "REFUNDED", label: "已退款" },
 ];
 
-export const dynamic = "force-dynamic";
 
-export default function AdminOrdersPage() {
+export default function AdminOrdersPageContent() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);

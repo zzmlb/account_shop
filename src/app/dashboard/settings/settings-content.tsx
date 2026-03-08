@@ -35,7 +35,8 @@ interface FormMessage {
   text: string;
 }
 
-export default function SettingsPage() {
+
+export default function DashboardSettingsPageContent() {
   const { user } = useAuthStore();
 
   /* ---- Password form state ---- */

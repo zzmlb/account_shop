@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 
-export const dynamic = "force-dynamic";
+
 
 interface SearchResult {
   orderId: string;
@@ -44,7 +44,7 @@ function maskKey(key: string): string {
   return parts[0] + "-" + parts.slice(1).map(() => "****").join("-");
 }
 
-export default function OrderSearchPage() {
+export default function OrderSearchPageContent() {
   const [orderNo, setOrderNo] = useState("");
   const [email, setEmail] = useState("");
   const [isSearching, setIsSearching] = useState(false);

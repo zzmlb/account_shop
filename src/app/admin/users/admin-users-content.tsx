@@ -158,9 +158,8 @@ const roleConfig: Record<UserRole, { label: string; variant: "default" | "second
   SUPER_ADMIN: { label: "SUPER_ADMIN", variant: "outline", className: "border-[var(--accent)] text-[var(--accent)]" },
 };
 
-export const dynamic = "force-dynamic";
 
-export default function AdminUsersPage() {
+export default function AdminUsersPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState<MockUser[]>(mockUsers);

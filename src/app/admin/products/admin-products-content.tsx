@@ -207,9 +207,8 @@ const ITEMS_PER_PAGE = 6;
 // Component
 // ---------------------------------------------------------------------------
 
-export const dynamic = "force-dynamic";
 
-export default function AdminProductsPage() {
+export default function AdminProductsPageContent() {
   // State
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");

@@ -54,9 +54,8 @@ const statusTabs = [
 
 const PAGE_SIZE = 5;
 
-export const dynamic = "force-dynamic";
 
-export default function OrdersPage() {
+export default function OrdersPageContent() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);

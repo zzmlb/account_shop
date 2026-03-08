@@ -10,9 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
+export default function AdminSettingsPageContent() {
   /* Site settings */
   const [siteName, setSiteName] = useState("PJ37 数字商城");
   const [siteDescription, setSiteDescription] = useState(

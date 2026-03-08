@@ -135,9 +135,8 @@ const categoryBadgeVariant: Record<
 
 const PAGE_SIZE = 5;
 
-export const dynamic = "force-dynamic";
 
-export default function ArticlesPage() {
+export default function AdminArticlesPageContent() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);

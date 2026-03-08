@@ -201,9 +201,8 @@ function RankBadge({ rank }: { rank: number }) {
 
 /* ---------- Page Component ---------- */
 
-export const dynamic = "force-dynamic";
 
-export default function AdminOverviewPage() {
+export default function AdminOverviewPageContent() {
   return (
     <div className="space-y-6">
       {/* Page title */}

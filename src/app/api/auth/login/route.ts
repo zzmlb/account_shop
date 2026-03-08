@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validators";
-
-// Mock test user — will be replaced with database lookup + bcrypt
-const TEST_USER = {
-  id: "usr_001",
-  username: "admin",
-  password: "admin123",
-  email: "admin@pj37.com",
-  role: "admin" as const,
-  balance: 1000,
-};
+import { db } from "@/server/db";
+import { verifyPassword, encodeSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -30,33 +21,59 @@ export async function POST(request: NextRequest) {
 
     const { username, password } = parsed.data;
 
-    // Mock authentication check
-    if (username !== TEST_USER.username || password !== TEST_USER.password) {
+    // Find user in database
+    const user = await db.user.findFirst({
+      where: {
+        OR: [{ username }, { email: username }],
+      },
+    });
+
+    if (!user) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "用户名或密码错误",
-        },
+        { success: false, message: "用户名或密码错误" },
         { status: 401 }
       );
     }
 
-    // Create response with user data (excluding password)
+    if (user.status === "BANNED") {
+      return NextResponse.json(
+        { success: false, message: "账户已被封禁，请联系客服" },
+        { status: 403 }
+      );
+    }
+
+    // Verify password
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (!valid) {
+      return NextResponse.json(
+        { success: false, message: "用户名或密码错误" },
+        { status: 401 }
+      );
+    }
+
     const userData = {
-      id: TEST_USER.id,
-      username: TEST_USER.username,
-      email: TEST_USER.email,
-      role: TEST_USER.role,
-      balance: TEST_USER.balance,
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role.toLowerCase() as "user" | "admin" | "super_admin",
+      balance: Number(user.balance),
     };
+
+    // Create session token
+    const token = encodeSession({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+    });
 
     const response = NextResponse.json({
       success: true,
       user: userData,
     });
 
-    // Set a mock session cookie
-    response.cookies.set("session", `mock_session_${TEST_USER.id}`, {
+    response.cookies.set("session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -67,10 +84,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch {
     return NextResponse.json(
-      {
-        success: false,
-        message: "服务器内部错误",
-      },
+      { success: false, message: "服务器内部错误" },
       { status: 500 }
     );
   }

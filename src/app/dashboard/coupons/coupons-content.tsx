@@ -319,7 +319,8 @@ function CouponCard({
   );
 }
 
-export default function CouponsPage() {
+
+export default function CouponsPageContent() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopyCode = async (id: string, code: string) => {
