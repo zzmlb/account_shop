@@ -169,6 +169,14 @@ export async function PUT(request: NextRequest) {
         );
       }
 
+      // Cap balance adjustments to prevent accidental huge changes
+      if (Math.abs(balanceAdjust) > 100000) {
+        return NextResponse.json(
+          { success: false, message: "单次余额调整不能超过 ¥100,000" },
+          { status: 400 }
+        );
+      }
+
       // Prevent negative balance
       const currentBalance = Number(existing.balance);
       if (currentBalance + balanceAdjust < 0) {

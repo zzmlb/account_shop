@@ -177,7 +177,7 @@ export const createOrderSchema = z.object({
 export const createReviewSchema = z.object({
   productId: z.string().min(1, "缺少商品ID"),
   rating: z.number().int().min(1, "评分至少1星").max(5, "评分最多5星"),
-  content: z.string().min(2, "评价内容至少2个字符").max(1000, "评价内容最多1000个字符"),
+  content: z.string().min(5, "评价内容至少5个字符").max(1000, "评价内容最多1000个字符"),
 });
 
 /* ------------------------------------------------------------------ */
