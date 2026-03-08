@@ -410,16 +410,53 @@ export default function AdminRefundsContent() {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* Select all toggle for pending refunds */}
+              {pendingRefunds.length > 0 && (
+                <div className="flex items-center gap-2 px-1">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                      allPendingSelected
+                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                        : "border-[var(--border)] hover:border-[var(--primary)]"
+                    }`}
+                  >
+                    {allPendingSelected && <CheckSquare className="h-3 w-3" />}
+                  </button>
+                  <span className="text-xs text-[var(--muted-foreground)]">
+                    全选待处理 ({pendingRefunds.length})
+                  </span>
+                </div>
+              )}
               {refunds.map((refund) => {
                 const statusInfo = STATUS_MAP[refund.status] || STATUS_MAP.PENDING;
+                const isSelected = selectedRefunds.has(refund.id);
                 return (
                   <div
                     key={refund.id}
-                    className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-colors"
+                    className={`rounded-[var(--radius-lg)] border transition-colors ${
+                      isSelected
+                        ? "border-[var(--primary)]/50 bg-[var(--primary)]/5"
+                        : "border-[var(--border)] bg-[var(--card)]"
+                    }`}
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
                       <div className="flex items-center gap-3 text-sm">
+                        {refund.status === "PENDING" && (
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectRefund(refund.id)}
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                              isSelected
+                                ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                                : "border-[var(--border)] hover:border-[var(--primary)]"
+                            }`}
+                          >
+                            {isSelected && <CheckSquare className="h-3 w-3" />}
+                          </button>
+                        )}
                         <span className="font-mono text-[var(--muted-foreground)]">
                           {refund.orderNo}
                         </span>
