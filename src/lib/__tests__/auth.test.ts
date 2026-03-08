@@ -4,6 +4,7 @@ import {
   verifyPassword,
   encodeSession,
   decodeSession,
+  getUserSession,
   type SessionUser,
 } from "../auth";
 
@@ -82,5 +83,60 @@ describe("encodeSession / decodeSession", () => {
     const decoded = decodeSession(token);
     expect(decoded?.role).toBe("ADMIN");
     expect(decoded?.avatar).toBe("/avatars/admin.png");
+  });
+});
+
+describe("getUserSession", () => {
+  const testUser: SessionUser = {
+    id: "user-1",
+    username: "testuser",
+    email: "test@example.com",
+    role: "USER",
+    avatar: null,
+  };
+
+  function makeRequest(sessionValue?: string) {
+    return {
+      cookies: {
+        get: (name: string) =>
+          name === "session" && sessionValue
+            ? { value: sessionValue }
+            : undefined,
+      },
+    } as never;
+  }
+
+  it("returns session for valid token", () => {
+    const token = encodeSession(testUser);
+    const { session, error } = getUserSession(makeRequest(token));
+    expect(error).toBeNull();
+    expect(session).toEqual(testUser);
+  });
+
+  it("returns 401 error when no session cookie", () => {
+    const { session, error } = getUserSession(makeRequest());
+    expect(session).toBeNull();
+    expect(error).not.toBeNull();
+    expect(error!.status).toBe(401);
+  });
+
+  it("returns 401 error for invalid token", () => {
+    const { session, error } = getUserSession(makeRequest("bad-token"));
+    expect(session).toBeNull();
+    expect(error!.status).toBe(401);
+  });
+
+  it("works for admin users too", () => {
+    const admin: SessionUser = {
+      id: "admin-1",
+      username: "admin",
+      email: "admin@test.com",
+      role: "ADMIN",
+      avatar: null,
+    };
+    const token = encodeSession(admin);
+    const { session, error } = getUserSession(makeRequest(token));
+    expect(error).toBeNull();
+    expect(session?.role).toBe("ADMIN");
   });
 });
