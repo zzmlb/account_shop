@@ -138,11 +138,13 @@ export default function ReviewsContent() {
 
       {/* Review list */}
       {reviews.length === 0 ? (
-        <EmptyState
-          icon={Star}
-          title="暂无评价"
-          description="购买商品后即可发表评价"
-          action={
+        <div className="py-8">
+          <EmptyState
+            icon={Star}
+            title="暂无评价"
+            description="购买商品后即可发表评价"
+          />
+          <div className="mt-4 text-center">
             <Link
               href="/products"
               className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90 transition-opacity"
@@ -150,8 +152,8 @@ export default function ReviewsContent() {
               <Package className="h-4 w-4" />
               浏览商品
             </Link>
-          }
-        />
+          </div>
+        </div>
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => (

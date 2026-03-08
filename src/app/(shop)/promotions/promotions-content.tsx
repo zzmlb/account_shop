@@ -64,7 +64,7 @@ export default function PromotionsContent() {
         setCoupons(data.coupons);
       }
     } catch {
-      // silent
+      toast.error("获取优惠券失败，请刷新重试");
     } finally {
       setLoading(false);
     }
