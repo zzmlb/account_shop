@@ -16,11 +16,21 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -90,6 +100,7 @@ export default function CheckoutContent() {
   const [priceChecked, setPriceChecked] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponState | null>(null);
   const [stockValidating, setStockValidating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -205,7 +216,7 @@ export default function CheckoutContent() {
     );
   }
 
-  const handleSubmit = async () => {
+  const handleConfirmOpen = () => {
     if (!email.trim()) {
       toast.error("请输入邮箱地址");
       return;
@@ -214,7 +225,11 @@ export default function CheckoutContent() {
       toast.error("请输入有效的邮箱地址");
       return;
     }
+    setConfirmOpen(true);
+  };
 
+  const handleSubmit = async () => {
+    setConfirmOpen(false);
     setIsSubmitting(true);
 
     try {
@@ -578,13 +593,91 @@ export default function CheckoutContent() {
         {/* Right column: Order summary */}
         <div className="md:sticky md:top-24 md:self-start">
           <CartSummary
-            onSubmit={handleSubmit}
+            onSubmit={handleConfirmOpen}
             submitLabel="提交订单"
             isSubmitting={isSubmitting}
             onCouponChange={setAppliedCoupon}
           />
         </div>
       </div>
+
+      {/* Order Confirmation Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <ShieldCheck className="h-5 w-5 text-[var(--primary)]" />
+              确认订单信息
+            </DialogTitle>
+            <DialogDescription>
+              请核对以下信息，确认无误后提交订单
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Items summary */}
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div key={item.productId} className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--foreground)] truncate max-w-[200px]">
+                    {item.name} <span className="text-[var(--muted-foreground)]">x{item.quantity}</span>
+                  </span>
+                  <span className="font-medium text-[var(--foreground)] shrink-0 ml-2">
+                    {formatPrice(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Order details */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">邮箱</span>
+                <span className="text-[var(--foreground)]">{email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--muted-foreground)]">支付方式</span>
+                <span className="text-[var(--foreground)]">
+                  {PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label || paymentMethod}
+                </span>
+              </div>
+              {appliedCoupon && (
+                <div className="flex justify-between">
+                  <span className="text-[var(--success)]">优惠折扣</span>
+                  <span className="text-[var(--success)]">-{formatPrice(appliedCoupon.discount)}</span>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <span className="text-base font-semibold text-[var(--foreground)]">应付总额</span>
+              <span className="text-xl font-bold text-[var(--primary)]">
+                {formatPrice(getTotal() - (appliedCoupon?.discount ?? 0))}
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              返回修改
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  处理中...
+                </>
+              ) : (
+                "确认支付"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
