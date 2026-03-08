@@ -119,6 +119,9 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [totalReviews, setTotalReviews] = useState(0);
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
 
+  // Avatar error tracking
+  const [failedAvatars, setFailedAvatars] = useState<Set<string>>(new Set());
+
   // Review form
   const [showForm, setShowForm] = useState(false);
   const [formRating, setFormRating] = useState(5);
@@ -276,7 +279,8 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             placeholder="分享您的使用体验（至少5个字符）..."
             maxLength={1000}
             rows={3}
-            className="mb-3 w-full resize-none rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            disabled={submitting}
+            className="mb-3 w-full resize-none rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] disabled:opacity-50"
           />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -362,13 +366,16 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             >
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {review.avatar ? (
+                  {review.avatar && !failedAvatars.has(review.id) ? (
                     <Image
                       src={review.avatar}
                       alt={review.username}
                       width={32}
                       height={32}
                       className="rounded-full object-cover"
+                      onError={() =>
+                        setFailedAvatars((prev) => new Set(prev).add(review.id))
+                      }
                     />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)]/10 text-sm font-bold text-[var(--primary)]">

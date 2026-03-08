@@ -253,6 +253,8 @@ model UserCoupon {
   coupon   Coupon    @relation(fields: [couponId], references: [id])
   usedAt   DateTime?
 
+  @@index([userId])
+  @@index([couponId])
   @@map("user_coupons")
 }
 

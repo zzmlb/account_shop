@@ -106,11 +106,11 @@ export default function Footer() {
             <div className="hidden h-4 w-px bg-[var(--border)] md:block" />
 
             {/* Payment methods */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <span className="text-xs text-[var(--muted-foreground)]">
                 支付方式:
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 {paymentMethods.map((method) => (
                   <div
                     key={method.label}

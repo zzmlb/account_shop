@@ -143,16 +143,17 @@ export async function POST(
           break;
         }
 
-        // Assign keys to order item
+        // Assign keys to order item (batch update)
+        const keyIds = keys.map((k) => k.id);
+        await tx.cardKey.updateMany({
+          where: { id: { in: keyIds } },
+          data: {
+            status: "SOLD",
+            orderId: item.id,
+            soldAt: new Date(),
+          },
+        });
         for (const key of keys) {
-          await tx.cardKey.update({
-            where: { id: key.id },
-            data: {
-              status: "SOLD",
-              orderId: item.id,
-              soldAt: new Date(),
-            },
-          });
           allocatedKeys.push(key.content);
         }
 
