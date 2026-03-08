@@ -7,6 +7,10 @@ export const AFTER_SALE_HOURS = 48;
 
 export const ITEMS_PER_PAGE = 12;
 
+/** Tiny shimmer SVG for Next.js Image placeholder="blur" */
+export const BLUR_DATA_URL =
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSIzMCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjZTJlMmUyIi8+PC9zdmc+";
+
 export const NAV_LINKS = [
   { label: "首页", href: "/" },
   { label: "全部商品", href: "/products" },

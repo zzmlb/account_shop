@@ -31,6 +31,7 @@ import ProductFilters from "@/components/product/product-filters";
 import FavoriteButton from "@/components/product/favorite-button";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
+import { BLUR_DATA_URL } from "@/lib/constants";
 
 interface ApiProduct {
   id: string;
@@ -359,7 +360,7 @@ export default function ProductsPageContent() {
                 >
                   {product.image ? (
                     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
-                      <Image src={product.image} alt={product.name} fill className="object-cover" sizes="80px" />
+                      <Image src={product.image} alt={product.name} fill className="object-cover" sizes="80px" placeholder="blur" blurDataURL={BLUR_DATA_URL} />
                     </div>
                   ) : (
                     <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5">
@@ -424,6 +425,8 @@ export default function ProductsPageContent() {
                     fill
                     className="object-cover"
                     sizes="(max-width: 512px) 100vw, 512px"
+                    placeholder="blur"
+                    blurDataURL={BLUR_DATA_URL}
                     onError={() => setQvImgError(true)}
                   />
                 </div>

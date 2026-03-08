@@ -277,6 +277,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             value={formContent}
             onChange={(e) => setFormContent(e.target.value)}
             placeholder="分享您的使用体验（至少5个字符）..."
+            minLength={5}
             maxLength={1000}
             rows={3}
             disabled={submitting}

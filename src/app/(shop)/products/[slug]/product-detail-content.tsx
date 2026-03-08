@@ -25,6 +25,7 @@ import ShareButtons from "@/components/product/share-buttons";
 import ProductReviews from "@/components/product/product-reviews";
 import { useCartStore } from "@/stores/cart-store";
 import { useRecentlyViewedStore } from "@/stores/recently-viewed-store";
+import { BLUR_DATA_URL } from "@/lib/constants";
 
 interface Product {
   id: string;
@@ -198,6 +199,8 @@ export default function ProductDetailContent({
                 }
                 sizes="(max-width: 768px) 100vw, 50vw"
                 priority
+                placeholder="blur"
+                blurDataURL={BLUR_DATA_URL}
                 onError={() => setMainImgError(true)}
               />
             ) : (
@@ -273,6 +276,8 @@ export default function ProductDetailContent({
                       fill
                       className="object-cover"
                       sizes="64px"
+                      placeholder="blur"
+                      blurDataURL={BLUR_DATA_URL}
                       onError={() => setThumbErrors((prev) => new Set(prev).add(idx))}
                     />
                   )}

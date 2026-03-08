@@ -14,6 +14,7 @@ import PriceTag from "@/components/shared/price-tag";
 import StockBadge from "@/components/shared/stock-badge";
 import FavoriteButton from "@/components/product/favorite-button";
 import { useCartStore } from "@/stores/cart-store";
+import { BLUR_DATA_URL } from "@/lib/constants";
 
 interface ProductCardProps {
   productId?: string;
@@ -113,7 +114,8 @@ function ProductCard({
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               priority={priority}
-              placeholder="empty"
+              placeholder="blur"
+              blurDataURL={BLUR_DATA_URL}
               loading={priority ? "eager" : "lazy"}
               onError={() => setImgError(true)}
             />

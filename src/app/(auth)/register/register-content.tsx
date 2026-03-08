@@ -152,6 +152,8 @@ export default function RegisterContent() {
             placeholder="请输入用户名"
             autoComplete="username"
             autoFocus
+            minLength={2}
+            maxLength={20}
             className={cn(
               "bg-[var(--background)]",
               errors.username && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -173,6 +175,7 @@ export default function RegisterContent() {
             type="email"
             placeholder="请输入邮箱地址"
             autoComplete="email"
+            maxLength={100}
             className={cn(
               "bg-[var(--background)]",
               errors.email && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -195,6 +198,8 @@ export default function RegisterContent() {
               type={showPassword ? "text" : "password"}
               placeholder="请输入密码 (至少6位)"
               autoComplete="new-password"
+              minLength={6}
+              maxLength={50}
               className={cn(
                 "bg-[var(--background)] pr-10",
                 errors.password && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -257,6 +262,8 @@ export default function RegisterContent() {
               type={showConfirmPassword ? "text" : "password"}
               placeholder="请再次输入密码"
               autoComplete="new-password"
+              minLength={6}
+              maxLength={50}
               className={cn(
                 "bg-[var(--background)] pr-10",
                 errors.confirmPassword && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"

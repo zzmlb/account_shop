@@ -81,6 +81,7 @@ export default function ForgotPasswordContent() {
                 type="email"
                 placeholder="请输入注册时使用的邮箱"
                 autoComplete="email"
+                maxLength={100}
                 className={cn(
                   "bg-[var(--background)]",
                   errors.email && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"

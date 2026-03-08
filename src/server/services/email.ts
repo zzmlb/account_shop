@@ -307,6 +307,135 @@ export async function sendRefundNotification(data: RefundEmailData): Promise<boo
   }
 }
 
+// ==================== Balance Adjustment ====================
+interface BalanceAdjustEmailData {
+  to: string;
+  username: string;
+  amount: number;
+  newBalance: number;
+  reason?: string;
+}
+
+function balanceAdjustHtml(data: BalanceAdjustEmailData): string {
+  const isPositive = data.amount > 0;
+  const amountText = isPositive ? `+¥${data.amount.toFixed(2)}` : `-¥${Math.abs(data.amount).toFixed(2)}`;
+  const gradientColors = isPositive ? "#1db954,#148c3e" : "#ff6b35,#e50914";
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,${gradientColors});padding:30px;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">${SITE_NAME}</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;">余额变动通知</p>
+      </div>
+      <div style="padding:30px;">
+        <p style="color:#333;font-size:16px;margin:0 0 20px;">您好 ${data.username}，</p>
+        <p style="color:#666;font-size:14px;margin:0 0 20px;">您的账户余额已由管理员调整：</p>
+        <div style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:20px;">
+          <p style="margin:0 0 8px;color:#666;font-size:14px;">变动金额</p>
+          <p style="margin:0;color:${isPositive ? "#1db954" : "#e50914"};font-size:22px;font-weight:700;">${amountText}</p>
+          <p style="margin:8px 0 0;color:#666;font-size:14px;">当前余额：¥${data.newBalance.toFixed(2)}</p>
+        </div>
+        ${data.reason ? `
+        <div style="background:#f0f7ff;border-radius:8px;padding:14px;margin-bottom:20px;">
+          <p style="margin:0 0 4px;color:#666;font-size:13px;">备注：</p>
+          <p style="margin:0;color:#333;font-size:14px;">${data.reason}</p>
+        </div>` : ""}
+        <div style="text-align:center;margin-top:30px;">
+          <a href="${SITE_URL}/dashboard/balance" style="display:inline-block;background:#6c5ce7;color:#fff;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:600;">查看余额明细</a>
+        </div>
+      </div>
+      <div style="padding:20px 30px;background:#f8f9fa;text-align:center;">
+        <p style="margin:0;color:#999;font-size:12px;">此邮件由 ${SITE_NAME} 自动发送，请勿回复。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendBalanceAdjustment(data: BalanceAdjustEmailData): Promise<boolean> {
+  try {
+    const label = data.amount > 0 ? "充值" : "扣减";
+    const sent = await sendEmail(
+      data.to,
+      `余额${label}通知 | ${SITE_NAME}`,
+      balanceAdjustHtml(data),
+    );
+    if (sent) log.info({ to: data.to, amount: data.amount }, "Balance adjustment email sent");
+    return sent;
+  } catch (error) {
+    log.error({ err: error }, "Failed to send balance adjustment email");
+    return false;
+  }
+}
+
+// ==================== Account Status Change ====================
+interface AccountStatusEmailData {
+  to: string;
+  username: string;
+  newStatus: "BANNED" | "ACTIVE";
+  reason?: string;
+}
+
+function accountStatusHtml(data: AccountStatusEmailData): string {
+  const isBanned = data.newStatus === "BANNED";
+  const statusText = isBanned ? "账户已被暂停" : "账户已恢复";
+  const gradientColors = isBanned ? "#e50914,#b20710" : "#1db954,#148c3e";
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,${gradientColors});padding:30px;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">${SITE_NAME}</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;">${statusText}</p>
+      </div>
+      <div style="padding:30px;">
+        <p style="color:#333;font-size:16px;margin:0 0 20px;">您好 ${data.username}，</p>
+        ${isBanned
+          ? `<p style="color:#666;font-size:14px;margin:0 0 20px;">由于违反平台规则，您的账户已被暂停使用。暂停期间您将无法登录和进行任何操作。</p>`
+          : `<p style="color:#666;font-size:14px;margin:0 0 20px;">您的账户已恢复正常使用，您可以正常登录和使用平台服务。</p>`
+        }
+        ${data.reason ? `
+        <div style="background:#f0f7ff;border-radius:8px;padding:14px;margin-bottom:20px;">
+          <p style="margin:0 0 4px;color:#666;font-size:13px;">原因：</p>
+          <p style="margin:0;color:#333;font-size:14px;">${data.reason}</p>
+        </div>` : ""}
+        <p style="color:#999;font-size:13px;">如有疑问，请联系客服。</p>
+      </div>
+      <div style="padding:20px 30px;background:#f8f9fa;text-align:center;">
+        <p style="margin:0;color:#999;font-size:12px;">此邮件由 ${SITE_NAME} 自动发送，请勿回复。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendAccountStatusChange(data: AccountStatusEmailData): Promise<boolean> {
+  try {
+    const label = data.newStatus === "BANNED" ? "暂停通知" : "恢复通知";
+    const sent = await sendEmail(
+      data.to,
+      `账户${label} | ${SITE_NAME}`,
+      accountStatusHtml(data),
+    );
+    if (sent) log.info({ to: data.to, status: data.newStatus }, "Account status email sent");
+    return sent;
+  } catch (error) {
+    log.error({ err: error }, "Failed to send account status email");
+    return false;
+  }
+}
+
 export async function sendPasswordReset(data: PasswordResetEmailData): Promise<boolean> {
   try {
     const sent = await sendEmail(

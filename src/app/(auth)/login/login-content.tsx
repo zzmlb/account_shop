@@ -86,6 +86,8 @@ export default function LoginContent() {
             placeholder="请输入用户名"
             autoComplete="username"
             autoFocus
+            minLength={2}
+            maxLength={20}
             className={cn(
               "bg-[var(--background)]",
               errors.username && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"
@@ -116,6 +118,8 @@ export default function LoginContent() {
               type={showPassword ? "text" : "password"}
               placeholder="请输入密码"
               autoComplete="current-password"
+              minLength={6}
+              maxLength={50}
               className={cn(
                 "bg-[var(--background)] pr-10",
                 errors.password && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"

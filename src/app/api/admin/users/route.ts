@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { sendBalanceAdjustment, sendAccountStatusChange } from "@/server/services/email";
 
 const log = createLogger("admin/users");
 
@@ -296,6 +297,24 @@ export async function PUT(request: NextRequest) {
         "Admin updated user (balance adjustment)"
       );
 
+      // Send email notifications (fire-and-forget)
+      if (existing.email) {
+        sendBalanceAdjustment({
+          to: existing.email,
+          username: existing.username,
+          amount: balanceAdjust,
+          newBalance: Number(updated.balance),
+        }).catch((err) => log.warn({ err }, "Failed to send balance email"));
+
+        if (newStatus && newStatus !== existing.status) {
+          sendAccountStatusChange({
+            to: existing.email,
+            username: existing.username,
+            newStatus,
+          }).catch((err) => log.warn({ err }, "Failed to send status email"));
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: "用户信息已更新",
@@ -355,6 +374,15 @@ export async function PUT(request: NextRequest) {
       },
       "Admin updated user status"
     );
+
+    // Send account status change email (fire-and-forget)
+    if (newStatus && newStatus !== existing.status && existing.email) {
+      sendAccountStatusChange({
+        to: existing.email,
+        username: existing.username,
+        newStatus,
+      }).catch((err) => log.warn({ err }, "Failed to send status email"));
+    }
 
     return NextResponse.json({
       success: true,
