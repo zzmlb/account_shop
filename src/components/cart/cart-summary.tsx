@@ -23,24 +23,47 @@ export default function CartSummary({
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [_couponId, setCouponId] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const subtotal = getTotal();
-  const discount = couponApplied ? subtotal * 0.1 : 0; // Mock 10% discount
   const total = subtotal - discount;
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     setCouponError("");
     if (!couponCode.trim()) {
       setCouponError("请输入优惠码");
       return;
     }
-    // Mock coupon validation
-    if (couponCode.toUpperCase() === "PJ37VIP") {
-      setCouponApplied(true);
-      setCouponError("");
-    } else {
+
+    setIsValidating(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim(), amount: subtotal }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setCouponApplied(true);
+        setDiscount(data.discount);
+        setCouponId(data.couponId);
+        setCouponError("");
+      } else {
+        setCouponApplied(false);
+        setDiscount(0);
+        setCouponId(null);
+        setCouponError(data.message || "无效的优惠码");
+      }
+    } catch {
       setCouponApplied(false);
-      setCouponError("无效的优惠码");
+      setDiscount(0);
+      setCouponId(null);
+      setCouponError("验证优惠码时出错，请重试");
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -48,6 +71,8 @@ export default function CartSummary({
     setCouponCode("");
     setCouponApplied(false);
     setCouponError("");
+    setDiscount(0);
+    setCouponId(null);
   };
 
   return (
@@ -117,9 +142,13 @@ export default function CartSummary({
               variant="outline"
               size="default"
               onClick={handleApplyCoupon}
-              disabled={!couponCode.trim()}
+              disabled={!couponCode.trim() || isValidating}
             >
-              使用
+              {isValidating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "使用"
+              )}
             </Button>
           </div>
         )}

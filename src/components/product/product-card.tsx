@@ -1,11 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import PriceTag from "@/components/shared/price-tag";
 import StockBadge from "@/components/shared/stock-badge";
+import { useCartStore } from "@/stores/cart-store";
 
 interface ProductCardProps {
   name: string;
@@ -30,6 +35,27 @@ export default function ProductCard({
   categoryName,
   className,
 }: ProductCardProps) {
+  const router = useRouter();
+  const addItem = useCartStore((s) => s.addItem);
+
+  const handleQuickBuy = () => {
+    addItem({
+      id: slug,
+      productId: slug,
+      name,
+      slug,
+      price,
+      originalPrice,
+      quantity: 1,
+      maxStock: stockCount,
+      image,
+    });
+    toast.success("已加入购物车", {
+      description: `${name} x1`,
+    });
+    router.push("/checkout");
+  };
+
   return (
     <Link href={`/products/${slug}`} className={cn("group block", className)}>
       <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/50 hover:shadow-[0_8px_30px_rgba(108,92,231,0.15)]">
@@ -97,7 +123,7 @@ export default function ProductCard({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // TODO: add to cart logic
+                handleQuickBuy();
               }}
             >
               <ShoppingCart className="h-4 w-4" />

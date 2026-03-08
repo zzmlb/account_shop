@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Lock,
   User,
@@ -82,6 +82,22 @@ export default function DashboardSettingsPageContent() {
 
   const passwordStrength = getPasswordStrength(newPassword);
 
+  /* ---- Load notification preferences from localStorage ---- */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("pj37_notification_prefs");
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        if (typeof prefs.orderNotifications === "boolean")
+          setOrderNotifications(prefs.orderNotifications);
+        if (typeof prefs.promoEmails === "boolean")
+          setPromoEmails(prefs.promoEmails);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
   /* ---- Handlers ---- */
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,20 +117,47 @@ export default function DashboardSettingsPageContent() {
     }
 
     setPasswordSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setPasswordSaving(false);
-    setPasswordMessage({ type: "success", text: "密码修改成功" });
-    toast.success("密码已更新");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setPasswordMessage({
+          type: "error",
+          text: data.message || "密码修改失败",
+        });
+        toast.error(data.message || "密码修改失败");
+      } else {
+        setPasswordMessage({ type: "success", text: data.message });
+        toast.success(data.message || "密码已更新");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch {
+      setPasswordMessage({ type: "error", text: "网络错误，请稍后重试" });
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   const handleNotifSave = async () => {
     setNotifSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setNotifSaving(false);
-    toast.success("通知偏好已保存");
+    try {
+      const prefs = { orderNotifications, promoEmails };
+      localStorage.setItem("pj37_notification_prefs", JSON.stringify(prefs));
+      toast.success("通知偏好已保存");
+    } catch {
+      toast.error("保存失败，请稍后重试");
+    } finally {
+      setNotifSaving(false);
+    }
   };
 
   const displayEmail = user?.email ?? "user@example.com";

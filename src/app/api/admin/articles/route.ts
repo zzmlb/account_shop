@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     if (!session) return error!;
 
     const body = await request.json();
-    const { title, slug, content, excerpt, category, coverImage, isPublished, tags } = body;
+    const { title, slug, content, category, isPublished, tags } = body;
 
     // Validate required fields
     if (!title || !content || !category) {
@@ -204,7 +204,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, slug, content, excerpt, category, coverImage, isPublished, tags } = body;
+    const { title, slug, content, category, isPublished, tags } = body;
 
     // If slug is being changed, check uniqueness
     if (slug && slug !== existing.slug) {

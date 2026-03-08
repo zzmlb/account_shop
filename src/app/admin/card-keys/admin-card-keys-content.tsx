@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Key,
   Upload,
@@ -73,14 +73,20 @@ interface Pagination {
 interface ProductOption {
   id: string;
   name: string;
-  slug: string;
+}
+
+interface Stats {
+  total: number;
+  available: number;
+  sold: number;
+  disabled: number;
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 const statusTabs = [
   { value: "all", label: "全部" },
@@ -88,6 +94,10 @@ const statusTabs = [
   { value: "SOLD", label: "已售" },
   { value: "DISABLED", label: "已禁用" },
 ];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function statusLabel(status: string): string {
   switch (status) {
@@ -129,7 +139,13 @@ function maskContent(content: string): string {
 }
 
 function formatDate(iso: string): string {
-  return iso.slice(0, 16).replace("T", " ");
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso.slice(0, 16).replace("T", " ");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +162,12 @@ export default function AdminCardKeysPageContent() {
     totalPages: 1,
   });
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    total: 0,
+    available: 0,
+    sold: 0,
+    disabled: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
 
@@ -153,6 +175,7 @@ export default function AdminCardKeysPageContent() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [productFilter, setProductFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reveal state
@@ -167,6 +190,23 @@ export default function AdminCardKeysPageContent() {
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  // Track whether initial load is done
+  const initialized = useRef(false);
+
+  // ---------------------------------------------------------------------------
+  // Debounce search input
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      if (initialized.current) {
+        setCurrentPage(1);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // ---------------------------------------------------------------------------
   // Data fetching
@@ -185,8 +225,8 @@ export default function AdminCardKeysPageContent() {
         if (productFilter !== "all") {
           params.set("productId", productFilter);
         }
-        if (search.trim()) {
-          params.set("search", search.trim());
+        if (debouncedSearch.trim()) {
+          params.set("search", debouncedSearch.trim());
         }
 
         const res = await fetch(`/api/admin/card-keys?${params.toString()}`);
@@ -207,8 +247,33 @@ export default function AdminCardKeysPageContent() {
         });
       }
     },
-    [activeTab, productFilter, search, currentPage]
+    [activeTab, productFilter, debouncedSearch, currentPage]
   );
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [allRes, availRes, soldRes, disRes] = await Promise.all([
+        fetch("/api/admin/card-keys?pageSize=1"),
+        fetch("/api/admin/card-keys?pageSize=1&status=AVAILABLE"),
+        fetch("/api/admin/card-keys?pageSize=1&status=SOLD"),
+        fetch("/api/admin/card-keys?pageSize=1&status=DISABLED"),
+      ]);
+      const [allData, availData, soldData, disData] = await Promise.all([
+        allRes.json(),
+        availRes.json(),
+        soldRes.json(),
+        disRes.json(),
+      ]);
+      setStats({
+        total: allData.pagination?.total ?? 0,
+        available: availData.pagination?.total ?? 0,
+        sold: soldData.pagination?.total ?? 0,
+        disabled: disData.pagination?.total ?? 0,
+      });
+    } catch {
+      // Stats are non-critical; silently ignore
+    }
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -220,10 +285,9 @@ export default function AdminCardKeysPageContent() {
       const data = await res.json();
       if (data.success && Array.isArray(data.products)) {
         setProducts(
-          data.products.map((p: { id: string; name: string; slug: string }) => ({
+          data.products.map((p: { id: string; name: string }) => ({
             id: p.id,
             name: p.name,
-            slug: p.slug,
           }))
         );
       }
@@ -234,31 +298,30 @@ export default function AdminCardKeysPageContent() {
     }
   }, []);
 
+  // Initial load
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([fetchCardKeys(1), fetchProducts()]);
+      await Promise.all([fetchCardKeys(1), fetchProducts(), fetchStats()]);
       setLoading(false);
+      initialized.current = true;
     }
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refetch when filters or page change (but not on initial load)
+  // Refetch when filters or page change (skip initial load)
   useEffect(() => {
-    if (!loading) {
+    if (initialized.current) {
       fetchCardKeys();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, productFilter, search, currentPage]);
+  }, [activeTab, productFilter, debouncedSearch, currentPage]);
 
-  // ---------------------------------------------------------------------------
-  // Stats (computed from pagination.total and current filters)
-  // ---------------------------------------------------------------------------
-
-  const stats = {
-    total: pagination.total,
-  };
+  // Refresh both list + stats after a mutation
+  const refreshAfterMutation = useCallback(async () => {
+    await Promise.all([fetchCardKeys(), fetchStats()]);
+  }, [fetchCardKeys, fetchStats]);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -276,7 +339,6 @@ export default function AdminCardKeysPageContent() {
 
   const handleSearch = (val: string) => {
     setSearch(val);
-    setCurrentPage(1);
   };
 
   const toggleReveal = (id: string) => {
@@ -293,7 +355,8 @@ export default function AdminCardKeysPageContent() {
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     if (currentStatus === "SOLD") return;
-    const newStatus = currentStatus === "AVAILABLE" ? "DISABLED" : "AVAILABLE";
+    const newStatus =
+      currentStatus === "AVAILABLE" ? "DISABLED" : "AVAILABLE";
 
     setMutating(true);
     try {
@@ -309,7 +372,7 @@ export default function AdminCardKeysPageContent() {
       toast.success(
         newStatus === "AVAILABLE" ? "卡密已启用" : "卡密已禁用"
       );
-      await fetchCardKeys();
+      await refreshAfterMutation();
     } catch (err) {
       toast.error("切换状态失败", {
         description: err instanceof Error ? err.message : "未知错误",
@@ -346,12 +409,12 @@ export default function AdminCardKeysPageContent() {
       if (!res.ok || !data.success) {
         throw new Error(data.message || "导入失败");
       }
-      toast.success(`成功导入 ${data.count} 个卡密`);
+      toast.success(data.message || `成功导入 ${data.count} 个卡密`);
       setImportProduct("");
       setImportContent("");
       setImportOpen(false);
       setCurrentPage(1);
-      await fetchCardKeys(1);
+      await refreshAfterMutation();
     } catch (err) {
       toast.error("导入卡密失败", {
         description: err instanceof Error ? err.message : "未知错误",
@@ -376,7 +439,7 @@ export default function AdminCardKeysPageContent() {
       toast.success("卡密已删除");
       setDeleteTarget(null);
       setDeleteDialogOpen(false);
-      await fetchCardKeys();
+      await refreshAfterMutation();
     } catch (err) {
       toast.error("删除卡密失败", {
         description: err instanceof Error ? err.message : "未知错误",
@@ -439,7 +502,7 @@ export default function AdminCardKeysPageContent() {
         <div>
           <h1 className="text-2xl font-bold">卡密管理</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            管理所有商品的卡密库存，共 {stats.total} 条记录
+            管理所有商品的卡密库存
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -501,6 +564,7 @@ export default function AdminCardKeysPageContent() {
                 <Button
                   variant="outline"
                   onClick={() => setImportOpen(false)}
+                  disabled={importLoading}
                 >
                   取消
                 </Button>
@@ -525,35 +589,32 @@ export default function AdminCardKeysPageContent() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           {
-            label: "当前筛选结果",
-            value: pagination.total.toLocaleString(),
+            label: "总卡密数",
+            value: stats.total.toLocaleString(),
             icon: Key,
             color: "text-[var(--foreground)]",
             bg: "bg-[var(--muted)]",
           },
           {
             label: "可用",
-            value: "-",
+            value: stats.available.toLocaleString(),
             icon: CheckCircle,
             color: "text-[var(--success)]",
             bg: "bg-[var(--success)]/10",
-            filterValue: "AVAILABLE",
           },
           {
             label: "已售",
-            value: "-",
+            value: stats.sold.toLocaleString(),
             icon: Package,
             color: "text-[var(--primary)]",
             bg: "bg-[var(--primary)]/10",
-            filterValue: "SOLD",
           },
           {
             label: "已禁用",
-            value: "-",
+            value: stats.disabled.toLocaleString(),
             icon: Ban,
             color: "text-[var(--destructive)]",
             bg: "bg-[var(--destructive)]/10",
-            filterValue: "DISABLED",
           },
         ].map((stat) => (
           <div
@@ -726,7 +787,9 @@ export default function AdminCardKeysPageContent() {
                           variant="ghost"
                           size="sm"
                           disabled={mutating}
-                          onClick={() => toggleStatus(key.id, key.status)}
+                          onClick={() =>
+                            toggleStatus(key.id, key.status)
+                          }
                           className={cn(
                             key.status === "AVAILABLE"
                               ? "text-[var(--destructive)] hover:text-[var(--destructive)]"
@@ -739,7 +802,9 @@ export default function AdminCardKeysPageContent() {
                             <CheckCircle className="h-4 w-4" />
                           )}
                           <span className="ml-1 hidden sm:inline">
-                            {key.status === "AVAILABLE" ? "禁用" : "启用"}
+                            {key.status === "AVAILABLE"
+                              ? "禁用"
+                              : "启用"}
                           </span>
                         </Button>
                       )}
@@ -755,7 +820,9 @@ export default function AdminCardKeysPageContent() {
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
-                          <span className="ml-1 hidden sm:inline">删除</span>
+                          <span className="ml-1 hidden sm:inline">
+                            删除
+                          </span>
                         </Button>
                       )}
                     </div>
@@ -820,6 +887,7 @@ export default function AdminCardKeysPageContent() {
                 setDeleteTarget(null);
                 setDeleteDialogOpen(false);
               }}
+              disabled={mutating}
             >
               取消
             </Button>
@@ -828,7 +896,9 @@ export default function AdminCardKeysPageContent() {
               disabled={mutating}
               onClick={confirmDelete}
             >
-              {mutating && <Loader2 className="h-4 w-4 animate-spin" />}
+              {mutating && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               确认删除
             </Button>
           </DialogFooter>
