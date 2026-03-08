@@ -9,6 +9,7 @@ import TrustSection from "@/components/home/trust-section";
 import Testimonials from "@/components/home/testimonials";
 import FaqSection from "@/components/home/faq-section";
 import RecentlyViewed from "@/components/home/recently-viewed";
+import LiveActivity from "@/components/home/live-activity";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
@@ -186,6 +187,9 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <HeroSection />
+      <div className="py-4">
+        <LiveActivity />
+      </div>
       <Suspense fallback={<CategoryGridSkeleton />}>
         <CategoryGrid />
       </Suspense>
