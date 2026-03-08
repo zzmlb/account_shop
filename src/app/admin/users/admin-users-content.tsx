@@ -9,14 +9,13 @@ import {
   Wallet,
   Ban,
   ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
   Users,
   Loader2,
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/shared/pagination";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -455,48 +454,15 @@ export default function AdminUsersPageContent() {
           {!loading && users.length > 0 && (
             <>
               <Separator />
-              <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  共 {totalUsers} 名用户，第 {currentPage}/{totalPages} 页
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    上一页
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <Button
-                        key={page}
-                        variant={page === currentPage ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {page}
-                      </Button>
-                    )
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage >= totalPages}
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className="gap-1"
-                  >
-                    下一页
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                total={totalUsers}
+                onPageChange={setCurrentPage}
+                showPageNumbers
+                totalLabel="名用户"
+                className="px-4 py-3"
+              />
             </>
           )}
         </CardContent>

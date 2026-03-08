@@ -8,8 +8,6 @@ import {
   Download,
   Search,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   AlertCircle,
   Key,
@@ -19,6 +17,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -152,7 +151,7 @@ export default function OrdersPageContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/orders");
+      const res = await fetch("/api/orders?pageSize=50");
       const data = await res.json();
       if (!res.ok || !data.success) {
         setError(data.message || "获取订单失败");
@@ -497,33 +496,12 @@ export default function OrdersPageContent() {
 
       {/* Pagination */}
       {!loading && !error && filtered.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-sm text-[var(--muted-foreground)]">
-            共 {filtered.length} 条记录，第 {safeCurrentPage}/{totalPages} 页
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={safeCurrentPage <= 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              上一页
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={safeCurrentPage >= totalPages}
-              onClick={() =>
-                setCurrentPage((p) => Math.min(totalPages, p + 1))
-              }
-            >
-              下一页
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          page={safeCurrentPage}
+          totalPages={totalPages}
+          total={filtered.length}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

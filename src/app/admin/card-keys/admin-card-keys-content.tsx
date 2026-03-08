@@ -10,8 +10,6 @@ import {
   EyeOff,
   Ban,
   CheckCircle,
-  ChevronLeft,
-  ChevronRight,
   Package,
   Trash2,
   Loader2,
@@ -19,6 +17,7 @@ import {
   FileUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -1063,38 +1062,12 @@ export default function AdminCardKeysPageContent() {
       </div>
 
       {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-sm text-[var(--muted-foreground)]">
-            共 {pagination.total} 条记录，第 {pagination.page}/
-            {pagination.totalPages} 页
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              上一页
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() =>
-                setCurrentPage((p) =>
-                  Math.min(pagination.totalPages, p + 1)
-                )
-              }
-            >
-              下一页
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

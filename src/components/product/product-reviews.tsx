@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Star, Loader2, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/shared/pagination";
 
 /* ---------- types ---------- */
 
@@ -97,6 +98,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalReviews, setTotalReviews] = useState(0);
 
   // Review form
   const [showForm, setShowForm] = useState(false);
@@ -115,6 +117,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         setReviews(data.reviews);
         setStats(data.stats);
         setTotalPages(data.pagination.totalPages);
+        setTotalReviews(data.pagination.total ?? 0);
       }
     } catch {
       toast.error("评价加载失败，请刷新重试");
@@ -331,29 +334,13 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
           ))}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                上一页
-              </Button>
-              <span className="px-3 text-sm text-[var(--muted-foreground)]">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                下一页
-              </Button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={totalReviews}
+            onPageChange={setPage}
+            totalLabel="条评价"
+          />
         </div>
       )}
     </div>

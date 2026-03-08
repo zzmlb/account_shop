@@ -7,6 +7,7 @@ import Image from "next/image";
 import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/shared/pagination";
 import PriceTag from "@/components/shared/price-tag";
 import StockBadge from "@/components/shared/stock-badge";
 import {
@@ -357,64 +358,15 @@ export default function ProductsPageContent() {
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-8 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => goToPage(page - 1)}
-                >
-                  上一页
-                </Button>
-                {(() => {
-                  const pages: (number | "...")[] = [];
-                  if (totalPages <= 7) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    pages.push(1);
-                    if (page > 3) pages.push("...");
-                    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-                      pages.push(i);
-                    }
-                    if (page < totalPages - 2) pages.push("...");
-                    pages.push(totalPages);
-                  }
-                  return pages.map((p, idx) =>
-                    p === "..." ? (
-                      <span key={`dots-${idx}`} className="px-2 text-sm text-[var(--muted-foreground)]">
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => goToPage(p)}
-                        className={`flex h-8 min-w-[2rem] items-center justify-center rounded-[var(--radius-sm)] px-2.5 text-sm font-medium transition-colors ${
-                          p === page
-                            ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                            : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  );
-                })()}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => goToPage(page + 1)}
-                >
-                  下一页
-                </Button>
-              </div>
-              <span className="text-xs text-[var(--muted-foreground)]">
-                第 {page} / {totalPages} 页 · 共 {total} 件商品
-              </span>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={goToPage}
+            showPageNumbers
+            totalLabel="件商品"
+            className="mt-8"
+          />
         </div>
       </div>
 

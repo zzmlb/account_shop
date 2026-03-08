@@ -10,8 +10,6 @@ import {
   ExternalLink,
   RotateCcw,
   XCircle,
-  ChevronLeft,
-  ChevronRight,
   CalendarDays,
   Package,
   Loader2,
@@ -26,6 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import PaginationBar from "@/components/shared/pagination";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -665,72 +664,15 @@ export default function AdminOrdersPageContent() {
           {!loading && total > 0 && (
             <>
               <Separator />
-              <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  共 {total} 条订单，第 {currentPage}/{totalPages} 页
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    上一页
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((page) => {
-                      // Show first, last, and pages around current
-                      if (page === 1 || page === totalPages) return true;
-                      if (Math.abs(page - currentPage) <= 1) return true;
-                      return false;
-                    })
-                    .reduce<(number | "ellipsis")[]>((acc, page, idx, arr) => {
-                      if (idx > 0) {
-                        const prev = arr[idx - 1];
-                        if (page - prev > 1) {
-                          acc.push("ellipsis");
-                        }
-                      }
-                      acc.push(page);
-                      return acc;
-                    }, [])
-                    .map((item, idx) =>
-                      item === "ellipsis" ? (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className="px-1 text-sm text-[var(--muted-foreground)]"
-                        >
-                          ...
-                        </span>
-                      ) : (
-                        <Button
-                          key={item}
-                          variant={item === currentPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(item)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {item}
-                        </Button>
-                      )
-                    )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage >= totalPages}
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className="gap-1"
-                  >
-                    下一页
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <PaginationBar
+                page={currentPage}
+                totalPages={totalPages}
+                total={total}
+                onPageChange={setCurrentPage}
+                showPageNumbers
+                totalLabel="条订单"
+                className="px-4 py-3"
+              />
             </>
           )}
         </CardContent>

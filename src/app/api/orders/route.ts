@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
-import { apiLimiter } from "@/lib/rate-limit";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { decryptCardKey } from "@/lib/crypto";
 import { createOrderSchema, formatZodError } from "@/lib/validators";
@@ -21,6 +21,9 @@ function generateOrderNo(): string {
 
 export async function GET(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const session = decodeSession(
       request.cookies.get("session")?.value || ""
     );
@@ -32,18 +35,33 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const orders = await db.order.findMany({
-      where: { userId: session.id },
-      include: {
-        items: {
-          include: {
-            product: { select: { name: true, slug: true } },
-            cardKeys: { select: { content: true } },
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const pageSize = Math.max(1, Math.min(50, parseInt(searchParams.get("pageSize") || "20", 10)));
+    const status = searchParams.get("status");
+
+    const where: Record<string, unknown> = { userId: session.id };
+    if (status && ["PENDING", "PAID", "DELIVERED", "CANCELLED", "REFUNDED", "EXPIRED"].includes(status)) {
+      where.status = status;
+    }
+
+    const [orders, total] = await Promise.all([
+      db.order.findMany({
+        where,
+        include: {
+          items: {
+            include: {
+              product: { select: { name: true, slug: true } },
+              cardKeys: { select: { content: true } },
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.order.count({ where }),
+    ]);
 
     const formatted = orders.map((o) => ({
       id: o.id,
@@ -60,11 +78,18 @@ export async function GET(request: NextRequest) {
         productSlug: item.product.slug,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
-        cardKeys: item.cardKeys.map((k) => decryptCardKey(k.content)),
+        // Only decrypt card keys for delivered/refunded orders
+        cardKeys: (o.status === "DELIVERED" || o.status === "REFUNDED")
+          ? item.cardKeys.map((k) => decryptCardKey(k.content))
+          : [],
       })),
     }));
 
-    return NextResponse.json({ success: true, orders: formatted });
+    return NextResponse.json({
+      success: true,
+      orders: formatted,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
   } catch (error) {
     log.error({ err: error }, "Orders fetch error");
     return NextResponse.json(
