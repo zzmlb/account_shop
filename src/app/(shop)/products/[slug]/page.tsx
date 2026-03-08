@@ -73,6 +73,12 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  // Fire-and-forget view count increment (non-blocking)
+  db.product.update({
+    where: { id: product.id },
+    data: { viewCount: { increment: 1 } },
+  }).catch(() => {});
+
   // Get review stats for aggregateRating schema
   const reviewStats = await db.review.aggregate({
     where: { productId: product.id, isVisible: true },

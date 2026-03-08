@@ -117,7 +117,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         setTotalPages(data.pagination.totalPages);
       }
     } catch {
-      // Silently fail
+      toast.error("评价加载失败，请刷新重试");
     } finally {
       setLoading(false);
     }

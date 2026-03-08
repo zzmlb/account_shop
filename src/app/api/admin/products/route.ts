@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
       tags: p.tags,
       stockCount: p.stockCount,
       soldCount: p.soldCount,
+      viewCount: p.viewCount,
       isActive: p.isActive,
       sortOrder: p.sortOrder,
       deliveryType: p.deliveryType,

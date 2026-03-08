@@ -56,3 +56,28 @@ export function createBulkNotifications(
       log.warn({ err, count: userIds.length, type: data.type }, "Failed to create bulk notifications");
     });
 }
+
+/**
+ * Notify all admin users about a new order.
+ * Fire-and-forget — failures are logged but never thrown.
+ */
+export function notifyAdminsNewOrder(orderNo: string, payAmount: number, itemCount: number) {
+  db.user
+    .findMany({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } },
+      select: { id: true },
+    })
+    .then((admins) => {
+      if (admins.length === 0) return;
+      const adminIds = admins.map((a) => a.id);
+      createBulkNotifications(adminIds, {
+        type: "ORDER",
+        title: `新订单 ${orderNo}`,
+        content: `收到新订单，金额 ¥${payAmount.toFixed(2)}，共 ${itemCount} 件商品`,
+        href: `/admin/orders`,
+      });
+    })
+    .catch((err) => {
+      log.warn({ err, orderNo }, "Failed to notify admins of new order");
+    });
+}

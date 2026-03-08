@@ -90,6 +90,7 @@ model Product {
   tags          String[]
   stockCount    Int          @default(0)
   soldCount     Int          @default(0)
+  viewCount     Int          @default(0)
   isActive      Boolean      @default(true)
   sortOrder     Int          @default(0)
   deliveryType  DeliveryType @default(AUTO)

@@ -12,6 +12,7 @@ export default function ContactForm() {
     email: "",
     subject: "",
     message: "",
+    website: "", // honeypot field
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -32,7 +33,7 @@ export default function ContactForm() {
 
       if (data.success) {
         setSuccess(true);
-        setForm({ name: "", email: "", subject: "", message: "" });
+        setForm({ name: "", email: "", subject: "", message: "", website: "" });
       } else {
         setError(data.message || "提交失败，请稍后重试");
       }
@@ -128,6 +129,18 @@ export default function ContactForm() {
         <p className="mt-1 text-right text-xs text-[var(--muted-foreground)]">
           {form.message.length}/2000
         </p>
+      </div>
+
+      {/* Honeypot field - hidden from real users, bots will fill it */}
+      <div className="absolute -left-[9999px]" aria-hidden="true">
+        <input
+          type="text"
+          name="website"
+          value={form.website}
+          onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+          tabIndex={-1}
+          autoComplete="off"
+        />
       </div>
 
       {error && (

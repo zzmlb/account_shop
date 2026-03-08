@@ -5,6 +5,7 @@ import { apiLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { decryptCardKey } from "@/lib/crypto";
 import { createOrderSchema, formatZodError } from "@/lib/validators";
+import { notifyAdminsNewOrder } from "@/server/services/notification";
 
 const log = createLogger("orders");
 
@@ -247,6 +248,9 @@ export async function POST(request: NextRequest) {
     });
 
     log.info({ orderNo: order.orderNo, userId: session?.id, total: Number(order.totalAmount), payAmount: Number(order.payAmount), discount, couponId }, "Order created");
+
+    // Fire-and-forget: notify admins of new order
+    notifyAdminsNewOrder(order.orderNo, Number(order.payAmount), order.items.length);
 
     // Cache idempotency key for 60 seconds
     if (idempotencyKey) {

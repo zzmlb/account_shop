@@ -63,6 +63,7 @@ interface ApiProduct {
   tags: string[];
   stockCount: number;
   soldCount: number;
+  viewCount: number;
   isActive: boolean;
   sortOrder: number;
   deliveryType: string | null;
@@ -84,6 +85,7 @@ interface Product {
   stock: number;
   status: "上架" | "下架";
   sales: number;
+  views: number;
   description: string;
   tags: string[];
 }
@@ -113,6 +115,7 @@ function mapApiProduct(p: ApiProduct): Product {
     stock: p.stockCount,
     status: p.isActive ? "上架" : "下架",
     sales: p.soldCount,
+    views: p.viewCount ?? 0,
     description: p.description,
     tags: p.tags,
   };
@@ -311,7 +314,7 @@ export default function AdminProductsPageContent() {
   }
 
   function exportProductsCSV() {
-    const header = "商品名称,分类,价格,原价,库存,销量,状态,Slug\n";
+    const header = "商品名称,分类,价格,原价,库存,销量,浏览量,状态,Slug\n";
     const rows = filtered
       .map((p) =>
         [
@@ -321,6 +324,7 @@ export default function AdminProductsPageContent() {
           p.originalPrice,
           p.stock,
           p.sales,
+          p.views,
           p.status,
           p.slug,
         ].join(",")
@@ -1136,6 +1140,12 @@ export default function AdminProductsPageContent() {
                     >
                       销量{renderSortIcon("sales")}
                     </th>
+                    <th
+                      className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      onClick={() => handleSort("views")}
+                    >
+                      浏览{renderSortIcon("views")}
+                    </th>
                     <th className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
                       操作
                     </th>
@@ -1214,6 +1224,9 @@ export default function AdminProductsPageContent() {
                       </td>
                       <td className="px-4 py-3 text-right text-[var(--muted-foreground)]">
                         {product.sales.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right text-[var(--muted-foreground)]">
+                        {product.views.toLocaleString()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
@@ -1350,6 +1363,9 @@ export default function AdminProductsPageContent() {
                       </span>
                       <span className="text-[var(--muted-foreground)]">
                         销量: {product.sales.toLocaleString()}
+                      </span>
+                      <span className="text-[var(--muted-foreground)]">
+                        浏览: {product.views.toLocaleString()}
                       </span>
                     </div>
 
