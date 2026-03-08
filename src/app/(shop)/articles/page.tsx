@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
@@ -56,7 +57,7 @@ export default async function ArticlesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense>
+      <Suspense fallback={<div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" /></div>}>
         <ArticlesPageContent articles={articles} />
       </Suspense>
     </>

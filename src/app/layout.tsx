@@ -1,9 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import AuthInit from "@/components/providers/auth-init";
 import { Toaster } from "sonner";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -65,7 +72,7 @@ export default function RootLayout({
     <html
       lang="zh-CN"
       suppressHydrationWarning
-      className="font-sans"
+      className={`${inter.variable} font-sans`}
     >
       <body className="min-h-screen antialiased">
         <a
