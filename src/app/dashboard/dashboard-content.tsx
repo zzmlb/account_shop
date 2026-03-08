@@ -15,6 +15,9 @@ import {
   Bell,
   RotateCcw,
   Megaphone,
+  Shield,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -146,14 +149,16 @@ export default function DashboardPageContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [lastLoginInfo, setLastLoginInfo] = useState<{ ip: string; time: string } | null>(null);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      const [ordersRes, couponsRes, notifsRes] = await Promise.all([
+      const [ordersRes, couponsRes, notifsRes, loginRes] = await Promise.all([
         fetch("/api/orders").then((r) => r.json()),
         fetch("/api/coupons").then((r) => r.json()).catch(() => ({ success: false })),
         fetch("/api/notifications?pageSize=5").then((r) => r.json()).catch(() => ({ success: false })),
+        fetch("/api/auth/login-history?limit=1").then((r) => r.json()).catch(() => ({ success: false })),
       ]);
       if (ordersRes.success && Array.isArray(ordersRes.orders)) {
         setOrders(ordersRes.orders);
@@ -171,6 +176,10 @@ export default function DashboardPageContent() {
       if (notifsRes.success && Array.isArray(notifsRes.notifications)) {
         setNotifications(notifsRes.notifications);
         setUnreadCount(notifsRes.unreadCount ?? 0);
+      }
+      if (loginRes.success && Array.isArray(loginRes.logs) && loginRes.logs.length > 0) {
+        const last = loginRes.logs[0];
+        setLastLoginInfo({ ip: last.ip, time: last.createdAt });
       }
     } catch {
       if (!isRefresh) setFetchError(true);
@@ -458,6 +467,59 @@ export default function DashboardPageContent() {
               </ResponsiveContainer>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Account Security Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Shield className="h-5 w-5 text-[var(--success)]" />
+            账户安全
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+              {user?.email ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 shrink-0 text-[var(--warning)]" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">邮箱绑定</p>
+                <p className="truncate text-xs text-[var(--muted-foreground)]">
+                  {user?.email || "未绑定邮箱"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">登录密码</p>
+                <p className="text-xs text-[var(--muted-foreground)]">已设置</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+              <Clock className="h-5 w-5 shrink-0 text-[var(--muted-foreground)]" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">上次登录</p>
+                <p className="truncate text-xs text-[var(--muted-foreground)]">
+                  {lastLoginInfo
+                    ? `${lastLoginInfo.ip} · ${new Date(lastLoginInfo.time).toLocaleDateString("zh-CN")}`
+                    : "无记录"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/settings" className="gap-1 text-xs">
+                管理安全设置
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

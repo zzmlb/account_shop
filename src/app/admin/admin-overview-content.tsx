@@ -118,6 +118,12 @@ interface ApiResponse {
   chartPeriod: number;
   ordersByStatus: OrderStatusCount[];
   revenueByMethod?: PaymentMethodStat[];
+  monthlyComparison?: {
+    thisMonthRevenue: number;
+    lastMonthRevenue: number;
+    thisMonthOrders: number;
+    lastMonthOrders: number;
+  };
   recentLogins?: RecentLogin[];
   lowStockProducts?: LowStockProduct[];
 }
@@ -198,6 +204,7 @@ export default function AdminOverviewPageContent() {
   const [recentLogins, setRecentLogins] = useState<RecentLogin[]>([]);
   const [revenueByMethod, setRevenueByMethod] = useState<PaymentMethodStat[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
+  const [monthlyComparison, setMonthlyComparison] = useState<ApiResponse["monthlyComparison"]>(undefined);
   const [chartLoading, setChartLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -219,6 +226,7 @@ export default function AdminOverviewPageContent() {
         setRecentLogins(data.recentLogins || []);
         setRevenueByMethod(data.revenueByMethod || []);
         setLowStockProducts(data.lowStockProducts || []);
+        setMonthlyComparison(data.monthlyComparison);
         setLastRefresh(new Date());
         if (isManual) toast.success("数据已刷新");
       } else if (isManual || isInitial) {
@@ -709,6 +717,38 @@ export default function AdminOverviewPageContent() {
                   <p className="text-xs text-[var(--muted-foreground)]">总订单数</p>
                 </div>
               </div>
+              {/* Monthly comparison */}
+              {monthlyComparison && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-medium text-[var(--muted-foreground)]">本月 vs 上月</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-2.5">
+                      <p className="text-[10px] text-[var(--muted-foreground)]">本月营收</p>
+                      <p className="text-sm font-bold">¥{monthlyComparison.thisMonthRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      {monthlyComparison.lastMonthRevenue > 0 && (() => {
+                        const pct = Math.round(((monthlyComparison.thisMonthRevenue - monthlyComparison.lastMonthRevenue) / monthlyComparison.lastMonthRevenue) * 100);
+                        return (
+                          <span className={cn("text-[10px]", pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]")}>
+                            {pct >= 0 ? "+" : ""}{pct}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-2.5">
+                      <p className="text-[10px] text-[var(--muted-foreground)]">本月订单</p>
+                      <p className="text-sm font-bold">{monthlyComparison.thisMonthOrders}</p>
+                      {monthlyComparison.lastMonthOrders > 0 && (() => {
+                        const pct = Math.round(((monthlyComparison.thisMonthOrders - monthlyComparison.lastMonthOrders) / monthlyComparison.lastMonthOrders) * 100);
+                        return (
+                          <span className={cn("text-[10px]", pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]")}>
+                            {pct >= 0 ? "+" : ""}{pct}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

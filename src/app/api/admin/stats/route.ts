@@ -236,6 +236,42 @@ export async function GET(request: NextRequest) {
       return { date: key, amount: data?.amount ?? 0, orders: data?.orders ?? 0 };
     });
 
+    // ---------- Monthly Revenue Comparison ----------
+
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const [thisMonthRevenue, lastMonthRevenue, thisMonthOrders, lastMonthOrders] =
+      await Promise.all([
+        db.order.aggregate({
+          _sum: { payAmount: true },
+          where: {
+            status: { in: ["PAID", "DELIVERED"] },
+            createdAt: { gte: thisMonthStart },
+          },
+        }),
+        db.order.aggregate({
+          _sum: { payAmount: true },
+          where: {
+            status: { in: ["PAID", "DELIVERED"] },
+            createdAt: { gte: lastMonthStart, lt: thisMonthStart },
+          },
+        }),
+        db.order.count({
+          where: { createdAt: { gte: thisMonthStart } },
+        }),
+        db.order.count({
+          where: { createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
+        }),
+      ]);
+
+    const monthlyComparison = {
+      thisMonthRevenue: Number(thisMonthRevenue._sum.payAmount ?? 0),
+      lastMonthRevenue: Number(lastMonthRevenue._sum.payAmount ?? 0),
+      thisMonthOrders,
+      lastMonthOrders,
+    };
+
     // ---------- Revenue by Payment Method ----------
 
     const paymentMethodStats = await db.order.groupBy({
@@ -316,6 +352,7 @@ export async function GET(request: NextRequest) {
       chartPeriod,
       ordersByStatus,
       revenueByMethod,
+      monthlyComparison,
       recentLogins,
       lowStockProducts: lowStockProducts.map((p) => ({
         id: p.id,

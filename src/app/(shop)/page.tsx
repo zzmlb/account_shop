@@ -103,6 +103,61 @@ const organizationJsonLd = {
   description: SITE_DESCRIPTION,
 };
 
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "购买后多久可以收到商品？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "大部分数字商品在支付成功后即时自动发货，卡密信息将通过邮件发送并显示在订单详情页。如遇延迟，通常不超过5分钟。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "支持哪些支付方式？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "目前支持支付宝、微信支付和账户余额支付。所有支付通道均通过加密传输，确保资金安全。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "购买的商品有售后保障吗？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "所有商品均提供售后保障期，具体时长见商品详情页。保障期内如遇问题可提交退款申请，管理员审核后将及时处理。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "如何查看已购买的卡密/账号信息？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "登录账户后进入「我的订单」，找到对应订单展开即可查看卡密信息。同时您注册时填写的邮箱也会收到发货通知邮件。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "不注册账户可以购买吗？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "目前需要注册账户才能购买商品，注册过程仅需用户名和邮箱，方便您管理订单和享受售后服务。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "账户余额如何使用？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "账户余额可直接用于购买商品。管理员可为您充值余额，退款金额也会返还至账户余额。",
+      },
+    },
+  ],
+};
+
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -125,6 +180,10 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <HeroSection />
       <Suspense fallback={<CategoryGridSkeleton />}>
