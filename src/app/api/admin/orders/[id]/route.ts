@@ -141,6 +141,7 @@ export async function GET(
         paymentId: order.paymentId,
         paidAt: order.paidAt?.toISOString() ?? null,
         expireAt: order.expireAt.toISOString(),
+        adminNote: order.adminNote ?? null,
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
         coupon: couponInfo,
@@ -172,6 +173,67 @@ export async function GET(
     });
   } catch (error) {
     log.error({ err: error }, "Admin order detail GET error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update admin note on order
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const { id } = await params;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "请求格式错误" },
+        { status: 400 }
+      );
+    }
+
+    const { adminNote } = body as { adminNote?: string };
+
+    if (typeof adminNote !== "string") {
+      return NextResponse.json(
+        { success: false, message: "备注内容无效" },
+        { status: 400 }
+      );
+    }
+
+    const order = await db.order.findUnique({ where: { id } });
+    if (!order) {
+      return NextResponse.json(
+        { success: false, message: "订单不存在" },
+        { status: 404 }
+      );
+    }
+
+    await db.order.update({
+      where: { id },
+      data: { adminNote: adminNote.trim() || null },
+    });
+
+    log.info(
+      { adminId: session.id, orderId: id, orderNo: order.orderNo },
+      "Admin updated order note"
+    );
+
+    return NextResponse.json({ success: true, message: "备注已保存" });
+  } catch (error) {
+    log.error({ err: error }, "Admin order PATCH error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

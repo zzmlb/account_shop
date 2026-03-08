@@ -108,9 +108,18 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
+      const validIds = ids.filter(
+        (id: unknown): id is string => typeof id === "string" && id.length > 0
+      );
+      if (validIds.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "无效的通知ID" },
+          { status: 400 }
+        );
+      }
       await db.notification.updateMany({
         where: {
-          id: { in: ids },
+          id: { in: validIds },
           userId: session.id,
         },
         data: { isRead: true },

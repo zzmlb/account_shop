@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/constants";
-import { CreditCard, Smartphone, Wallet, Shield } from "lucide-react";
+import { CreditCard, Smartphone, Wallet, Shield, Twitter, Github, MessageCircle } from "lucide-react";
 
 const footerSections = [
   {
@@ -83,23 +83,46 @@ export default function Footer() {
             &copy; {currentYear} {SITE_NAME}. All rights reserved.
           </p>
 
-          {/* Payment methods */}
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-[var(--muted-foreground)]">
-              支付方式:
-            </span>
-            <div className="flex items-center gap-3">
-              {paymentMethods.map((method) => (
-                <div
-                  key={method.label}
-                  className="flex items-center gap-1 text-[var(--muted-foreground)]"
-                  title={method.label}
-                  aria-label={method.label}
-                  role="img"
+          {/* Social + Payment */}
+          <div className="flex items-center gap-6">
+            {/* Social links */}
+            <div className="flex items-center gap-2">
+              {[
+                { icon: Twitter, label: "Twitter", href: "#" },
+                { icon: Github, label: "GitHub", href: "#" },
+                { icon: MessageCircle, label: "微信公众号", href: "#" },
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  aria-label={social.label}
+                  className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 >
-                  <method.icon className="h-4 w-4" aria-hidden="true" />
-                </div>
+                  <social.icon className="h-4 w-4" />
+                </a>
               ))}
+            </div>
+
+            <div className="h-4 w-px bg-[var(--border)]" />
+
+            {/* Payment methods */}
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-[var(--muted-foreground)]">
+                支付方式:
+              </span>
+              <div className="flex items-center gap-3">
+                {paymentMethods.map((method) => (
+                  <div
+                    key={method.label}
+                    className="flex items-center gap-1 text-[var(--muted-foreground)]"
+                    title={method.label}
+                    aria-label={method.label}
+                    role="img"
+                  >
+                    <method.icon className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

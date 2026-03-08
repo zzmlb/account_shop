@@ -154,6 +154,7 @@ model Order {
   paidAt        DateTime?
   expireAt      DateTime
   couponId      String?
+  adminNote     String?     @db.Text
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

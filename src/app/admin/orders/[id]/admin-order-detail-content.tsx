@@ -47,6 +47,7 @@ interface OrderDetail {
   paymentId: string | null;
   paidAt: string | null;
   expireAt: string;
+  adminNote: string | null;
   createdAt: string;
   updatedAt: string;
   coupon: {
