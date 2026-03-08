@@ -8,9 +8,13 @@ import {
   changePasswordSchema,
   formatZodError,
   createProductSchema,
+  updateProductSchema,
   createCategorySchema,
+  updateCategorySchema,
   createCouponSchema,
+  updateCouponSchema,
   createArticleSchema,
+  updateArticleSchema,
   favoriteSchema,
 } from "../validators";
 
@@ -281,6 +285,35 @@ describe("createProductSchema", () => {
   });
 });
 
+describe("updateProductSchema", () => {
+  it("accepts partial update", () => {
+    const result = updateProductSchema.safeParse({ price: 19.99 });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty object (no fields required)", () => {
+    const result = updateProductSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects negative stockCount", () => {
+    const result = updateProductSchema.safeParse({ stockCount: -1 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects images array exceeding max 8", () => {
+    const result = updateProductSchema.safeParse({
+      images: Array.from({ length: 9 }, (_, i) => `img${i}.jpg`),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts nullable originalPrice", () => {
+    const result = updateProductSchema.safeParse({ originalPrice: null });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("createCategorySchema", () => {
   it("accepts valid category", () => {
     const result = createCategorySchema.safeParse({
@@ -302,6 +335,22 @@ describe("createCategorySchema", () => {
       description: "各类VPN服务",
       icon: "Shield",
       sortOrder: 5,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("updateCategorySchema", () => {
+  it("requires id", () => {
+    const result = updateCategorySchema.safeParse({ name: "New Name" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts valid update with id", () => {
+    const result = updateCategorySchema.safeParse({
+      id: "cat-1",
+      name: "Updated",
+      isActive: false,
     });
     expect(result.success).toBe(true);
   });
@@ -355,6 +404,30 @@ describe("createCouponSchema", () => {
   });
 });
 
+describe("updateCouponSchema", () => {
+  it("requires id", () => {
+    const result = updateCouponSchema.safeParse({ isActive: false });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts valid coupon update", () => {
+    const result = updateCouponSchema.safeParse({
+      id: "coupon-1",
+      isActive: false,
+      maxUses: 100,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects maxUses of 0", () => {
+    const result = updateCouponSchema.safeParse({
+      id: "coupon-1",
+      maxUses: 0,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("createArticleSchema", () => {
   it("accepts valid article", () => {
     const result = createArticleSchema.safeParse({
@@ -379,6 +452,25 @@ describe("createArticleSchema", () => {
       title: "标题",
       content: "",
       category: "guide",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateArticleSchema", () => {
+  it("accepts partial update", () => {
+    const result = updateArticleSchema.safeParse({ title: "New Title" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty object", () => {
+    const result = updateArticleSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects content exceeding 100000 chars", () => {
+    const result = updateArticleSchema.safeParse({
+      content: "a".repeat(100001),
     });
     expect(result.success).toBe(false);
   });
