@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthStore>()(
         useFavoritesStore.getState().reset();
         useCartStore.getState().clearCart();
         // Clear the session cookie
-        fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+        apiMutate("/api/auth/logout", "POST").catch(() => {});
       },
 
       checkAuth: async () => {

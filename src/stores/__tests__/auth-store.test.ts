@@ -46,13 +46,16 @@ describe("auth-store", () => {
   });
 
   it("logout clears the user and calls API", () => {
-    fetchMock.mockResolvedValue({ ok: true });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
     useAuthStore.getState().login(mockUser);
     expect(useAuthStore.getState().user).toBeTruthy();
 
     useAuthStore.getState().logout();
     expect(useAuthStore.getState().user).toBeNull();
-    expect(fetchMock).toHaveBeenCalledWith("/api/auth/logout", { method: "POST" });
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/logout", expect.objectContaining({ method: "POST" }));
   });
 
   it("checkAuth sets user when API returns user", async () => {
@@ -166,7 +169,10 @@ describe("auth-store", () => {
   });
 
   it("logout resets favorites and cart stores", () => {
-    fetchMock.mockResolvedValue({ ok: true });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
     useAuthStore.getState().login(mockUser);
 
     useAuthStore.getState().logout();
