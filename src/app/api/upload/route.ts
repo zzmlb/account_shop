@@ -13,7 +13,7 @@ const ALLOWED_TYPES = [
   "image/png",
   "image/webp",
   "image/gif",
-  "image/svg+xml",
+  // SVG excluded: can contain embedded JavaScript (XSS risk)
 ];
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { success: false, message: "不支持的文件类型，仅支持 JPEG/PNG/WebP/GIF/SVG" },
+        { success: false, message: "不支持的文件类型，仅支持 JPEG/PNG/WebP/GIF" },
         { status: 400 }
       );
     }
@@ -70,8 +70,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
-    const ext = file.name.split(".").pop() || "jpg";
+    // Generate unique filename with sanitized extension
+    const rawExt = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const ext = rawExt.replace(/[^a-z0-9]/g, "").slice(0, 10) || "jpg";
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     const filename = `${timestamp}-${random}.${ext}`;

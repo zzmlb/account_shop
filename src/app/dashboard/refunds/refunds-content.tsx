@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface RefundItem {
   id: string;
@@ -50,9 +51,11 @@ export default function RefundsContent() {
       const data = await res.json();
       if (data.success) {
         setRefunds(data.refunds);
+      } else {
+        toast.error(data.message || "获取退款列表失败");
       }
     } catch {
-      // Ignore
+      toast.error("网络错误，获取退款列表失败");
     } finally {
       setLoading(false);
     }

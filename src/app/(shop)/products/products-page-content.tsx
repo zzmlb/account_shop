@@ -82,6 +82,7 @@ export default function ProductsPageContent() {
   const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [quickViewProduct, setQuickViewProduct] = useState<ProductItem | null>(null);
+  const [qvImgError, setQvImgError] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const perPage = 12;
 
@@ -352,7 +353,7 @@ export default function ProductsPageContent() {
               ))}
             </div>
           ) : (
-            <ProductGrid products={products} searchQuery={search} onQuickView={setQuickViewProduct} />
+            <ProductGrid products={products} searchQuery={search} onQuickView={(p) => { setQvImgError(false); setQuickViewProduct(p); }} />
           )}
 
           {/* Pagination */}
@@ -434,7 +435,7 @@ export default function ProductsPageContent() {
           {quickViewProduct && (
             <div className="space-y-4">
               {/* Image */}
-              {quickViewProduct.image && (
+              {quickViewProduct.image && !qvImgError ? (
                 <div className="relative aspect-[16/9] overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
                   <Image
                     src={quickViewProduct.image}
@@ -442,7 +443,14 @@ export default function ProductsPageContent() {
                     fill
                     className="object-cover"
                     sizes="(max-width: 512px) 100vw, 512px"
+                    onError={() => setQvImgError(true)}
                   />
+                </div>
+              ) : (
+                <div className="flex aspect-[16/9] items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--primary)]/20 to-[var(--accent)]/10">
+                  <span className="text-4xl font-bold text-[var(--primary)]/30">
+                    {quickViewProduct.name.charAt(0)}
+                  </span>
                 </div>
               )}
 

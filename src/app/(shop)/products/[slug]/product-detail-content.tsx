@@ -77,11 +77,13 @@ export default function ProductDetailContent({
   })();
 
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [mainImgError, setMainImgError] = useState(false);
+  const [thumbErrors, setThumbErrors] = useState<Set<number>>(new Set());
   const [quantity, setQuantity] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const imageContainerRef = useRef<HTMLDivElement>(null);
-  const currentImage = allImages[selectedImageIdx] || null;
+  const currentImage = (!mainImgError && allImages[selectedImageIdx]) || null;
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem);
@@ -192,6 +194,7 @@ export default function ProductDetailContent({
                 }
                 sizes="(max-width: 768px) 100vw, 50vw"
                 priority
+                onError={() => setMainImgError(true)}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
@@ -233,9 +236,11 @@ export default function ProductDetailContent({
               onKeyDown={(e) => {
                 if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
                   e.preventDefault();
+                  setMainImgError(false);
                   setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
                 } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
                   e.preventDefault();
+                  setMainImgError(false);
                   setSelectedImageIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
                 }
               }}
@@ -246,20 +251,27 @@ export default function ProductDetailContent({
                   role="option"
                   aria-selected={idx === selectedImageIdx}
                   aria-label={`查看第 ${idx + 1} 张图片`}
-                  onClick={() => setSelectedImageIdx(idx)}
+                  onClick={() => { setSelectedImageIdx(idx); setMainImgError(false); }}
                   className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] border-2 transition-all ${
                     idx === selectedImageIdx
                       ? "border-[var(--primary)] ring-1 ring-[var(--primary)]/30"
                       : "border-[var(--border)] hover:border-[var(--primary)]/50"
                   }`}
                 >
-                  <Image
-                    src={img}
-                    alt={`${product.name} 缩略图 ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                  />
+                  {thumbErrors.has(idx) ? (
+                    <div className="flex h-full w-full items-center justify-center bg-[var(--muted)] text-xs text-[var(--muted-foreground)]">
+                      {idx + 1}
+                    </div>
+                  ) : (
+                    <Image
+                      src={img}
+                      alt={`${product.name} 缩略图 ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                      onError={() => setThumbErrors((prev) => new Set(prev).add(idx))}
+                    />
+                  )}
                 </button>
               ))}
             </div>
