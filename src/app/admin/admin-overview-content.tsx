@@ -93,6 +93,12 @@ interface RecentLogin {
   createdAt: string;
 }
 
+interface PaymentMethodStat {
+  method: string;
+  revenue: number;
+  count: number;
+}
+
 interface ApiResponse {
   success: boolean;
   stats: StatsData;
@@ -101,6 +107,7 @@ interface ApiResponse {
   salesChart: SalesChartItem[];
   chartPeriod: number;
   ordersByStatus: OrderStatusCount[];
+  revenueByMethod?: PaymentMethodStat[];
   recentLogins?: RecentLogin[];
 }
 
@@ -178,6 +185,7 @@ export default function AdminOverviewPageContent() {
   const [chartPeriod, setChartPeriod] = useState(7);
   const [ordersByStatus, setOrdersByStatus] = useState<OrderStatusCount[]>([]);
   const [recentLogins, setRecentLogins] = useState<RecentLogin[]>([]);
+  const [revenueByMethod, setRevenueByMethod] = useState<PaymentMethodStat[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -197,6 +205,7 @@ export default function AdminOverviewPageContent() {
         setSalesChart(data.salesChart);
         setOrdersByStatus(data.ordersByStatus || []);
         setRecentLogins(data.recentLogins || []);
+        setRevenueByMethod(data.revenueByMethod || []);
         setLastRefresh(new Date());
         if (isManual) toast.success("数据已刷新");
       } else if (isManual || isInitial) {
@@ -631,6 +640,52 @@ export default function AdminOverviewPageContent() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* ========== Revenue by Payment Method ========== */}
+      {revenueByMethod.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">支付方式分布</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(() => {
+                const methodLabels: Record<string, string> = {
+                  balance: "余额支付",
+                  alipay: "支付宝",
+                  wechat: "微信支付",
+                  usdt: "USDT",
+                };
+                const totalRevenue = revenueByMethod.reduce((s, m) => s + m.revenue, 0);
+                return revenueByMethod.map((m) => {
+                  const pct = totalRevenue > 0 ? Math.round((m.revenue / totalRevenue) * 100) : 0;
+                  return (
+                    <div
+                      key={m.method}
+                      className="rounded-[var(--radius-md)] border border-[var(--border)] p-3"
+                    >
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {methodLabels[m.method] || m.method}
+                      </p>
+                      <p className="mt-1 text-lg font-bold">¥{m.revenue.toFixed(2)}</p>
+                      <div className="mt-1 flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+                        <span>{m.count} 笔</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <div className="mt-1 h-1 w-full rounded-full bg-[var(--muted)]">
+                        <div
+                          className="h-1 rounded-full bg-[var(--primary)]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* ========== Recent Orders + Quick Actions Row ========== */}

@@ -299,6 +299,7 @@ export async function GET(request: NextRequest) {
       salesChart,
       chartPeriod,
       ordersByStatus,
+      revenueByMethod,
       recentLogins,
     });
   } catch (error) {
