@@ -203,9 +203,17 @@ export default function CheckoutContent() {
 
       const orderData = await orderRes.json();
       if (!orderData.success) {
-        toast.error("下单失败", {
-          description: orderData.message || "请检查商品库存后重试",
-        });
+        // If stock issue, re-validate cart to update quantities
+        if (orderData.code === "STOCK_INSUFFICIENT") {
+          setPriceChecked(false); // Trigger cart re-validation
+          toast.error("库存不足", {
+            description: orderData.message || "部分商品库存已变化，正在重新检查…",
+          });
+        } else {
+          toast.error("下单失败", {
+            description: orderData.message || "请检查商品库存后重试",
+          });
+        }
         setIsSubmitting(false);
         return;
       }
@@ -220,9 +228,32 @@ export default function CheckoutContent() {
         const payData = await payRes.json();
 
         if (!payData.success) {
-          toast.error("支付失败", {
-            description: payData.message || "余额不足或支付异常",
+          // Balance payment failed — navigate to order page with PENDING status
+          // so user can retry payment or choose another method
+          toast.error("余额支付失败", {
+            description: payData.message || "余额不足，请充值后在订单页重新支付",
           });
+          sessionStorage.setItem(
+            `order-${orderData.order.orderNo}`,
+            JSON.stringify({
+              id: orderData.order.orderNo,
+              status: "PENDING",
+              email,
+              paymentMethod,
+              items: items.map((item) => ({
+                name: item.name,
+                slug: item.slug,
+                price: item.price,
+                quantity: item.quantity,
+              })),
+              total: getTotal(),
+              itemCount: getItemCount(),
+              createdAt: new Date().toISOString(),
+            })
+          );
+          clearCart();
+          router.push(`/order/${orderData.order.orderNo}`);
+          return;
         }
 
         // Store order info for the detail page
@@ -230,7 +261,7 @@ export default function CheckoutContent() {
           `order-${orderData.order.orderNo}`,
           JSON.stringify({
             id: orderData.order.orderNo,
-            status: payData.success ? "DELIVERED" : "PAID",
+            status: "DELIVERED",
             email,
             paymentMethod,
             items: items.map((item) => ({
@@ -271,7 +302,11 @@ export default function CheckoutContent() {
       router.push(`/order/${orderData.order.orderNo}`);
     } catch {
       toast.error("网络错误", {
-        description: "请检查网络连接后重试",
+        description: "请检查网络连接后重试，您的购物车内容不会丢失",
+        action: {
+          label: "重试",
+          onClick: () => handleSubmit(),
+        },
       });
       setIsSubmitting(false);
     }
