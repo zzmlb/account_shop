@@ -30,7 +30,7 @@ interface Product {
   gradient: string;
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, priority }: { product: Product; priority?: boolean }) {
   const discount =
     product.originalPrice && product.originalPrice > product.price
       ? Math.round(
@@ -60,6 +60,7 @@ function ProductCard({ product }: { product: Product }) {
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority}
           />
         )}
         {discount > 0 && (
@@ -159,8 +160,8 @@ export default async function FeaturedProducts() {
 
       {/* Products grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+        {products.map((product, idx) => (
+          <ProductCard key={product.id} product={product} priority={idx < 4} />
         ))}
       </div>
 

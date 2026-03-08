@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Notification {
   id: string;
@@ -91,9 +92,11 @@ export default function NotificationsContent() {
           setNotifications(data.notifications);
           setPagination(data.pagination);
           setUnreadCount(data.unreadCount);
+        } else {
+          toast.error("获取通知列表失败");
         }
       } catch {
-        // silently fail
+        toast.error("网络错误，获取通知列表失败");
       } finally {
         setLoading(false);
       }
@@ -117,9 +120,12 @@ export default function NotificationsContent() {
       if (data.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         setUnreadCount(0);
+        toast.success("已全部标记为已读");
+      } else {
+        toast.error("操作失败");
       }
     } catch {
-      // silently fail
+      toast.error("网络错误，操作失败");
     } finally {
       setMarkingAll(false);
     }

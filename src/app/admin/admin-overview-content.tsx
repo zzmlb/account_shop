@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -170,7 +171,7 @@ export default function AdminOverviewPageContent() {
   const periodRef = useRef(chartPeriod);
   periodRef.current = chartPeriod;
 
-  const fetchStats = useCallback(async (period: number, isInitial = false) => {
+  const fetchStats = useCallback(async (period: number, isInitial = false, isManual = false) => {
     try {
       if (isInitial) setLoading(true);
       else setChartLoading(true);
@@ -183,9 +184,14 @@ export default function AdminOverviewPageContent() {
         setSalesChart(data.salesChart);
         setOrdersByStatus(data.ordersByStatus || []);
         setLastRefresh(new Date());
+        if (isManual) toast.success("数据已刷新");
+      } else if (isManual || isInitial) {
+        toast.error("获取统计数据失败");
       }
     } catch {
-      // silently fail for background refresh
+      if (isManual || isInitial) {
+        toast.error("网络错误，获取统计数据失败");
+      }
     } finally {
       setLoading(false);
       setChartLoading(false);
@@ -207,7 +213,7 @@ export default function AdminOverviewPageContent() {
   };
 
   const handleManualRefresh = () => {
-    fetchStats(chartPeriod);
+    fetchStats(chartPeriod, false, true);
   };
 
   if (loading) {

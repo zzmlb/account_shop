@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -75,9 +76,11 @@ export default function AdminMessagesContent() {
         if (data.success) {
           setMessages(data.messages);
           setPagination(data.pagination);
+        } else {
+          toast.error(data.message || "获取留言列表失败");
         }
       } catch {
-        // silently fail
+        toast.error("网络错误，获取留言列表失败");
       } finally {
         setLoading(false);
       }
@@ -99,12 +102,15 @@ export default function AdminMessagesContent() {
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(status === "REPLIED" ? "已标记为已回复" : "留言已关闭");
         setSelectedMessage(null);
         setAdminNote("");
         fetchMessages(pagination.page, activeTab);
+      } else {
+        toast.error(data.message || "操作失败");
       }
     } catch {
-      // silently fail
+      toast.error("网络错误，操作失败");
     } finally {
       setUpdating(false);
     }

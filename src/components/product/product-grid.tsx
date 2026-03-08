@@ -41,8 +41,8 @@ export default function ProductGrid({ products, className, searchQuery, onQuickV
         className
       )}
     >
-      {products.map((product) => (
-        <ProductCard key={product.slug} {...product} searchQuery={searchQuery} onQuickView={onQuickView ? () => onQuickView(product) : undefined} />
+      {products.map((product, idx) => (
+        <ProductCard key={product.slug} {...product} searchQuery={searchQuery} priority={idx < 6} onQuickView={onQuickView ? () => onQuickView(product) : undefined} />
       ))}
     </div>
   );
