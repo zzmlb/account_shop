@@ -179,6 +179,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
   }, [id]);
 
   // Poll for status updates when order is PENDING or PAID
+  const isPolling = !!(order && (order.status === "PENDING" || order.status === "PAID"));
   useEffect(() => {
     if (!order || (order.status !== "PENDING" && order.status !== "PAID")) return;
 
@@ -186,8 +187,10 @@ export default function OrderDetailContent({ id }: { id: string }) {
       try {
         const res = await fetch(`/api/orders/${id}`);
         const data = await res.json();
-        if (data.success && data.order && data.order.status !== order.status) {
-          setOrder(data.order);
+        if (data.success && data.order) {
+          if (data.order.status !== order.status || data.order.cardKeys?.length !== order.cardKeys.length) {
+            setOrder(data.order);
+          }
         }
       } catch {
         // Silently retry on next interval
@@ -383,6 +386,12 @@ export default function OrderDetailContent({ id }: { id: string }) {
           <Badge variant={statusConfig.variant} className="w-fit text-sm px-3 py-1">
             {statusConfig.label}
           </Badge>
+          {isPolling && (
+            <span className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--primary)]" />
+              自动刷新中
+            </span>
+          )}
           {countdown && order.status === "PENDING" && (
             <span className={cn(
               "text-sm font-mono font-medium",
@@ -552,6 +561,32 @@ export default function OrderDetailContent({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* Card key processing indicator - shown when paid but keys not yet delivered */}
+      {order.status === "PAID" && order.cardKeys.length === 0 && (
+        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-6 text-center">
+          <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-[var(--primary)]" />
+          <h3 className="mb-1 text-sm font-semibold text-[var(--foreground)]">
+            卡密正在分配中
+          </h3>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            支付已确认，系统正在自动分配卡密，请稍候片刻...
+          </p>
+        </div>
+      )}
+
+      {/* Edge case: delivered but somehow no keys */}
+      {order.status === "DELIVERED" && order.cardKeys.length === 0 && (
+        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-6 text-center">
+          <AlertCircle className="mx-auto mb-2 h-6 w-6 text-[var(--warning)]" />
+          <h3 className="mb-1 text-sm font-semibold text-[var(--foreground)]">
+            卡密信息暂不可用
+          </h3>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            如长时间未收到卡密，请联系客服处理
+          </p>
+        </div>
+      )}
 
       {/* Card keys section - only show when we have card keys */}
       {order.cardKeys.length > 0 && (

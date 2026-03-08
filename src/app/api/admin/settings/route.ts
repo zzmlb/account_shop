@@ -65,9 +65,33 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Allowed setting keys to prevent arbitrary key creation
+const ALLOWED_SETTING_KEYS = new Set([
+  "site_name",
+  "site_description",
+  "site_keywords",
+  "contact_email",
+  "contact_phone",
+  "icp_number",
+  "announcement",
+  "announcement_enabled",
+  "maintenance_mode",
+  "register_enabled",
+  "min_recharge_amount",
+  "max_recharge_amount",
+  "after_sale_hours",
+  "auto_delivery_enabled",
+  "wechat_qr",
+  "alipay_qr",
+  "usdt_address",
+]);
+
 // PUT - Update settings (admin only)
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -83,14 +107,28 @@ export async function PUT(request: NextRequest) {
 
     const entries = Object.entries(settings) as [string, string][];
 
+    // Filter to allowed keys only
+    const validEntries = entries.filter(([key]) => ALLOWED_SETTING_KEYS.has(key));
+    if (validEntries.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "无有效的设置项" },
+        { status: 400 }
+      );
+    }
+
     await Promise.all(
-      entries.map(([key, value]) =>
+      validEntries.map(([key, value]) =>
         db.siteSetting.upsert({
           where: { key },
           update: { value: String(value) },
           create: { key, value: String(value) },
         })
       )
+    );
+
+    log.info(
+      { adminId: session.id, keys: validEntries.map(([k]) => k) },
+      "Admin updated site settings"
     );
 
     return NextResponse.json({

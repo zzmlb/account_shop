@@ -123,6 +123,9 @@ export async function GET(request: NextRequest) {
 // PUT - Update user (admin only)
 export async function PUT(request: NextRequest) {
   try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
@@ -141,6 +144,25 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: "用户不存在" },
         { status: 404 }
+      );
+    }
+
+    // Prevent admins from modifying themselves (ban/balance)
+    if (id === session.id) {
+      return NextResponse.json(
+        { success: false, message: "不能修改自己的账户" },
+        { status: 400 }
+      );
+    }
+
+    // Prevent regular ADMIN from modifying SUPER_ADMIN users
+    if (
+      existing.role.toUpperCase() === "SUPER_ADMIN" &&
+      session.role.toUpperCase() !== "SUPER_ADMIN"
+    ) {
+      return NextResponse.json(
+        { success: false, message: "权限不足，无法修改超级管理员" },
+        { status: 403 }
       );
     }
 
@@ -238,6 +260,17 @@ export async function PUT(request: NextRequest) {
         return updatedUser;
       });
 
+      log.info(
+        {
+          targetUserId: id,
+          targetUsername: existing.username,
+          adminId: session.id,
+          balanceAdjust,
+          newStatus: newStatus ?? existing.status,
+        },
+        "Admin updated user (balance adjustment)"
+      );
+
       return NextResponse.json({
         success: true,
         message: "用户信息已更新",
@@ -287,6 +320,16 @@ export async function PUT(request: NextRequest) {
         },
       },
     });
+
+    log.info(
+      {
+        targetUserId: id,
+        targetUsername: existing.username,
+        adminId: session.id,
+        newStatus,
+      },
+      "Admin updated user status"
+    );
 
     return NextResponse.json({
       success: true,
