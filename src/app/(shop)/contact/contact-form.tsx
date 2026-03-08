@@ -141,7 +141,7 @@ export default function ContactForm() {
           value={form.category}
           onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="选择问题类型">
             <SelectValue placeholder="选择问题类型（可选）" />
           </SelectTrigger>
           <SelectContent>

@@ -556,6 +556,8 @@ export default function AdminCouponsContent() {
                     setFormErrors((prev) => ({ ...prev, code: "" }));
                   }}
                   className={`flex-1 font-mono ${formErrors.code ? "border-[var(--destructive)]" : ""}`}
+                  aria-invalid={!!formErrors.code}
+                  aria-describedby={formErrors.code ? "coupon-code-error" : undefined}
                 />
                 <Button
                   type="button"
@@ -568,7 +570,7 @@ export default function AdminCouponsContent() {
                 </Button>
               </div>
               {formErrors.code && (
-                <p className="text-xs text-[var(--destructive)]">{formErrors.code}</p>
+                <p id="coupon-code-error" className="text-xs text-[var(--destructive)]">{formErrors.code}</p>
               )}
             </div>
 
@@ -579,7 +581,7 @@ export default function AdminCouponsContent() {
                   value={formType}
                   onValueChange={(v) => setFormType(v as "FIXED" | "PERCENTAGE")}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="优惠类型">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -602,9 +604,11 @@ export default function AdminCouponsContent() {
                     setFormErrors((prev) => ({ ...prev, value: "" }));
                   }}
                   className={formErrors.value ? "border-[var(--destructive)]" : ""}
+                  aria-invalid={!!formErrors.value}
+                  aria-describedby={formErrors.value ? "coupon-value-error" : undefined}
                 />
                 {formErrors.value && (
-                  <p className="text-xs text-[var(--destructive)]">{formErrors.value}</p>
+                  <p id="coupon-value-error" className="text-xs text-[var(--destructive)]">{formErrors.value}</p>
                 )}
               </div>
             </div>
@@ -622,9 +626,11 @@ export default function AdminCouponsContent() {
                     setFormErrors((prev) => ({ ...prev, minAmount: "" }));
                   }}
                   className={formErrors.minAmount ? "border-[var(--destructive)]" : ""}
+                  aria-invalid={!!formErrors.minAmount}
+                  aria-describedby={formErrors.minAmount ? "coupon-min-error" : undefined}
                 />
                 {formErrors.minAmount && (
-                  <p className="text-xs text-[var(--destructive)]">{formErrors.minAmount}</p>
+                  <p id="coupon-min-error" className="text-xs text-[var(--destructive)]">{formErrors.minAmount}</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -660,9 +666,11 @@ export default function AdminCouponsContent() {
                     setFormErrors((prev) => ({ ...prev, expireAt: "" }));
                   }}
                   className={formErrors.expireAt ? "border-[var(--destructive)]" : ""}
+                  aria-invalid={!!formErrors.expireAt}
+                  aria-describedby={formErrors.expireAt ? "coupon-expire-error" : undefined}
                 />
                 {formErrors.expireAt && (
-                  <p className="text-xs text-[var(--destructive)]">{formErrors.expireAt}</p>
+                  <p id="coupon-expire-error" className="text-xs text-[var(--destructive)]">{formErrors.expireAt}</p>
                 )}
                 {/* Quick presets */}
                 <div className="flex flex-wrap gap-1.5">
