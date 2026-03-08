@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
     const { session, error } = getAdminSession(request);
     if (!session) return error!;
 
+    const { searchParams } = new URL(request.url);
+
     // Calculate today's start (midnight in server timezone)
     const now = new Date();
     const todayStart = new Date(
@@ -169,12 +171,35 @@ export async function GET(request: NextRequest) {
       revenue: Number(p.price) * p.soldCount,
     }));
 
-    // ---------- Sales Chart (last 7 days) ----------
+    // ---------- Order Status Distribution ----------
 
-    // Build array of last 7 days — parallel queries
-    const chartDays = Array.from({ length: 7 }, (_, i) => {
-      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
-      const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i) + 1);
+    const statusDistribution = await db.order.groupBy({
+      by: ["status"],
+      _count: { id: true },
+    });
+
+    const ordersByStatus = statusDistribution.map((s) => ({
+      status: s.status,
+      count: s._count.id,
+    }));
+
+    // ---------- Total Revenue (all time) ----------
+
+    const totalRevenueResult = await db.order.aggregate({
+      _sum: { payAmount: true },
+      where: { status: { in: ["PAID", "DELIVERED"] } },
+    });
+    const totalRevenue = Number(totalRevenueResult._sum.payAmount ?? 0);
+
+    // ---------- Sales Chart (configurable period) ----------
+
+    const periodParam = searchParams.get("period");
+    const chartPeriod = [7, 14, 30].includes(Number(periodParam)) ? Number(periodParam) : 7;
+
+    // Build array of days for the period
+    const chartDays = Array.from({ length: chartPeriod }, (_, i) => {
+      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (chartPeriod - 1 - i));
+      const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (chartPeriod - 1 - i) + 1);
       return { dayStart, dayEnd };
     });
 
@@ -221,10 +246,13 @@ export async function GET(request: NextRequest) {
         // Totals
         totalProducts,
         totalUsers,
+        totalRevenue,
       },
       recentOrders,
       hotProducts,
       salesChart,
+      chartPeriod,
+      ordersByStatus,
     });
   } catch (error) {
     log.error({ err: error }, "Admin stats GET error");

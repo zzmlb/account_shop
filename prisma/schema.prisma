@@ -25,6 +25,7 @@ model User {
   favorites      Favorite[]
   coupons        UserCoupon[]
   passwordResets PasswordReset[]
+  reviews        Review[]
 
   @@map("users")
 }
@@ -95,6 +96,7 @@ model Product {
   cardKeys   CardKey[]
   orderItems OrderItem[]
   favorites  Favorite[]
+  reviews    Review[]
 
   @@index([categoryId])
   @@index([isActive, sortOrder])
@@ -249,6 +251,26 @@ model Favorite {
 
   @@unique([userId, productId])
   @@map("favorites")
+}
+
+// ==================== 评价系统 ====================
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  orderId   String?
+  rating    Int      // 1-5
+  content   String   @db.Text
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([productId, isVisible])
+  @@index([userId])
+  @@map("reviews")
 }
 
 // ==================== 文章/教程系统 ====================

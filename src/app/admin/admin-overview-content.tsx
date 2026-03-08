@@ -49,6 +49,12 @@ interface StatsData {
   yesterdayConversion: number;
   totalProducts: number;
   totalUsers: number;
+  totalRevenue: number;
+}
+
+interface OrderStatusCount {
+  status: string;
+  count: number;
 }
 
 interface RecentOrder {
@@ -79,6 +85,8 @@ interface ApiResponse {
   recentOrders: RecentOrder[];
   hotProducts: HotProduct[];
   salesChart: SalesChartItem[];
+  chartPeriod: number;
+  ordersByStatus: OrderStatusCount[];
 }
 
 /* ---------- Status Mapping ---------- */
@@ -152,26 +160,39 @@ export default function AdminOverviewPageContent() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [hotProducts, setHotProducts] = useState<HotProduct[]>([]);
   const [salesChart, setSalesChart] = useState<SalesChartItem[]>([]);
+  const [chartPeriod, setChartPeriod] = useState(7);
+  const [ordersByStatus, setOrdersByStatus] = useState<OrderStatusCount[]>([]);
+  const [chartLoading, setChartLoading] = useState(false);
+
+  const fetchStats = async (period: number, isInitial = false) => {
+    try {
+      if (isInitial) setLoading(true);
+      else setChartLoading(true);
+      const res = await fetch(`/api/admin/stats?period=${period}`);
+      const data: ApiResponse = await res.json();
+      if (data.success) {
+        setStats(data.stats);
+        setRecentOrders(data.recentOrders);
+        setHotProducts(data.hotProducts);
+        setSalesChart(data.salesChart);
+        setOrdersByStatus(data.ordersByStatus || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch admin stats:", err);
+    } finally {
+      setLoading(false);
+      setChartLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch("/api/admin/stats");
-        const data: ApiResponse = await res.json();
-        if (data.success) {
-          setStats(data.stats);
-          setRecentOrders(data.recentOrders);
-          setHotProducts(data.hotProducts);
-          setSalesChart(data.salesChart);
-        }
-      } catch (err) {
-        console.error("Failed to fetch admin stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
-  }, []);
+    fetchStats(chartPeriod, true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePeriodChange = (period: number) => {
+    setChartPeriod(period);
+    fetchStats(period);
+  };
 
   if (loading) {
     return (
@@ -297,9 +318,23 @@ export default function AdminOverviewPageContent() {
             <CardTitle className="text-base font-semibold">
               销售趋势
             </CardTitle>
-            <span className="text-xs text-[var(--muted-foreground)]">
-              最近 7 天
-            </span>
+            <div className="flex items-center gap-1">
+              {[7, 14, 30].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handlePeriodChange(p)}
+                  disabled={chartLoading}
+                  className={cn(
+                    "rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-colors",
+                    chartPeriod === p
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+                  )}
+                >
+                  {p}天
+                </button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -404,6 +439,89 @@ export default function AdminOverviewPageContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ========== Order Status Distribution + Total Revenue ========== */}
+      {ordersByStatus.length > 0 && (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <Card className="xl:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold">
+                订单状态分布
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {[
+                  { key: "PENDING", label: "待支付", color: "var(--muted-foreground)" },
+                  { key: "PAID", label: "已支付", color: "var(--primary)" },
+                  { key: "DELIVERED", label: "已完成", color: "var(--success)" },
+                  { key: "CANCELLED", label: "已取消", color: "var(--muted-foreground)" },
+                  { key: "REFUNDED", label: "已退款", color: "var(--destructive)" },
+                  { key: "EXPIRED", label: "已过期", color: "var(--muted-foreground)" },
+                ].map((s) => {
+                  const item = ordersByStatus.find((o) => o.status === s.key);
+                  const count = item?.count ?? 0;
+                  const total = ordersByStatus.reduce((sum, o) => sum + o.count, 0);
+                  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                  return (
+                    <div
+                      key={s.key}
+                      className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-center"
+                    >
+                      <p className="text-2xl font-bold" style={{ color: s.color }}>
+                        {count}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {s.label}
+                      </p>
+                      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--muted)]">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${pct}%`, backgroundColor: s.color }}
+                        />
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">
+                        {pct}%
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold">
+                累计数据
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-gradient-to-br from-[var(--primary)]/5 to-transparent p-4">
+                  <p className="text-xs text-[var(--muted-foreground)]">总营收</p>
+                  <p className="text-2xl font-bold text-[var(--primary)]">
+                    ¥{(stats?.totalRevenue ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-center">
+                    <p className="text-lg font-bold">{stats?.totalUsers ?? 0}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">总用户</p>
+                  </div>
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-center">
+                    <p className="text-lg font-bold">{stats?.totalProducts ?? 0}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">在售商品</p>
+                  </div>
+                </div>
+                <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-center">
+                  <p className="text-lg font-bold">{ordersByStatus.reduce((sum, o) => sum + o.count, 0)}</p>
+                  <p className="text-xs text-[var(--muted-foreground)]">总订单数</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ========== Recent Orders + Quick Actions Row ========== */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">

@@ -20,6 +20,7 @@ import QuantitySelector from "@/components/product/quantity-selector";
 import ProductCard from "@/components/product/product-card";
 import FavoriteButton from "@/components/product/favorite-button";
 import ShareButtons from "@/components/product/share-buttons";
+import ProductReviews from "@/components/product/product-reviews";
 import { useCartStore } from "@/stores/cart-store";
 import { useRecentlyViewedStore } from "@/stores/recently-viewed-store";
 
@@ -321,6 +322,9 @@ export default function ProductDetailContent({
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Reviews */}
+      <ProductReviews productId={product.id} />
 
       {/* Related products */}
       {relatedProducts.length > 0 && (
