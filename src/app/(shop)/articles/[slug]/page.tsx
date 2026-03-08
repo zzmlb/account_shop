@@ -298,7 +298,7 @@ const categoryColorMap: Record<string, string> = {
 
 export default function ArticleDetailPage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const slug = (params?.slug as string) || "";
 
   const article = ARTICLES_DB[slug];
 

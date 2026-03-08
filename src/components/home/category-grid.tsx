@@ -1,36 +1,38 @@
 import Link from "next/link";
 import {
   Mail,
-  Globe,
-  Users,
-  Play,
-  Gamepad2,
-  Code,
+  Tv,
   Shield,
-  MoreHorizontal,
+  Share2,
+  Cloud,
+  Code,
+  Gamepad2,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { db } from "@/server/db";
 
-interface Category {
-  name: string;
-  slug: string;
-  icon: LucideIcon;
-  count: number;
-}
+const ICON_MAP: Record<string, LucideIcon> = {
+  Mail,
+  Tv,
+  Shield,
+  Share2,
+  Cloud,
+  Code,
+  Gamepad2,
+  Package,
+};
 
-const CATEGORIES: Category[] = [
-  { name: "Gmail邮箱", slug: "gmail", icon: Mail, count: 1280 },
-  { name: "Outlook邮箱", slug: "outlook", icon: Globe, count: 960 },
-  { name: "社交媒体", slug: "social-media", icon: Users, count: 2150 },
-  { name: "流媒体账号", slug: "streaming", icon: Play, count: 1840 },
-  { name: "游戏账号", slug: "gaming", icon: Gamepad2, count: 1560 },
-  { name: "开发者工具", slug: "dev-tools", icon: Code, count: 720 },
-  { name: "VPN服务", slug: "vpn", icon: Shield, count: 890 },
-  { name: "其他服务", slug: "others", icon: MoreHorizontal, count: 640 },
-];
+export default async function CategoryGrid() {
+  const categories = await db.category.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: "asc" },
+    include: {
+      _count: { select: { products: { where: { isActive: true } } } },
+    },
+  });
 
-export default function CategoryGrid() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
       {/* Section header */}
@@ -45,8 +47,8 @@ export default function CategoryGrid() {
 
       {/* Bento grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {CATEGORIES.map((cat) => {
-          const Icon = cat.icon;
+        {categories.map((cat) => {
+          const Icon = ICON_MAP[cat.icon || "Package"] || Package;
           return (
             <Link
               key={cat.slug}
@@ -77,7 +79,7 @@ export default function CategoryGrid() {
 
               {/* Count */}
               <span className="text-xs text-[var(--muted-foreground)]">
-                {cat.count.toLocaleString()} 件商品
+                {cat._count.products} 件商品
               </span>
             </Link>
           );

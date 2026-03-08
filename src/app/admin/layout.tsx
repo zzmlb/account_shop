@@ -105,7 +105,7 @@ export default function AdminLayout({
   const isActive = (href: string) =>
     href === "/admin"
       ? pathname === "/admin"
-      : pathname.startsWith(href);
+      : (pathname ?? "").startsWith(href);
 
   /* ---------- Sidebar nav content (shared between desktop + mobile) ---------- */
   const SidebarNav = ({ onLinkClick }: { onLinkClick?: () => void }) => (

@@ -83,7 +83,7 @@ export default function DashboardLayout({
   const isActive = (href: string) =>
     href === "/dashboard"
       ? pathname === "/dashboard"
-      : pathname.startsWith(href);
+      : (pathname ?? "").startsWith(href);
 
   return (
     <div className="flex min-h-screen flex-col">

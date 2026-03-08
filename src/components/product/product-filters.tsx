@@ -39,7 +39,7 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
 
   const createQueryString = useCallback(
     (params: Record<string, string | null>) => {
-      const newParams = new URLSearchParams(searchParams.toString());
+      const newParams = new URLSearchParams(searchParams?.toString() ?? "");
       Object.entries(params).forEach(([key, value]) => {
         if (value === null) {
           newParams.delete(key);
