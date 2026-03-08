@@ -156,6 +156,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [refundReason, setRefundReason] = useState("");
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
   const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
@@ -277,6 +278,34 @@ export default function OrderDetailContent({ id }: { id: string }) {
       toast.error("网络错误，请稍后重试");
     } finally {
       setRefundSubmitting(false);
+    }
+  };
+
+  const handlePayNow = async () => {
+    if (!order || order.status !== "PENDING") return;
+    setPaying(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentMethod: "balance" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("支付成功！卡密即将发送至您的邮箱");
+        // Refresh order data
+        const refreshRes = await fetch(`/api/orders/${id}`);
+        const refreshData = await refreshRes.json();
+        if (refreshData.success && refreshData.order) {
+          setOrder(refreshData.order);
+        }
+      } else {
+        toast.error(data.message || "支付失败");
+      }
+    } catch {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -732,20 +761,39 @@ export default function OrderDetailContent({ id }: { id: string }) {
           <p className="mb-4 text-sm text-[var(--muted-foreground)]">
             请在 15 分钟内完成支付，超时订单将自动取消
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCancelDialogOpen(true)}
-            disabled={cancelling}
-            className="gap-1.5 text-[var(--destructive)] hover:text-[var(--destructive)]"
-          >
-            {cancelling ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <XCircle className="h-3.5 w-3.5" />
-            )}
-            取消订单
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              onClick={handlePayNow}
+              disabled={paying || countdown === "已过期"}
+              className="gap-1.5"
+            >
+              {paying ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              {paying ? "支付中..." : `余额支付 ¥${(order.payAmount ?? order.totalAmount).toFixed(2)}`}
+            </Button>
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link href="/dashboard/balance">
+                充值余额
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCancelDialogOpen(true)}
+              disabled={cancelling}
+              className="gap-1.5 text-[var(--destructive)] hover:text-[var(--destructive)]"
+            >
+              {cancelling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5" />
+              )}
+              取消订单
+            </Button>
+          </div>
         </div>
       )}
 

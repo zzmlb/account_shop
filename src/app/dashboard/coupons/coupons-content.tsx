@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -246,8 +247,8 @@ function CouponCard({
                   </>
                 )}
               </button>
-              <Button size="sm" className="h-7 px-3 text-xs">
-                去使用
+              <Button asChild size="sm" className="h-7 px-3 text-xs">
+                <Link href="/products">去使用</Link>
               </Button>
             </div>
           )}
