@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { contactLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
+import { contactMessageSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("contact");
 
@@ -37,38 +38,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation
-    if (!name || !email || !subject || !message) {
+    const parsed = contactMessageSchema.safeParse({ name, email, subject, message, category: body.category });
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "请填写所有必填字段" },
-        { status: 400 }
-      );
-    }
-
-    if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 50) {
-      return NextResponse.json(
-        { success: false, message: "姓名长度应为2-50字符" },
-        { status: 400 }
-      );
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { success: false, message: "邮箱格式不正确" },
-        { status: 400 }
-      );
-    }
-
-    if (typeof subject !== "string" || subject.trim().length < 2 || subject.trim().length > 100) {
-      return NextResponse.json(
-        { success: false, message: "主题长度应为2-100字符" },
-        { status: 400 }
-      );
-    }
-
-    if (typeof message !== "string" || message.trim().length < 10 || message.trim().length > 2000) {
-      return NextResponse.json(
-        { success: false, message: "留言内容长度应为10-2000字符" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }

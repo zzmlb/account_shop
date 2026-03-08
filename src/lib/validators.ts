@@ -204,6 +204,29 @@ export const favoriteSchema = z.object({
 });
 
 /* ------------------------------------------------------------------ */
+/*  Contact Message                                                    */
+/* ------------------------------------------------------------------ */
+
+export const contactMessageSchema = z.object({
+  name: z.string().min(2, "姓名至少2个字符").max(50, "姓名最多50个字符"),
+  email: z.string().email("邮箱格式不正确"),
+  category: z.string().max(50).optional(),
+  subject: z.string().min(2, "主题至少2个字符").max(100, "主题最多100个字符"),
+  message: z.string().min(10, "留言内容至少10个字符").max(2000, "留言内容最多2000个字符"),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Admin: Broadcast Notification                                      */
+/* ------------------------------------------------------------------ */
+
+export const broadcastNotificationSchema = z.object({
+  title: z.string().min(1, "标题不能为空").max(200, "标题最多200个字符"),
+  content: z.string().min(1, "内容不能为空").max(2000, "内容最多2000个字符"),
+  href: z.string().max(500).optional(),
+  userIds: z.array(z.string()).optional(),
+});
+
+/* ------------------------------------------------------------------ */
 /*  Type Exports                                                       */
 /* ------------------------------------------------------------------ */
 

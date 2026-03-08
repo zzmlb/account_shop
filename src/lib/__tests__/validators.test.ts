@@ -16,6 +16,8 @@ import {
   createArticleSchema,
   updateArticleSchema,
   favoriteSchema,
+  contactMessageSchema,
+  broadcastNotificationSchema,
 } from "../validators";
 
 describe("loginSchema", () => {
@@ -624,6 +626,121 @@ describe("favoriteSchema", () => {
   it("rejects empty productId", () => {
     const result = favoriteSchema.safeParse({ productId: "" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("contactMessageSchema", () => {
+  it("accepts valid contact message", () => {
+    const result = contactMessageSchema.safeParse({
+      name: "张三",
+      email: "zhangsan@example.com",
+      subject: "购买问题",
+      message: "我购买的商品无法使用，请帮忙处理。",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects short name", () => {
+    const result = contactMessageSchema.safeParse({
+      name: "A",
+      email: "a@b.com",
+      subject: "主题",
+      message: "这是一条足够长的留言内容。",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects invalid email", () => {
+    const result = contactMessageSchema.safeParse({
+      name: "张三",
+      email: "not-email",
+      subject: "主题",
+      message: "这是一条足够长的留言内容。",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects short message", () => {
+    const result = contactMessageSchema.safeParse({
+      name: "张三",
+      email: "a@b.com",
+      subject: "主题",
+      message: "太短",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects message exceeding 2000 chars", () => {
+    const result = contactMessageSchema.safeParse({
+      name: "张三",
+      email: "a@b.com",
+      subject: "主题",
+      message: "x".repeat(2001),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional category", () => {
+    const result = contactMessageSchema.safeParse({
+      name: "张三",
+      email: "a@b.com",
+      subject: "主题",
+      message: "留言内容足够长的文本。",
+      category: "support",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("broadcastNotificationSchema", () => {
+  it("accepts valid broadcast", () => {
+    const result = broadcastNotificationSchema.safeParse({
+      title: "系统维护通知",
+      content: "系统将于今晚 22:00 进行维护，预计持续2小时。",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty title", () => {
+    const result = broadcastNotificationSchema.safeParse({
+      title: "",
+      content: "内容",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty content", () => {
+    const result = broadcastNotificationSchema.safeParse({
+      title: "标题",
+      content: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects title exceeding 200 chars", () => {
+    const result = broadcastNotificationSchema.safeParse({
+      title: "x".repeat(201),
+      content: "内容",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects content exceeding 2000 chars", () => {
+    const result = broadcastNotificationSchema.safeParse({
+      title: "标题",
+      content: "x".repeat(2001),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional href and userIds", () => {
+    const result = broadcastNotificationSchema.safeParse({
+      title: "新品上线",
+      content: "查看最新商品",
+      href: "/products/new-item",
+      userIds: ["user-1", "user-2"],
+    });
+    expect(result.success).toBe(true);
   });
 });
 

@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { logAdminAction } from "@/lib/audit";
+import { broadcastNotificationSchema, formatZodError } from "@/lib/validators";
 
 const log = createLogger("admin/notifications");
 
@@ -209,26 +210,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, href, userIds } = body as {
-      title?: string;
-      content?: string;
-      href?: string;
-      userIds?: string[];
-    };
-
-    if (!title || !content) {
+    const parsed = broadcastNotificationSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, message: "标题和内容不能为空" },
+        { success: false, message: formatZodError(parsed.error) },
         { status: 400 }
       );
     }
-
-    if (title.length > 200 || content.length > 2000) {
-      return NextResponse.json(
-        { success: false, message: "标题不超过200字，内容不超过2000字" },
-        { status: 400 }
-      );
-    }
+    const { title, content, href, userIds } = parsed.data;
 
     let targetUserIds: string[];
 
