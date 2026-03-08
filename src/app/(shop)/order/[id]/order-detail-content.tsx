@@ -439,6 +439,15 @@ export default function OrderDetailContent({ id }: { id: string }) {
             {TIMELINE_STEPS.map((step, index) => {
               const isCompleted = index <= activeStepIndex;
               const isCurrent = index === activeStepIndex;
+              // Resolve timestamp for each step
+              const stepTime =
+                index === 0
+                  ? order.createdAt
+                  : index === 1
+                    ? order.paidAt
+                    : index === 2 && order.status === "DELIVERED"
+                      ? order.paidAt // delivered usually immediately after payment
+                      : null;
               return (
                 <div key={step.key} className="flex flex-1 items-center">
                   <div className="flex flex-col items-center gap-2">
@@ -467,6 +476,16 @@ export default function OrderDetailContent({ id }: { id: string }) {
                     >
                       {step.label}
                     </span>
+                    {isCompleted && stepTime && (
+                      <span className="text-[10px] text-[var(--muted-foreground)]">
+                        {new Date(stepTime).toLocaleString("zh-CN", {
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
                   </div>
                   {index < TIMELINE_STEPS.length - 1 && (
                     <div
