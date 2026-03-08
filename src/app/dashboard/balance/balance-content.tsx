@@ -250,7 +250,7 @@ export default function BalancePageContent() {
             充值 {selectedAmount ? `¥${selectedAmount}` : ""}
           </Button>
           <p className="text-center text-xs text-[var(--muted-foreground)]">
-            支持支付宝、微信支付，充值后即时到账
+            支持支付宝、微信支付转账充值，管理员审核后到账
           </p>
         </CardContent>
       </Card>
@@ -420,9 +420,23 @@ export default function BalancePageContent() {
                 <p className="text-sm">转账完成后通知客服，管理员审核后余额将自动到账</p>
               </div>
             </div>
-            <p className="text-xs text-[var(--muted-foreground)] text-center">
-              如有问题请通过<a href="/contact" className="text-[var(--primary)] hover:underline">联系我们</a>页面反馈
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  if (user?.username) {
+                    navigator.clipboard.writeText(user.username);
+                    toast.success("用户名已复制");
+                  }
+                }}
+                className="text-xs text-[var(--primary)] hover:underline"
+              >
+                复制用户名
+              </button>
+              <span className="text-xs text-[var(--muted-foreground)]">|</span>
+              <a href="/contact" className="text-xs text-[var(--primary)] hover:underline">
+                联系客服
+              </a>
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowRechargeGuide(false)}>

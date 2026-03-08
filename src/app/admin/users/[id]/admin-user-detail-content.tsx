@@ -12,7 +12,6 @@ import {
   Clock,
   Shield,
   Ban,
-  Loader2,
   Globe,
   CheckCircle2,
   XCircle,

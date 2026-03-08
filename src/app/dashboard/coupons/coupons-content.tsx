@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check, Loader2 } from "lucide-react";
+import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

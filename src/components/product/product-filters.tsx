@@ -10,7 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+
+const PRICE_MAX = 500; // Slider max value
 
 interface Category {
   id: string;
@@ -187,31 +190,48 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
         <h4 className="mb-3 text-sm font-semibold text-[var(--foreground)]">
           价格范围
         </h4>
+        {/* Dual-thumb slider */}
+        <Slider
+          value={[
+            Number(localMinPrice) || 0,
+            Number(localMaxPrice) || PRICE_MAX,
+          ]}
+          min={0}
+          max={PRICE_MAX}
+          step={5}
+          onValueChange={([min, max]) => {
+            setLocalMinPrice(min === 0 ? "" : String(min));
+            setLocalMaxPrice(max === PRICE_MAX ? "" : String(max));
+            debouncedPriceUpdate("minPrice", min === 0 ? "" : String(min));
+            debouncedPriceUpdate("maxPrice", max === PRICE_MAX ? "" : String(max));
+          }}
+          className="mb-3"
+        />
         <div className="flex items-center gap-2">
           <Input
             type="number"
             min="0"
             step="0.01"
-            placeholder="最低价"
+            placeholder="¥0"
             value={localMinPrice}
             onChange={(e) => {
               setLocalMinPrice(e.target.value);
               debouncedPriceUpdate("minPrice", e.target.value);
             }}
-            className="h-9"
+            className="h-8 text-xs"
           />
-          <span className="text-[var(--muted-foreground)]">-</span>
+          <span className="text-xs text-[var(--muted-foreground)]">-</span>
           <Input
             type="number"
             min="0"
             step="0.01"
-            placeholder="最高价"
+            placeholder={`¥${PRICE_MAX}+`}
             value={localMaxPrice}
             onChange={(e) => {
               setLocalMaxPrice(e.target.value);
               debouncedPriceUpdate("maxPrice", e.target.value);
             }}
-            className="h-9"
+            className="h-8 text-xs"
           />
         </div>
       </div>
