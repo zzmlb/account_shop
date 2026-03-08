@@ -140,16 +140,9 @@ describe("auth-store", () => {
   });
 
   it("handleUnauthorized clears user when logged in", () => {
-    // Mock window and location for Node test environment
-    const origWindow = globalThis.window;
-    // @ts-expect-error - mock window for test
-    globalThis.window = { location: { pathname: "/dashboard", href: "" } };
-
     useAuthStore.setState({ user: mockUser });
     useAuthStore.getState().handleUnauthorized();
     expect(useAuthStore.getState().user).toBeNull();
-
-    globalThis.window = origWindow;
   });
 
   it("handleUnauthorized does nothing when not logged in", () => {

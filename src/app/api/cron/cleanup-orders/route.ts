@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { rateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("cron/cleanup-orders");
 
 // Secret key to protect cron endpoint (set CRON_SECRET env var)
 const CRON_SECRET = process.env.CRON_SECRET;
+
+// Rate limit: max 2 requests per 60 seconds
+const cronLimiter = rateLimit({ max: 2, windowSeconds: 60 });
 
 /**
  * POST /api/cron/cleanup-orders
@@ -26,6 +30,10 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
+
+  // Rate limit even authenticated cron calls
+  const rl = cronLimiter(getClientIp(request));
+  if (!rl.success) return rateLimitResponse(rl);
 
   try {
     const now = new Date();

@@ -32,9 +32,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
+      const trimmedSearch = search.slice(0, 200);
       where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { content: { contains: search, mode: "insensitive" } },
+        { title: { contains: trimmedSearch, mode: "insensitive" } },
+        { content: { contains: trimmedSearch, mode: "insensitive" } },
       ];
     }
 

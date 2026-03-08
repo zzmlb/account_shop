@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("admin/settings");
 
@@ -116,14 +117,42 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Max value length per key type
+    const MAX_LENGTHS: Record<string, number> = {
+      site_name: 100,
+      site_description: 500,
+      site_keywords: 300,
+      contact_email: 100,
+      contact_phone: 30,
+      icp_number: 50,
+      announcement: 2000,
+      announcement_enabled: 10,
+      maintenance_mode: 10,
+      register_enabled: 10,
+      min_recharge_amount: 20,
+      max_recharge_amount: 20,
+      after_sale_hours: 10,
+      auto_delivery_enabled: 10,
+      wechat_qr: 500,
+      alipay_qr: 500,
+      usdt_address: 200,
+    };
+
+    // Sanitize HTML-renderable fields
+    const HTML_FIELDS = new Set(["announcement", "site_description"]);
+
     await Promise.all(
-      validEntries.map(([key, value]) =>
-        db.siteSetting.upsert({
+      validEntries.map(([key, value]) => {
+        let val = String(value);
+        const maxLen = MAX_LENGTHS[key] || 500;
+        val = val.slice(0, maxLen);
+        if (HTML_FIELDS.has(key)) val = stripHtml(val);
+        return db.siteSetting.upsert({
           where: { key },
-          update: { value: String(value) },
-          create: { key, value: String(value) },
-        })
-      )
+          update: { value: val },
+          create: { key, value: val },
+        });
+      })
     );
 
     log.info(
