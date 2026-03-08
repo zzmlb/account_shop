@@ -33,7 +33,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (code.length > 50) {
+    if (code.length < 2 || code.length > 50) {
+      return NextResponse.json(
+        { success: false, message: "优惠码格式无效" },
+        { status: 400 }
+      );
+    }
+
+    if (!/^[A-Z0-9_-]+$/.test(code)) {
       return NextResponse.json(
         { success: false, message: "优惠码格式无效" },
         { status: 400 }

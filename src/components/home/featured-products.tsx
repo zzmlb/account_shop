@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowRight } from "lucide-react";
 import { db } from "@/server/db";
 import FavoriteButton from "@/components/product/favorite-button";
+import { BLUR_DATA_URL } from "@/lib/constants";
 
 const GRADIENTS = [
   "linear-gradient(135deg, #6c5ce7 0%, #00d2ff 100%)",
@@ -61,6 +62,8 @@ function ProductCard({ product, priority }: { product: Product; priority?: boole
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             priority={priority}
+            placeholder="blur"
+            blurDataURL={BLUR_DATA_URL}
           />
         )}
         {discount > 0 && (

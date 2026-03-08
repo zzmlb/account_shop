@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { BLUR_DATA_URL } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowRight, Sparkles } from "lucide-react";
@@ -67,6 +68,8 @@ function NewArrivalCard({ product, priority = false }: { product: Product; prior
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             priority={priority}
+            placeholder="blur"
+            blurDataURL={BLUR_DATA_URL}
             loading={priority ? "eager" : "lazy"}
           />
         )}

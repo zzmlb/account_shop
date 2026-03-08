@@ -20,6 +20,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { BLUR_DATA_URL } from "@/lib/constants";
 import EmptyState from "@/components/shared/empty-state";
 import ConfirmDialog from "@/components/shared/confirm-dialog";
 import { useCartStore } from "@/stores/cart-store";
@@ -320,6 +321,8 @@ export default function FavoritesPageContent() {
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      placeholder="blur"
+                      blurDataURL={BLUR_DATA_URL}
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
