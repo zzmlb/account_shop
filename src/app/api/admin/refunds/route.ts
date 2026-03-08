@@ -175,6 +175,7 @@ export async function PUT(request: NextRequest) {
             payAmount: true,
             status: true,
             email: true,
+            couponId: true,
           },
         },
         user: {
@@ -236,6 +237,14 @@ export async function PUT(request: NextRequest) {
             },
           });
         }
+
+        // Decrement coupon usage count on refund (reverse the payment increment)
+        if (refund.order.couponId) {
+          await tx.coupon.update({
+            where: { id: refund.order.couponId },
+            data: { usedCount: { decrement: 1 } },
+          });
+        }
       });
 
       log.info(
@@ -281,7 +290,7 @@ export async function PUT(request: NextRequest) {
         where: { id },
         data: {
           status: "REJECTED",
-          adminNote: adminNote || null,
+          adminNote: adminNote ? stripHtml(adminNote) : null,
         },
       });
 

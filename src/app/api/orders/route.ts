@@ -114,7 +114,15 @@ export async function POST(request: NextRequest) {
       request.cookies.get("session")?.value || ""
     );
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "请求格式错误" },
+        { status: 400 }
+      );
+    }
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -194,24 +202,10 @@ export async function POST(request: NextRequest) {
           }
           couponId = coupon.id;
 
-          // Increment coupon usage count
-          await db.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
-          });
+          // NOTE: Coupon usedCount is incremented at PAYMENT time (in pay/route.ts),
+          // not at order creation. This prevents phantom usage on expired/cancelled orders.
 
-          // Track user-coupon association if user is logged in
-          if (session?.id) {
-            await db.userCoupon.create({
-              data: {
-                userId: session.id,
-                couponId: coupon.id,
-                usedAt: now,
-              },
-            });
-          }
-
-          log.info({ couponCode: coupon.code, discount, orderId: couponId }, "Coupon applied to order");
+          log.info({ couponCode: coupon.code, discount, couponId }, "Coupon applied to order");
         } else {
           log.warn({ couponCode: coupon.code, reason: "invalid or unmet conditions" }, "Coupon rejected");
         }

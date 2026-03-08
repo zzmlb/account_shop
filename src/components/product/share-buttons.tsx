@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Share2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,13 @@ interface ShareButtonsProps {
 
 export default function ShareButtons({ title, url }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const getUrl = () =>
     url || (typeof window !== "undefined" ? window.location.href : "");
@@ -27,7 +34,8 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
       await navigator.clipboard.writeText(getUrl());
       setCopied(true);
       toast.success("链接已复制");
-      setTimeout(() => setCopied(false), 2000);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("复制失败");
     }

@@ -147,6 +147,7 @@ export default function HeroSection() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="搜索商品..."
+                aria-label="搜索商品"
                 className={cn(
                   "h-12 w-full rounded-full border border-[var(--border)] bg-[var(--card)]/80 pl-12 pr-28 text-sm text-[var(--foreground)] backdrop-blur-sm",
                   "placeholder:text-[var(--muted-foreground)]",

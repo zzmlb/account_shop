@@ -164,6 +164,25 @@ export async function POST(
         },
       });
 
+      // Increment coupon usage count atomically (only at payment time)
+      if (order.couponId) {
+        await tx.coupon.update({
+          where: { id: order.couponId },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        // Track user-coupon association
+        if (session) {
+          await tx.userCoupon.create({
+            data: {
+              userId: session.id,
+              couponId: order.couponId,
+              usedAt: new Date(),
+            },
+          });
+        }
+      }
+
       return { updatedOrder, allocatedKeys, allKeysAllocated };
     });
 

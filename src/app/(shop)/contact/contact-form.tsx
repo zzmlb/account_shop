@@ -74,10 +74,11 @@ export default function ContactForm() {
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+          <label htmlFor="contact-name" className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
             姓名 <span className="text-[var(--destructive)]">*</span>
           </label>
           <Input
+            id="contact-name"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="您的姓名"
@@ -87,10 +88,11 @@ export default function ContactForm() {
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+          <label htmlFor="contact-email" className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
             邮箱 <span className="text-[var(--destructive)]">*</span>
           </label>
           <Input
+            id="contact-email"
             type="email"
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
@@ -101,10 +103,11 @@ export default function ContactForm() {
       </div>
 
       <div className="mt-4">
-        <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+        <label htmlFor="contact-subject" className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
           主题 <span className="text-[var(--destructive)]">*</span>
         </label>
         <Input
+          id="contact-subject"
           value={form.subject}
           onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
           placeholder="留言主题"
@@ -115,10 +118,11 @@ export default function ContactForm() {
       </div>
 
       <div className="mt-4">
-        <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+        <label htmlFor="contact-message" className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
           留言内容 <span className="text-[var(--destructive)]">*</span>
         </label>
         <Textarea
+          id="contact-message"
           value={form.message}
           onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           placeholder="请详细描述您的问题或建议（至少10字）"
