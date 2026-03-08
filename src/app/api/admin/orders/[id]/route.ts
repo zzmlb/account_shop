@@ -189,6 +189,13 @@ export async function PATCH(
       );
     }
 
+    if (adminNote.length > 1000) {
+      return NextResponse.json(
+        { success: false, message: "备注不能超过1000个字符" },
+        { status: 400 }
+      );
+    }
+
     const order = await db.order.findUnique({ where: { id } });
     if (!order) {
       return NextResponse.json(

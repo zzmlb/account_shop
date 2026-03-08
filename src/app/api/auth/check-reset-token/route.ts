@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const log = createLogger("auth/check-reset-token");
 
 /**
  * GET /api/auth/check-reset-token?token=xxx
@@ -35,7 +38,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ valid: true });
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Check reset token error");
     return NextResponse.json({ valid: false, reason: "error" });
   }
 }
