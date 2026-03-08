@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Package,
@@ -131,38 +131,53 @@ export default function DashboardPageContent() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [ordersRes, couponsRes, notifsRes] = await Promise.all([
-          fetch("/api/orders").then((r) => r.json()),
-          fetch("/api/coupons").then((r) => r.json()).catch(() => ({ success: false })),
-          fetch("/api/notifications?pageSize=5").then((r) => r.json()).catch(() => ({ success: false })),
-        ]);
-        if (ordersRes.success && Array.isArray(ordersRes.orders)) {
-          setOrders(ordersRes.orders);
-        } else {
-          setFetchError(true);
-        }
-        if (couponsRes.success && Array.isArray(couponsRes.coupons)) {
-          const unused = couponsRes.coupons.filter(
-            (c: { isUsed: boolean; endDate: string }) =>
-              !c.isUsed && new Date(c.endDate) > new Date()
-          );
-          setCouponCount(unused.length);
-        }
-        if (notifsRes.success && Array.isArray(notifsRes.notifications)) {
-          setNotifications(notifsRes.notifications);
-          setUnreadCount(notifsRes.unreadCount ?? 0);
-        }
-      } catch {
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      const [ordersRes, couponsRes, notifsRes] = await Promise.all([
+        fetch("/api/orders").then((r) => r.json()),
+        fetch("/api/coupons").then((r) => r.json()).catch(() => ({ success: false })),
+        fetch("/api/notifications?pageSize=5").then((r) => r.json()).catch(() => ({ success: false })),
+      ]);
+      if (ordersRes.success && Array.isArray(ordersRes.orders)) {
+        setOrders(ordersRes.orders);
+        setFetchError(false);
+      } else if (!isRefresh) {
         setFetchError(true);
-      } finally {
-        setLoading(false);
       }
+      if (couponsRes.success && Array.isArray(couponsRes.coupons)) {
+        const unused = couponsRes.coupons.filter(
+          (c: { isUsed: boolean; endDate: string }) =>
+            !c.isUsed && new Date(c.endDate) > new Date()
+        );
+        setCouponCount(unused.length);
+      }
+      if (notifsRes.success && Array.isArray(notifsRes.notifications)) {
+        setNotifications(notifsRes.notifications);
+        setUnreadCount(notifsRes.unreadCount ?? 0);
+      }
+    } catch {
+      if (!isRefresh) setFetchError(true);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
   }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Refresh data when tab becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchData(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchData]);
 
   /* ---- Computed stats ---- */
   const totalOrders = orders.length;
