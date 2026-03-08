@@ -10,6 +10,12 @@ export const metadata: Metadata = {
     title: `联系我们 - ${SITE_NAME}`,
     description: `联系 ${SITE_NAME} 客服团队，获取帮助与支持`,
     url: `${SITE_URL}/contact`,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: `联系我们 - ${SITE_NAME}`,
+    description: `联系 ${SITE_NAME} 客服团队，获取帮助与支持`,
   },
   alternates: { canonical: `${SITE_URL}/contact` },
 };

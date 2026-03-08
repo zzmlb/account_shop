@@ -11,6 +11,11 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/promotions`,
     type: "website",
   },
+  twitter: {
+    card: "summary",
+    title: `优惠活动 - ${SITE_NAME}`,
+    description: `${SITE_NAME} 优惠券领取中心，领取专属优惠券享受更多折扣`,
+  },
   alternates: { canonical: `${SITE_URL}/promotions` },
 };
 
