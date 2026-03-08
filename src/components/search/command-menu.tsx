@@ -79,6 +79,15 @@ export default function CommandMenu() {
         e.preventDefault();
         setOpen(true);
       }
+      // "/" shortcut — only trigger when not in an input/textarea/contenteditable
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (e.target as HTMLElement).tagName;
+        const editable = (e.target as HTMLElement).isContentEditable;
+        if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !editable) {
+          e.preventDefault();
+          setOpen(true);
+        }
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
