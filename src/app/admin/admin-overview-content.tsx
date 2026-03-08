@@ -54,6 +54,7 @@ interface StatsData {
   totalUsers: number;
   totalRevenue: number;
   pendingRefunds: number;
+  pendingMessages: number;
 }
 
 interface OrderStatusCount {
@@ -745,6 +746,26 @@ export default function AdminOverviewPageContent() {
                       <span className="text-sm font-medium">待处理退款</span>
                       <span className="text-[10px] text-[var(--muted-foreground)]">
                         {stats?.pendingRefunds} 件退款申请等待审核
+                      </span>
+                    </div>
+                  </Link>
+                </Button>
+              )}
+              {(stats?.pendingMessages ?? 0) > 0 && (
+                <Button
+                  asChild
+                  className="w-full justify-start gap-3"
+                  variant="outline"
+                  size="lg"
+                >
+                  <Link href="/admin/messages">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent)]/10">
+                      <Bell className="h-4 w-4 text-[var(--accent)]" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">待回复留言</span>
+                      <span className="text-[10px] text-[var(--muted-foreground)]">
+                        {stats?.pendingMessages} 条留言等待回复
                       </span>
                     </div>
                   </Link>

@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("admin/messages");
 
@@ -90,7 +91,7 @@ export async function PUT(request: NextRequest) {
       where: { id },
       data: {
         status,
-        adminNote: adminNote || null,
+        adminNote: adminNote ? stripHtml(adminNote) : null,
       },
     });
 
