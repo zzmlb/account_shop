@@ -63,6 +63,8 @@ export async function GET(
       payAmount,
       discount: discount > 0 ? discount : 0,
       createdAt: order.createdAt.toISOString(),
+      expireAt: order.expireAt.toISOString(),
+      paidAt: order.paidAt?.toISOString() || null,
       items: order.items.map((item) => ({
         name: item.product.name,
         slug: item.product.slug,

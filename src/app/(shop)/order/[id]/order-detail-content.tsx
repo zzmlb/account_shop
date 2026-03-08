@@ -30,13 +30,15 @@ interface OrderItem {
 
 interface OrderData {
   orderNo: string;
-  status: "PENDING" | "PAID" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+  status: "PENDING" | "PAID" | "DELIVERED" | "CANCELLED" | "REFUNDED" | "EXPIRED";
   email: string;
   paymentMethod: string;
   totalAmount: number;
   payAmount?: number;
   discount?: number;
   createdAt: string;
+  expireAt?: string;
+  paidAt?: string | null;
   items: OrderItem[];
   cardKeys: string[];
 }
@@ -79,6 +81,11 @@ const STATUS_CONFIG = {
     variant: "secondary" as const,
     color: "text-[var(--muted-foreground)]",
   },
+  EXPIRED: {
+    label: "已过期",
+    variant: "secondary" as const,
+    color: "text-[var(--muted-foreground)]",
+  },
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -94,11 +101,40 @@ const TIMELINE_STEPS = [
   { key: "delivered", label: "发货完成", icon: Truck },
 ];
 
+function useCountdown(expireAt: string | undefined, status: string | undefined) {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    if (!expireAt || status !== "PENDING") {
+      setTimeLeft("");
+      return;
+    }
+
+    function calc() {
+      const diff = new Date(expireAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft("已过期");
+        return;
+      }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${mins}:${secs.toString().padStart(2, "0")}`);
+    }
+
+    calc();
+    const timer = setInterval(calc, 1000);
+    return () => clearInterval(timer);
+  }, [expireAt, status]);
+
+  return timeLeft;
+}
+
 export default function OrderDetailContent({ id }: { id: string }) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const countdown = useCountdown(order?.expireAt, order?.status);
 
   useEffect(() => {
     async function fetchOrder() {
@@ -220,9 +256,19 @@ export default function OrderDetailContent({ id }: { id: string }) {
             <CopyButton text={order.orderNo} variant="ghost" size="sm" />
           </div>
         </div>
-        <Badge variant={statusConfig.variant} className="w-fit text-sm px-3 py-1">
-          {statusConfig.label}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant={statusConfig.variant} className="w-fit text-sm px-3 py-1">
+            {statusConfig.label}
+          </Badge>
+          {countdown && order.status === "PENDING" && (
+            <span className={cn(
+              "text-sm font-mono font-medium",
+              countdown === "已过期" ? "text-[var(--destructive)]" : "text-[var(--warning)]"
+            )}>
+              {countdown === "已过期" ? "⏰ 已过期" : `⏱ 剩余 ${countdown}`}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Status timeline */}

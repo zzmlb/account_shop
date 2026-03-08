@@ -64,15 +64,64 @@ interface CouponState {
 export default function CheckoutContent() {
   const router = useRouter();
   const { items, clearCart, getTotal, getItemCount } = useCartStore();
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem = useCartStore((s) => s.removeItem);
   const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("balance");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [priceChecked, setPriceChecked] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponState | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Validate cart prices and stock against server on mount
+  useEffect(() => {
+    if (!mounted || items.length === 0 || priceChecked) return;
+
+    async function validateCart() {
+      try {
+        const slugs = items.map((i) => i.slug);
+        const res = await fetch(`/api/products?slugs=${slugs.join(",")}&limit=50`);
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.products)) return;
+
+        const serverProducts = new Map(
+          data.products.map((p: { slug: string; price: number; stockCount: number; name: string }) => [p.slug, p])
+        );
+
+        let changed = false;
+        for (const item of items) {
+          const server = serverProducts.get(item.slug);
+          if (!server) {
+            toast.warning(`${item.name} 已下架，已从购物车移除`);
+            removeItem(item.productId);
+            changed = true;
+            continue;
+          }
+          if (server.stockCount <= 0) {
+            toast.warning(`${item.name} 已售罄，已从购物车移除`);
+            removeItem(item.productId);
+            changed = true;
+            continue;
+          }
+          if (item.quantity > server.stockCount) {
+            toast.info(`${item.name} 库存不足，已调整数量`);
+            updateQuantity(item.productId, server.stockCount);
+            changed = true;
+          }
+        }
+        if (!changed) {
+          setPriceChecked(true);
+        }
+      } catch {
+        // Silent fail — server will validate on submit
+      }
+    }
+    validateCart();
+  }, [mounted, items, priceChecked, removeItem, updateQuantity]);
 
   // Wait for hydration before checking cart
   if (!mounted) {

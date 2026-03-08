@@ -13,11 +13,18 @@ export async function GET(request: NextRequest) {
     const inStock = searchParams.get("inStock");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
+    const slugs = searchParams.get("slugs");
+    const limit = searchParams.get("limit");
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "12", 10);
+    const pageSize = limit ? parseInt(limit, 10) : parseInt(searchParams.get("pageSize") || "12", 10);
 
     // Build where clause
     const where: Record<string, unknown> = { isActive: true };
+
+    // Filter by specific slugs (for cart validation)
+    if (slugs) {
+      where.slug = { in: slugs.split(",").filter(Boolean) };
+    }
 
     if (category && category !== "全部") {
       where.category = { name: category };
@@ -73,6 +80,7 @@ export async function GET(request: NextRequest) {
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
       stock: p.stockCount,
+      stockCount: p.stockCount,
       status: p.isActive ? (p.stockCount > 0 ? "active" : "out_of_stock") : "inactive",
       salesCount: p.soldCount,
       description: p.description,
