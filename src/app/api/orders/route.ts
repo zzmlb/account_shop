@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { decodeSession, getUserSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { apiLimiter, orderLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
@@ -28,16 +28,8 @@ export async function GET(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const { page, pageSize } = parsePagination(searchParams, { pageSize: 20, maxPageSize: 50 });

@@ -35,7 +35,7 @@ export async function GET(
       log.warn({ err, slug }, "Failed to increment article view count");
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       article: {
         id: article.id,
@@ -49,6 +49,11 @@ export async function GET(
         updatedAt: article.updatedAt.toISOString(),
       },
     });
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=120, stale-while-revalidate=600"
+    );
+    return response;
   } catch (error) {
     log.error({ err: error }, "Article detail GET error");
     return NextResponse.json(

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
-import { decodeSession } from "@/lib/auth";
+import { getUserSession } from "@/lib/auth";
 import { createLogger } from "@/lib/logger";
 import { uploadLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
@@ -21,16 +21,8 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export async function POST(request: NextRequest) {
   try {
     // Auth check - only logged-in admins can upload
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     // Rate limit
     const rl = uploadLimiter(getClientIp(request));

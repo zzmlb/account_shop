@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession } from "@/lib/auth";
+import { getUserSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
@@ -12,16 +12,8 @@ export async function GET(request: NextRequest) {
     const rl = apiLimiter(getClientIp(request));
     if (!rl.success) return rateLimitResponse(rl);
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const reviews = await db.review.findMany({
       where: { userId: session.id },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeSession, verifyPassword } from "@/lib/auth";
+import { getUserSession, verifyPassword } from "@/lib/auth";
 import { db } from "@/server/db";
 import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
@@ -23,16 +23,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = decodeSession(
-      request.cookies.get("session")?.value || ""
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
+    const { session, error } = getUserSession(request);
+    if (error) return error;
 
     const body = await request.json();
     const parsed = deleteAccountSchema.safeParse(body);

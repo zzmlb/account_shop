@@ -64,7 +64,14 @@ export async function GET(request: NextRequest) {
       isClaimed: claimedCouponIds.has(c.id),
     }));
 
-    return NextResponse.json({ success: true, coupons: formatted });
+    const response = NextResponse.json({ success: true, coupons: formatted });
+    response.headers.set(
+      "Cache-Control",
+      session
+        ? "private, max-age=30, stale-while-revalidate=60"
+        : "public, s-maxage=60, stale-while-revalidate=300"
+    );
+    return response;
   } catch (error) {
     log.error({ err: error }, "Available coupons GET error");
     return NextResponse.json(

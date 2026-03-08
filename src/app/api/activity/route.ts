@@ -48,10 +48,15 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       activity,
     });
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=30, stale-while-revalidate=120"
+    );
+    return response;
   } catch {
     return NextResponse.json(
       { success: false, activity: [] },
