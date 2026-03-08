@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import ResetPasswordContent from "./reset-password-content";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "重置密码",
   description: "设置新的账户密码",

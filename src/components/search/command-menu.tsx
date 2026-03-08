@@ -139,7 +139,7 @@ export default function CommandMenu() {
           id: c.slug,
           title: c.name,
           type: "category" as const,
-          href: `/products?category=${c.slug}`,
+          href: `/products?category=${encodeURIComponent(c.name)}`,
         }));
 
       setResults([...productResults, ...categoryResults]);

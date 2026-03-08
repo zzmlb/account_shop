@@ -12,12 +12,11 @@ const footerSections = [
     ],
   },
   {
-    title: "商品分类",
+    title: "快速链接",
     links: [
-      { label: "软件工具", href: "/products?category=software" },
-      { label: "游戏充值", href: "/products?category=gaming" },
-      { label: "会员订阅", href: "/products?category=subscription" },
-      { label: "学习资源", href: "/products?category=education" },
+      { label: "全部商品", href: "/products" },
+      { label: "卡密查询", href: "/order/search" },
+      { label: "使用教程", href: "/articles" },
     ],
   },
   {

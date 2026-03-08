@@ -6,6 +6,8 @@ import { ChevronRight, ArrowLeft, Eye, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = "force-dynamic";
+
 interface ArticleDetail {
   id: string;
   title: string;
