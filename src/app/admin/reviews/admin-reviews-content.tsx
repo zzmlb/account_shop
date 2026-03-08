@@ -9,6 +9,7 @@ import {
   EyeOff,
   Trash2,
   MessageSquare,
+  Reply,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +44,8 @@ interface AdminReview {
   id: string;
   rating: number;
   content: string;
+  adminReply: string | null;
+  repliedAt: string | null;
   isVisible: boolean;
   createdAt: string;
   user: ReviewUser;
@@ -86,6 +90,9 @@ export default function AdminReviewsContent() {
   const limit = 20;
 
   const [deleteTarget, setDeleteTarget] = useState<AdminReview | null>(null);
+  const [replyTarget, setReplyTarget] = useState<AdminReview | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -162,6 +169,42 @@ export default function AdminReviewsContent() {
       toast.error("删除失败");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const openReplyDialog = (review: AdminReview) => {
+    setReplyTarget(review);
+    setReplyText(review.adminReply || "");
+  };
+
+  const handleReply = async () => {
+    if (!replyTarget) return;
+    setReplySubmitting(true);
+    try {
+      const res = await fetch("/api/admin/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: replyTarget.id, reply: replyText }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === replyTarget.id
+              ? { ...r, adminReply: data.adminReply, repliedAt: data.repliedAt }
+              : r
+          )
+        );
+        setReplyTarget(null);
+        setReplyText("");
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("操作失败");
+    } finally {
+      setReplySubmitting(false);
     }
   };
 
@@ -263,6 +306,11 @@ export default function AdminReviewsContent() {
                     <p className="line-clamp-2 max-w-xs text-[var(--card-foreground)]">
                       {review.content}
                     </p>
+                    {review.adminReply && (
+                      <p className="mt-1 line-clamp-1 max-w-xs text-xs text-[var(--primary)]">
+                        ↳ 管理员回复: {review.adminReply}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Badge
@@ -276,6 +324,18 @@ export default function AdminReviewsContent() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => openReplyDialog(review)}
+                        disabled={actionLoading === review.id}
+                        className={`flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-[var(--radius-md)] transition-colors hover:bg-[var(--primary)]/10 hover:text-[var(--primary)] ${
+                          review.adminReply
+                            ? "text-[var(--primary)]"
+                            : "text-[var(--muted-foreground)]"
+                        }`}
+                        title={review.adminReply ? "编辑回复" : "回复"}
+                      >
+                        <Reply className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => handleToggleVisibility(review)}
                         disabled={actionLoading === review.id}
@@ -361,6 +421,59 @@ export default function AdminReviewsContent() {
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
               确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reply dialog */}
+      <Dialog
+        open={!!replyTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReplyTarget(null);
+            setReplyText("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {replyTarget?.adminReply ? "编辑回复" : "回复评价"}
+            </DialogTitle>
+            <DialogDescription>
+              回复 {replyTarget?.user.username} 对「{replyTarget?.product.name}」的评价（{replyTarget?.rating}星）
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-[var(--radius-md)] bg-[var(--secondary)] p-3 text-sm">
+              <p className="text-[var(--card-foreground)]">{replyTarget?.content}</p>
+            </div>
+            <Textarea
+              placeholder="输入管理员回复..."
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              rows={4}
+            />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              留空并保存可清除已有回复
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReplyTarget(null);
+                setReplyText("");
+              }}
+            >
+              取消
+            </Button>
+            <Button onClick={handleReply} disabled={replySubmitting}>
+              {replySubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              保存回复
             </Button>
           </DialogFooter>
         </DialogContent>

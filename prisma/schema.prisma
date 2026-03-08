@@ -259,17 +259,19 @@ model Favorite {
 
 // ==================== 评价系统 ====================
 model Review {
-  id        String   @id @default(cuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  orderId   String?
-  rating    Int      // 1-5
-  content   String   @db.Text
-  isVisible Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  orderId    String?
+  rating     Int      // 1-5
+  content    String   @db.Text
+  adminReply String?  @db.Text
+  repliedAt  DateTime?
+  isVisible  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([userId, productId])
   @@index([productId, isVisible])

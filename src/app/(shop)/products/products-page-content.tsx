@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart } from "lucide-react";
+import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import PriceTag from "@/components/shared/price-tag";
@@ -16,10 +16,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import ProductGrid, {
   type ProductItem,
 } from "@/components/product/product-grid";
 import ProductFilters from "@/components/product/product-filters";
+import FavoriteButton from "@/components/product/favorite-button";
+import { useCartStore } from "@/stores/cart-store";
+import { toast } from "sonner";
 
 interface ApiProduct {
   id: string;
@@ -33,6 +43,7 @@ interface ApiProduct {
   salesCount: number;
   avgRating?: number;
   reviewCount?: number;
+  description?: string;
 }
 
 interface ApiResponse {
@@ -72,6 +83,8 @@ export default function ProductsPageContent() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [quickViewProduct, setQuickViewProduct] = useState<ProductItem | null>(null);
+  const addItem = useCartStore((s) => s.addItem);
   const perPage = 9;
 
   // Read filter params from URL (set by ProductFilters component)
@@ -116,6 +129,7 @@ export default function ProductsPageContent() {
             categoryName: p.category,
             avgRating: p.avgRating,
             reviewCount: p.reviewCount,
+            description: p.description,
           }))
         );
         setTotalPages(data.pagination.totalPages);
@@ -164,6 +178,7 @@ export default function ProductsPageContent() {
             categoryName: p.category,
             avgRating: p.avgRating,
             reviewCount: p.reviewCount,
+            description: p.description,
           })),
         ]);
         setPage(nextPage);
@@ -357,7 +372,7 @@ export default function ProductsPageContent() {
               ))}
             </div>
           ) : (
-            <ProductGrid products={products} searchQuery={search} />
+            <ProductGrid products={products} searchQuery={search} onQuickView={setQuickViewProduct} />
           )}
 
           {/* Load more / Pagination */}
@@ -384,6 +399,116 @@ export default function ProductsPageContent() {
           )}
         </div>
       </div>
+
+      {/* Quick-view Dialog */}
+      <Dialog
+        open={!!quickViewProduct}
+        onOpenChange={(open) => !open && setQuickViewProduct(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="line-clamp-2 pr-6">
+              {quickViewProduct?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {quickViewProduct?.categoryName}
+            </DialogDescription>
+          </DialogHeader>
+          {quickViewProduct && (
+            <div className="space-y-4">
+              {/* Image */}
+              {quickViewProduct.image && (
+                <div className="relative aspect-[16/9] overflow-hidden rounded-[var(--radius-md)] bg-[var(--muted)]">
+                  <Image
+                    src={quickViewProduct.image}
+                    alt={quickViewProduct.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 512px) 100vw, 512px"
+                  />
+                </div>
+              )}
+
+              {/* Price + Rating */}
+              <div className="flex items-center justify-between">
+                <PriceTag
+                  price={quickViewProduct.price}
+                  originalPrice={quickViewProduct.originalPrice}
+                />
+                <div className="flex items-center gap-3">
+                  {quickViewProduct.avgRating != null && quickViewProduct.avgRating > 0 && (
+                    <div className="flex items-center gap-1 text-sm text-[var(--muted-foreground)]">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      <span>{quickViewProduct.avgRating}</span>
+                      {quickViewProduct.reviewCount != null && quickViewProduct.reviewCount > 0 && (
+                        <span>({quickViewProduct.reviewCount})</span>
+                      )}
+                    </div>
+                  )}
+                  <StockBadge stockCount={quickViewProduct.stockCount} />
+                </div>
+              </div>
+
+              {/* Description */}
+              {quickViewProduct.description && (
+                <p className="text-sm leading-relaxed text-[var(--muted-foreground)] line-clamp-4">
+                  {quickViewProduct.description}
+                </p>
+              )}
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
+                <span>已售 {quickViewProduct.soldCount}</span>
+                <span>库存 {quickViewProduct.stockCount}</span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (quickViewProduct.stockCount <= 0) {
+                      toast.error("商品暂时缺货");
+                      return;
+                    }
+                    addItem({
+                      id: quickViewProduct.slug,
+                      productId: quickViewProduct.productId || quickViewProduct.slug,
+                      name: quickViewProduct.name,
+                      slug: quickViewProduct.slug,
+                      price: quickViewProduct.price,
+                      originalPrice: quickViewProduct.originalPrice,
+                      quantity: 1,
+                      maxStock: quickViewProduct.stockCount,
+                      image: quickViewProduct.image,
+                    });
+                    toast.success("已加入购物车", {
+                      description: `${quickViewProduct.name} x1`,
+                    });
+                    setQuickViewProduct(null);
+                    router.push("/checkout");
+                  }}
+                  disabled={quickViewProduct.stockCount <= 0}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  {quickViewProduct.stockCount <= 0 ? "缺货" : "立即购买"}
+                </Button>
+                <Button
+                  variant="outline"
+                  asChild
+                >
+                  <Link href={`/products/${quickViewProduct.slug}`}>
+                    查看详情
+                  </Link>
+                </Button>
+                {quickViewProduct.productId && (
+                  <FavoriteButton productId={quickViewProduct.productId} />
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

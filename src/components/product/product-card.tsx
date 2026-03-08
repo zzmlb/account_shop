@@ -4,7 +4,7 @@ import { memo, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Flame, Star } from "lucide-react";
+import { ShoppingCart, Flame, Star, Eye } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -27,8 +27,10 @@ interface ProductCardProps {
   categoryName: string;
   avgRating?: number;
   reviewCount?: number;
+  description?: string;
   searchQuery?: string;
   className?: string;
+  onQuickView?: () => void;
 }
 
 function highlightText(text: string, query?: string): ReactNode {
@@ -61,6 +63,7 @@ function ProductCard({
   reviewCount,
   searchQuery,
   className,
+  onQuickView,
 }: ProductCardProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -176,19 +179,36 @@ function ProductCard({
                 已售 {soldCount}
               </span>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleQuickBuy();
-              }}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              <span className="sr-only">加入购物车</span>
-            </Button>
+            <div className="flex items-center gap-0.5">
+              {onQuickView && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onQuickView();
+                  }}
+                >
+                  <Eye className="h-4 w-4" />
+                  <span className="sr-only">快速预览</span>
+                </Button>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleQuickBuy();
+                }}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <span className="sr-only">加入购物车</span>
+              </Button>
+            </div>
           </div>
         </div>
       </motion.div>

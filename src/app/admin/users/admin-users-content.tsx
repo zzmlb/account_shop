@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Search,
   MoreHorizontal,
@@ -603,7 +604,13 @@ export default function AdminUsersPageContent() {
                 </div>
               </div>
               <Separator />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="default" size="sm" className="gap-1.5">
+                  <Link href={`/admin/users/${detailUser.id}`}>
+                    <Eye className="h-3.5 w-3.5" />
+                    查看详细资料
+                  </Link>
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

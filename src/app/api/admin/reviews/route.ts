@@ -79,6 +79,8 @@ export async function GET(request: NextRequest) {
       id: r.id,
       rating: r.rating,
       content: r.content,
+      adminReply: r.adminReply,
+      repliedAt: r.repliedAt?.toISOString() ?? null,
       isVisible: r.isVisible,
       createdAt: r.createdAt.toISOString(),
       user: { id: r.user.id, username: r.user.username },
@@ -141,6 +143,66 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     log.error({ err: error }, "Admin reviews PUT error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Reply to a review
+export async function PATCH(request: NextRequest) {
+  try {
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { id, reply } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "缺少评价ID" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof reply !== "string") {
+      return NextResponse.json(
+        { success: false, message: "回复内容格式错误" },
+        { status: 400 }
+      );
+    }
+
+    const review = await db.review.findUnique({ where: { id } });
+    if (!review) {
+      return NextResponse.json(
+        { success: false, message: "评价不存在" },
+        { status: 404 }
+      );
+    }
+
+    const trimmedReply = reply.trim();
+    const updated = await db.review.update({
+      where: { id },
+      data: {
+        adminReply: trimmedReply || null,
+        repliedAt: trimmedReply ? new Date() : null,
+      },
+    });
+
+    log.info(
+      { reviewId: id, hasReply: !!trimmedReply, adminId: session.id },
+      "Review reply updated"
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: trimmedReply ? "回复已保存" : "回复已清除",
+      adminReply: updated.adminReply,
+      repliedAt: updated.repliedAt?.toISOString() ?? null,
+    });
+  } catch (error) {
+    log.error({ err: error }, "Admin reviews PATCH error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

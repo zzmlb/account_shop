@@ -14,15 +14,17 @@ export interface ProductItem {
   categoryName: string;
   avgRating?: number;
   reviewCount?: number;
+  description?: string;
 }
 
 interface ProductGridProps {
   products: ProductItem[];
   className?: string;
   searchQuery?: string;
+  onQuickView?: (product: ProductItem) => void;
 }
 
-export default function ProductGrid({ products, className, searchQuery }: ProductGridProps) {
+export default function ProductGrid({ products, className, searchQuery, onQuickView }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <EmptyState
@@ -40,7 +42,7 @@ export default function ProductGrid({ products, className, searchQuery }: Produc
       )}
     >
       {products.map((product) => (
-        <ProductCard key={product.slug} {...product} searchQuery={searchQuery} />
+        <ProductCard key={product.slug} {...product} searchQuery={searchQuery} onQuickView={onQuickView ? () => onQuickView(product) : undefined} />
       ))}
     </div>
   );
