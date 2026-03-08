@@ -10,6 +10,16 @@ interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateStaticParams() {
+  const products = await db.product.findMany({
+    where: { isActive: true },
+    select: { slug: true },
+    orderBy: { soldCount: "desc" },
+    take: 100,
+  });
+  return products.map((p) => ({ slug: p.slug }));
+}
+
 export async function generateMetadata({ params }: ProductDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await db.product.findUnique({

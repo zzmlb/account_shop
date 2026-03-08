@@ -10,6 +10,14 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateStaticParams() {
+  const categories = await db.category.findMany({
+    where: { isActive: true },
+    select: { slug: true },
+  });
+  return categories.map((c) => ({ slug: c.slug }));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = await db.category.findUnique({ where: { slug } });
