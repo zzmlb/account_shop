@@ -21,27 +21,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Limit to 50 refunds to prevent unbounded queries
-    const refunds = await db.refundRequest.findMany({
-      where: { userId: session.id },
-      include: {
-        order: {
-          select: {
-            orderNo: true,
-            totalAmount: true,
-            payAmount: true,
-            status: true,
-            items: {
-              include: {
-                product: { select: { name: true, slug: true } },
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize")) || 20));
+
+    const where = { userId: session.id };
+
+    const [refunds, total] = await Promise.all([
+      db.refundRequest.findMany({
+        where,
+        include: {
+          order: {
+            select: {
+              orderNo: true,
+              totalAmount: true,
+              payAmount: true,
+              status: true,
+              items: {
+                include: {
+                  product: { select: { name: true, slug: true } },
+                },
               },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.refundRequest.count({ where }),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -58,6 +67,12 @@ export async function GET(request: NextRequest) {
         orderStatus: r.order.status,
         products: r.order.items.map((i) => i.product.name).join(", "),
       })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
     });
   } catch (error) {
     log.error({ err: error }, "获取退款列表失败");

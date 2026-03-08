@@ -22,11 +22,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [logs, user] = await Promise.all([
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize")) || 20));
+
+    const where = { userId: session.id };
+
+    const [logs, total, user] = await Promise.all([
       db.balanceLog.findMany({
-        where: { userId: session.id },
+        where,
         orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
+      db.balanceLog.count({ where }),
       db.user.findUnique({
         where: { id: session.id },
         select: { balance: true },
@@ -45,6 +54,12 @@ export async function GET(request: NextRequest) {
       success: true,
       logs: formatted,
       balance: user ? Number(user.balance) : 0,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
     });
   } catch (error) {
     log.error({ err: error }, "Balance logs API error");
