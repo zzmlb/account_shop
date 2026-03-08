@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("settings");
 
@@ -14,7 +15,9 @@ const PUBLIC_KEYS = [
   "announcement",
 ];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rl = apiLimiter(getClientIp(request));
+  if (!rl.success) return rateLimitResponse(rl);
   try {
     const rows = await db.siteSetting.findMany({
       where: { key: { in: PUBLIC_KEYS } },
@@ -25,7 +28,9 @@ export async function GET() {
       settings[row.key] = row.value;
     }
 
-    return NextResponse.json({ success: true, settings });
+    const res = NextResponse.json({ success: true, settings });
+    res.headers.set("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
+    return res;
   } catch (error) {
     log.error({ err: error }, "Settings GET error");
     return NextResponse.json(

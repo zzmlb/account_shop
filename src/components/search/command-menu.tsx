@@ -61,6 +61,7 @@ export default function CommandMenu() {
   const [loading, setLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const categoriesCacheRef = useRef<ApiCategory[] | null>(null);
+  const skipNextDebounceRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -191,6 +192,10 @@ export default function CommandMenu() {
   }, []);
 
   useEffect(() => {
+    if (skipNextDebounceRef.current) {
+      skipNextDebounceRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => search(query), 300);
     return () => clearTimeout(timer);
   }, [query, search]);
@@ -250,6 +255,7 @@ export default function CommandMenu() {
                       <button
                         key={s}
                         onClick={() => {
+                          skipNextDebounceRef.current = true;
                           setQuery(s);
                           search(s);
                         }}
@@ -271,6 +277,7 @@ export default function CommandMenu() {
                     <button
                       key={s}
                       onClick={() => {
+                        skipNextDebounceRef.current = true;
                         setQuery(s);
                         search(s);
                       }}

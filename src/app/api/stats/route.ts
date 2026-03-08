@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("stats");
 
@@ -20,7 +21,10 @@ function formatCount(count: number): string {
   return String(count);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rl = apiLimiter(getClientIp(request));
+  if (!rl.success) return rateLimitResponse(rl);
+
   try {
     const [productsCount, usersCount, ordersCount, trending] =
       await Promise.all([

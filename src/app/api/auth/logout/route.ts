@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/logger";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 const log = createLogger("auth/logout");
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const rl = apiLimiter(getClientIp(request));
+  if (!rl.success) return rateLimitResponse(rl);
   try {
     const response = NextResponse.json({
       success: true,
