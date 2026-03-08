@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 用户系统 ====================
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  email        String?    @unique
+  passwordHash String
+  avatar       String?
+  balance      Decimal    @default(0) @db.Decimal(10, 2)
+  role         Role       @default(USER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  orders      Order[]
+  balanceLogs BalanceLog[]
+  favorites   Favorite[]
+  coupons     UserCoupon[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  INACTIVE
+}
+
+// ==================== 商品系统 ====================
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String       @id @default(cuid())
+  name          String
+  slug          String       @unique
+  description   String       @db.Text
+  price         Decimal      @db.Decimal(10, 2)
+  originalPrice Decimal?     @db.Decimal(10, 2)
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  image         String?
+  tags          String[]
+  stockCount    Int          @default(0)
+  soldCount     Int          @default(0)
+  isActive      Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  deliveryType  DeliveryType @default(AUTO)
+  afterSaleHours Int         @default(48)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  cardKeys   CardKey[]
+  orderItems OrderItem[]
+  favorites  Favorite[]
+
+  @@index([categoryId])
+  @@index([isActive, sortOrder])
+  @@map("products")
+}
+
+enum DeliveryType {
+  AUTO
+  MANUAL
+}
+
+// ==================== 卡密系统 ====================
+model CardKey {
+  id        String        @id @default(cuid())
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  content   String        @db.Text
+  status    CardKeyStatus @default(AVAILABLE)
+  orderId   String?
+  orderItem OrderItem?    @relation(fields: [orderId], references: [id])
+  createdAt DateTime      @default(now())
+  soldAt    DateTime?
+
+  @@index([productId, status])
+  @@map("card_keys")
+}
+
+enum CardKeyStatus {
+  AVAILABLE
+  SOLD
+  LOCKED
+  DISABLED
+}
+
+// ==================== 订单系统 ====================
+model Order {
+  id            String      @id @default(cuid())
+  orderNo       String      @unique
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id])
+  email         String?
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  payAmount     Decimal     @db.Decimal(10, 2)
+  status        OrderStatus @default(PENDING)
+  paymentMethod String?
+  paymentId     String?
+  paidAt        DateTime?
+  expireAt      DateTime
+  couponId      String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([orderNo])
+  @@index([status])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+
+  cardKeys CardKey[]
+
+  @@map("order_items")
+}
+
+// ==================== 余额系统 ====================
+model BalanceLog {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  amount      Decimal     @db.Decimal(10, 2)
+  type        BalanceType
+  description String
+  relatedId   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@map("balance_logs")
+}
+
+enum BalanceType {
+  RECHARGE
+  PURCHASE
+  REFUND
+  ADMIN_ADJUST
+}
+
+// ==================== 优惠券系统 ====================
+model Coupon {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  type      CouponType
+  value     Decimal    @db.Decimal(10, 2)
+  minAmount Decimal?   @db.Decimal(10, 2)
+  maxUses   Int?
+  usedCount Int        @default(0)
+  startAt   DateTime
+  expireAt  DateTime
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+
+  users UserCoupon[]
+
+  @@map("coupons")
+}
+
+enum CouponType {
+  FIXED
+  PERCENTAGE
+}
+
+model UserCoupon {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
+  couponId String
+  coupon   Coupon    @relation(fields: [couponId], references: [id])
+  usedAt   DateTime?
+
+  @@map("user_coupons")
+}
+
+// ==================== 收藏系统 ====================
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("favorites")
+}
+
+// ==================== 文章/教程系统 ====================
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   @db.Text
+  category    String
+  tags        String[]
+  isPublished Boolean  @default(false)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("articles")
+}
+
+// ==================== 系统配置 ====================
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String @db.Text
+
+  @@map("site_settings")
+}

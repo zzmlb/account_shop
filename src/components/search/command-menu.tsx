@@ -1,0 +1,256 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  Package,
+  Tag,
+  FileText,
+  ArrowRight,
+  Clock,
+  TrendingUp,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface SearchResult {
+  id: string;
+  title: string;
+  type: "product" | "category" | "article";
+  href: string;
+  description?: string;
+}
+
+const MOCK_PRODUCTS: SearchResult[] = [
+  { id: "1", title: "Gmail 全新账号", type: "product", href: "/products/gmail-new", description: "¥12.00" },
+  { id: "2", title: "Outlook 企业邮箱", type: "product", href: "/products/outlook-enterprise", description: "¥25.00" },
+  { id: "3", title: "Netflix 高级会员", type: "product", href: "/products/netflix-premium", description: "¥35.00" },
+  { id: "4", title: "Spotify 个人账号", type: "product", href: "/products/spotify-personal", description: "¥18.00" },
+  { id: "5", title: "ChatGPT Plus 账号", type: "product", href: "/products/chatgpt-plus", description: "¥45.00" },
+  { id: "6", title: "Steam 游戏账号", type: "product", href: "/products/steam-account", description: "¥30.00" },
+];
+
+const MOCK_CATEGORIES: SearchResult[] = [
+  { id: "c1", title: "Gmail 邮箱", type: "category", href: "/products?category=gmail" },
+  { id: "c2", title: "Outlook 邮箱", type: "category", href: "/products?category=outlook" },
+  { id: "c3", title: "社交媒体", type: "category", href: "/products?category=social-media" },
+  { id: "c4", title: "流媒体账号", type: "category", href: "/products?category=streaming" },
+];
+
+const HOT_SEARCHES = ["Gmail", "Netflix", "ChatGPT", "Spotify", "Steam"];
+
+const typeIcons = {
+  product: Package,
+  category: Tag,
+  article: FileText,
+};
+
+const typeLabels = {
+  product: "商品",
+  category: "分类",
+  article: "文章",
+};
+
+export default function CommandMenu() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("recent-searches");
+    if (stored) {
+      try {
+        setRecentSearches(JSON.parse(stored));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const search = useCallback((q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      return;
+    }
+    const lower = q.toLowerCase();
+    const matched = [...MOCK_PRODUCTS, ...MOCK_CATEGORIES].filter((item) =>
+      item.title.toLowerCase().includes(lower)
+    );
+    setResults(matched);
+    setSelectedIndex(0);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => search(query), 300);
+    return () => clearTimeout(timer);
+  }, [query, search]);
+
+  const navigate = (href: string) => {
+    setOpen(false);
+    if (query.trim()) {
+      const updated = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5);
+      setRecentSearches(updated);
+      localStorage.setItem("recent-searches", JSON.stringify(updated));
+    }
+    router.push(href);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && results[selectedIndex]) {
+      e.preventDefault();
+      navigate(results[selectedIndex].href);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-[540px] gap-0 overflow-hidden p-0">
+        <div className="flex items-center border-b border-[var(--border)] px-4">
+          <Search className="mr-2 h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="搜索商品、分类、文章..."
+            className="h-12 border-0 bg-transparent px-0 text-base shadow-none outline-none focus-visible:ring-0"
+            autoFocus
+          />
+          <kbd className="ml-2 shrink-0 rounded-md border border-[var(--border)] bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
+            ESC
+          </kbd>
+        </div>
+
+        <div className="max-h-[400px] overflow-y-auto p-2">
+          {query.trim() === "" ? (
+            <div className="space-y-4 p-2">
+              {recentSearches.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
+                    <Clock className="h-3 w-3" />
+                    最近搜索
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {recentSearches.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          setQuery(s);
+                          search(s);
+                        }}
+                        className="rounded-full border border-[var(--border)] px-3 py-1 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--foreground)]"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
+                  <TrendingUp className="h-3 w-3" />
+                  热门搜索
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {HOT_SEARCHES.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setQuery(s);
+                        search(s);
+                      }}
+                      className="rounded-full border border-[var(--border)] px-3 py-1 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--foreground)]"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : results.length === 0 ? (
+            <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">
+              未找到 &ldquo;{query}&rdquo; 相关结果
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {(["product", "category", "article"] as const).map((type) => {
+                const items = results.filter((r) => r.type === type);
+                if (items.length === 0) return null;
+                return (
+                  <div key={type}>
+                    <div className="mb-1 px-2 text-xs font-medium text-[var(--muted-foreground)]">
+                      {typeLabels[type]}
+                    </div>
+                    {items.map((item) => {
+                      const Icon = typeIcons[item.type];
+                      const globalIdx = results.indexOf(item);
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => navigate(item.href)}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-sm transition-colors",
+                            globalIdx === selectedIndex
+                              ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
+                              : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <div className="flex-1 truncate">
+                            <span className="font-medium text-[var(--foreground)]">
+                              {item.title}
+                            </span>
+                            {item.description && (
+                              <span className="ml-2 text-xs text-[var(--muted-foreground)]">
+                                {item.description}
+                              </span>
+                            )}
+                          </div>
+                          <ArrowRight className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--muted-foreground)]">
+          <div className="flex items-center gap-2">
+            <kbd className="rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-0.5">↑↓</kbd>
+            <span>导航</span>
+            <kbd className="rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-0.5">↵</kbd>
+            <span>选择</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <kbd className="rounded border border-[var(--border)] bg-[var(--muted)] px-1.5 py-0.5">⌘K</kbd>
+            <span>打开搜索</span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
