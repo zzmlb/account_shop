@@ -100,6 +100,7 @@ export default function ContactForm() {
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             placeholder="your@email.com"
             required
+            maxLength={100}
           />
         </div>
       </div>

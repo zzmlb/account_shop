@@ -387,13 +387,27 @@ export default function CheckoutContent() {
               支付方式
             </h2>
             <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="支付方式">
-              {PAYMENT_METHODS.map((method) => {
+              {PAYMENT_METHODS.map((method, idx) => {
                 const isSelected = paymentMethod === method.id;
                 return (
                   <button
                     key={method.id}
                     onClick={() => setPaymentMethod(method.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                        e.preventDefault();
+                        const next = PAYMENT_METHODS[(idx + 1) % PAYMENT_METHODS.length];
+                        setPaymentMethod(next.id);
+                        (e.currentTarget.parentElement?.children[(idx + 1) % PAYMENT_METHODS.length] as HTMLElement)?.focus();
+                      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                        e.preventDefault();
+                        const prev = PAYMENT_METHODS[(idx - 1 + PAYMENT_METHODS.length) % PAYMENT_METHODS.length];
+                        setPaymentMethod(prev.id);
+                        (e.currentTarget.parentElement?.children[(idx - 1 + PAYMENT_METHODS.length) % PAYMENT_METHODS.length] as HTMLElement)?.focus();
+                      }
+                    }}
                     disabled={isSubmitting}
+                    tabIndex={isSelected ? 0 : -1}
                     role="radio"
                     aria-checked={isSelected}
                     aria-label={method.label}

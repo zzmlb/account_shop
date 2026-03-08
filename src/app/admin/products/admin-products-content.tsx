@@ -39,6 +39,7 @@ import {
   Loader2,
   Download,
   RefreshCw,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -405,6 +406,29 @@ export default function AdminProductsPageContent() {
       await fetchProducts();
     } catch (err) {
       toast.error("切换状态失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setMutating(false);
+    }
+  }
+
+  async function duplicateProduct(id: string) {
+    setMutating(true);
+    try {
+      const res = await fetch(`/api/admin/products?duplicateId=${id}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "复制失败");
+      }
+      toast.success("商品已复制", {
+        description: "副本已创建为下架状态，请编辑后上架",
+      });
+      await fetchProducts();
+    } catch (err) {
+      toast.error("复制失败", {
         description: err instanceof Error ? err.message : "未知错误",
       });
     } finally {
@@ -1317,6 +1341,15 @@ export default function AdminProductsPageContent() {
                             variant="ghost"
                             size="sm"
                             disabled={mutating}
+                            title="复制商品"
+                            onClick={() => duplicateProduct(product.id)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={mutating}
                             onClick={() => toggleStatus(product.id)}
                           >
                             {product.status === "上架" ? (
@@ -1453,6 +1486,15 @@ export default function AdminProductsPageContent() {
                       >
                         <Edit className="h-3.5 w-3.5" />
                         编辑
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={mutating}
+                        title="复制商品"
+                        onClick={() => duplicateProduct(product.id)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
