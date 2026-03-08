@@ -20,6 +20,7 @@ export default function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const login = useAuthStore((s) => s.login);
 
   const {
@@ -39,7 +40,7 @@ export default function LoginContent() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, rememberMe }),
       });
 
       const result = await res.json();
@@ -143,7 +144,11 @@ export default function LoginContent() {
 
         {/* Remember me */}
         <div className="flex items-center space-x-2">
-          <Checkbox id="remember" />
+          <Checkbox
+            id="remember"
+            checked={rememberMe}
+            onCheckedChange={(v) => setRememberMe(v === true)}
+          />
           <label
             htmlFor="remember"
             className="text-sm text-[var(--muted-foreground)] cursor-pointer select-none"

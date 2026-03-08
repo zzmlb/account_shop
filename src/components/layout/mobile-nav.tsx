@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Package, LayoutGrid, FileText, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNotificationStore } from "@/stores/notification-store";
+import { useCartStore } from "@/stores/cart-store";
 
 const mobileNavItems = [
   { label: "首页", href: "/", icon: Home },
@@ -15,6 +17,8 @@ const mobileNavItems = [
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const cartCount = useCartStore((s) => s.getItemCount());
 
   return (
     <nav
@@ -33,6 +37,12 @@ export default function MobileNav() {
               ? pathname === "/"
               : (pathname ?? "").startsWith(item.href);
 
+          // Determine badge count for specific nav items
+          const badgeCount =
+            item.href === "/dashboard" ? unreadCount :
+            item.href === "/products" ? cartCount :
+            0;
+
           return (
             <Link
               key={item.href}
@@ -44,12 +54,19 @@ export default function MobileNav() {
                   : "text-[var(--muted-foreground)]"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 transition-transform duration-200",
-                  isActive && "scale-110"
+              <span className="relative">
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 transition-transform duration-200",
+                    isActive && "scale-110"
+                  )}
+                />
+                {badgeCount > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-0.5 text-[9px] font-bold text-[var(--primary-foreground)]">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
                 )}
-              />
+              </span>
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           );

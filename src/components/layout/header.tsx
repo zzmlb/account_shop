@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut, Wallet } from "lucide-react";
+import { cn, formatPrice } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/constants";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useAuthStore } from "@/stores/auth-store";
@@ -184,9 +184,17 @@ export default function Header() {
                     {user.username?.charAt(0).toUpperCase() ?? "U"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-[var(--foreground)]">
-                  {user.username}
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium leading-tight text-[var(--foreground)]">
+                    {user.username}
+                  </span>
+                  {user.balance != null && (
+                    <span className="flex items-center gap-0.5 text-[10px] leading-tight text-[var(--muted-foreground)]">
+                      <Wallet className="h-2.5 w-2.5" />
+                      {formatPrice(user.balance)}
+                    </span>
+                  )}
+                </div>
               </Link>
               <button
                 onClick={logout}

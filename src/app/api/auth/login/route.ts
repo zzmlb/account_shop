@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { username, password } = parsed.data;
+    const rememberMe = body.rememberMe === true;
 
     // Find user in database
     const user = await db.user.findFirst({
@@ -139,12 +140,15 @@ export async function POST(request: NextRequest) {
       user: userData,
     });
 
+    // Remember me: 30 days, otherwise 7 days
+    const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7;
+
     response.cookies.set("session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge,
     });
 
     return response;

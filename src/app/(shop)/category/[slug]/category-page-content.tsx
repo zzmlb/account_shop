@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FolderTree, Package } from "lucide-react";
+import { ChevronRight, FolderTree, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/product/product-card";
 
@@ -38,21 +38,21 @@ export default function CategoryPageContent({
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+      <nav className="mb-6 flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
         <Link
           href="/"
           className="hover:text-[var(--primary)] transition-colors"
         >
           首页
         </Link>
-        <span>/</span>
+        <ChevronRight className="h-3.5 w-3.5" />
         <Link
           href="/products"
           className="hover:text-[var(--primary)] transition-colors"
         >
           全部商品
         </Link>
-        <span>/</span>
+        <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-[var(--foreground)]">{category.name}</span>
       </nav>
 
