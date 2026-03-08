@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { rateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("cron/cleanup-data");
 
 const CRON_SECRET = process.env.CRON_SECRET;

@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/check-reset-token");
 
 /**

@@ -7,6 +7,7 @@ import { createLogger } from "@/lib/logger";
 import { sendPasswordChanged } from "@/server/services/email";
 import { createNotification } from "@/server/services/notification";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/password");
 
 export async function PUT(request: NextRequest) {

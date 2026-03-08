@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("notifications/unread-count");
 
 // GET - Lightweight unread notification count

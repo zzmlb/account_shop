@@ -6,6 +6,7 @@ import { createLogger } from "@/lib/logger";
 import { createReviewSchema, formatZodError } from "@/lib/validators";
 import { stripHtml } from "@/lib/sanitize";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("reviews");
 
 /**

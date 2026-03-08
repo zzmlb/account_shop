@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("notifications");
 
 // GET - List user notifications

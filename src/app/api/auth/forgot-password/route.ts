@@ -6,6 +6,7 @@ import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { sendPasswordReset } from "@/server/services/email";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/forgot-password");
 
 export async function POST(request: NextRequest) {

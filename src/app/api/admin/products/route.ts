@@ -7,6 +7,7 @@ import { createProductSchema, updateProductSchema, formatZodError } from "@/lib/
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { slugify } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/products");
 
 async function handleDuplicate(sourceId: string, adminId: string) {

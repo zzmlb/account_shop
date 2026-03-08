@@ -8,6 +8,7 @@ import { stripHtml } from "@/lib/sanitize";
 import { getAdminSession } from "@/lib/admin-auth";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/refunds");
 
 // GET - List all refund requests

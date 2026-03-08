@@ -6,6 +6,7 @@ import { createCategorySchema, updateCategorySchema, formatZodError } from "@/li
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { slugify } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/categories");
 
 // GET - List all categories (admin sees all, including inactive)

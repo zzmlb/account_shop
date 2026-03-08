@@ -9,6 +9,7 @@ import { notifyAdminsNewOrder } from "@/server/services/notification";
 import { maybeCleanupExpiredOrders } from "@/server/services/order-cleanup";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("orders");
 
 // Simple in-memory idempotency cache to prevent duplicate order creation

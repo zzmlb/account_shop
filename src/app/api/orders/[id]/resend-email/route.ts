@@ -5,6 +5,7 @@ import { sendCardKeyDelivery } from "@/server/services/email";
 import { contactLimiter, rateLimitResponse, getClientIp } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("api/orders/resend-email");
 
 /**

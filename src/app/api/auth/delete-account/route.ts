@@ -5,6 +5,7 @@ import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { deleteAccountSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/delete-account");
 
 export async function POST(request: NextRequest) {

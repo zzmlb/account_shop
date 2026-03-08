@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { createCouponSchema, updateCouponSchema, formatZodError } from "@/lib/validators";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/coupons");
 
 // GET - List all coupons

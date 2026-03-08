@@ -6,6 +6,7 @@ import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { getAdminSession } from "@/lib/admin-auth";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/card-keys");
 
 // GET - List card keys (admin only)

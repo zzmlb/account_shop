@@ -5,6 +5,7 @@ import { contactLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit
 import { stripHtml } from "@/lib/sanitize";
 import { contactMessageSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("contact");
 
 // POST - Submit a contact message

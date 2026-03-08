@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { favoriteSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("favorites");
 
 export async function GET(request: NextRequest) {

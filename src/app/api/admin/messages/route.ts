@@ -7,6 +7,7 @@ import { sendContactReply } from "@/server/services/email";
 import { getAdminSession } from "@/lib/admin-auth";
 import { parsePagination, paginationMeta } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/messages");
 
 // GET - List contact messages

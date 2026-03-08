@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { updateEmailSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/email");
 
 export async function PUT(request: NextRequest) {

@@ -8,6 +8,7 @@ import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { slugify } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/articles");
 
 // GET - List articles with pagination, search, and filters

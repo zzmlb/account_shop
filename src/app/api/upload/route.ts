@@ -6,6 +6,7 @@ import { getUserSession } from "@/lib/auth";
 import { createLogger } from "@/lib/logger";
 import { uploadLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("upload");
 
 const ALLOWED_TYPES = [

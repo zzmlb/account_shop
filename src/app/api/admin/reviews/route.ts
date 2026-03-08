@@ -5,6 +5,7 @@ import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
 import { getAdminSession } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/reviews");
 
 // GET - List all reviews with pagination

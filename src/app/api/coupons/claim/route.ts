@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { claimCouponSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("coupons/claim");
 
 // POST - Claim a coupon by code

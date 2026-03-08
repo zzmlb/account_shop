@@ -5,6 +5,7 @@ import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { resetPasswordSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/reset-password");
 
 export async function POST(request: NextRequest) {

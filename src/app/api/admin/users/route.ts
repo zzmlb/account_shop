@@ -7,6 +7,7 @@ import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { sendBalanceAdjustment, sendAccountStatusChange } from "@/server/services/email";
 import { logAdminAction } from "@/lib/audit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/users");
 
 // GET - List all users (admin only)

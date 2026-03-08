@@ -4,6 +4,7 @@ import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/test-email");
 
 export async function POST(request: NextRequest) {

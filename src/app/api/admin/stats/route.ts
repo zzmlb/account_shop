@@ -4,6 +4,7 @@ import { getAdminSession } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/stats");
 
 export async function GET(request: NextRequest) {

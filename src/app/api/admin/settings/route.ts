@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/settings");
 
 // GET - Get all site settings (admin only)

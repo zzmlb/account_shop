@@ -6,6 +6,7 @@ import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { stripHtml } from "@/lib/sanitize";
 import { refundRequestSchema, formatZodError } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("refunds");
 
 // GET - List user's refund requests

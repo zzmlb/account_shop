@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { safeDecryptCardKey } from "@/lib/crypto";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("orders/detail");
 
 export async function GET(

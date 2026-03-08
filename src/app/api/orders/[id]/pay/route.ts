@@ -7,6 +7,7 @@ import { createNotification, notifyAdminsStockShortage } from "@/server/services
 import { paymentLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { safeDecryptCardKey } from "@/lib/crypto";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("orders/pay");
 
 export async function POST(

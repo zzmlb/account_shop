@@ -5,6 +5,7 @@ import { verifyPassword, encodeSession } from "@/lib/auth";
 import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/login");
 
 // Fire-and-forget login log — never block the response

@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("coupons/available");
 
 // GET - List publicly available coupons that can be claimed

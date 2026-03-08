@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/users/[id]");
 
 // GET - Get user detail with orders, balance logs, login logs

@@ -9,6 +9,7 @@ import { decryptCardKey } from "@/lib/crypto";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { logAdminAction } from "@/lib/audit";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("admin/orders");
 
 // GET - List all orders (admin only)

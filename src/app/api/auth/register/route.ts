@@ -5,6 +5,7 @@ import { hashPassword, encodeSession } from "@/lib/auth";
 import { registerLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
 const log = createLogger("auth/register");
 
 const registerBodySchema = z.object({
