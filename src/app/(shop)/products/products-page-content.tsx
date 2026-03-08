@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart } from "lucide-react";
@@ -43,6 +43,22 @@ interface ApiResponse {
     total: number;
     totalPages: number;
   };
+}
+
+function highlightText(text: string, query: string): ReactNode {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  if (parts.length <= 1) return text;
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={i} className="bg-[var(--primary)]/20 text-[var(--primary)] rounded-sm px-0.5">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
 }
 
 export default function ProductsPageContent() {
@@ -281,7 +297,7 @@ export default function ProductsPageContent() {
                   )}
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors line-clamp-1">
-                      {product.name}
+                      {highlightText(product.name, search)}
                     </h3>
                     <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
                       {product.categoryName} · 已售 {product.soldCount}

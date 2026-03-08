@@ -19,9 +19,10 @@ export interface ProductItem {
 interface ProductGridProps {
   products: ProductItem[];
   className?: string;
+  searchQuery?: string;
 }
 
-export default function ProductGrid({ products, className }: ProductGridProps) {
+export default function ProductGrid({ products, className, searchQuery }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <EmptyState
@@ -39,7 +40,7 @@ export default function ProductGrid({ products, className }: ProductGridProps) {
       )}
     >
       {products.map((product) => (
-        <ProductCard key={product.slug} {...product} />
+        <ProductCard key={product.slug} {...product} searchQuery={searchQuery} />
       ))}
     </div>
   );
