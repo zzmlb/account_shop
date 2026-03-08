@@ -70,7 +70,7 @@ function CartItemInner({ item, compact = false }: CartItemProps) {
             variant="ghost"
             size="icon"
             onClick={() => removeItem(item.productId)}
-            className="h-6 w-6 flex-shrink-0 text-[var(--muted-foreground)] opacity-0 transition-all hover:text-[var(--destructive)] group-hover:opacity-100"
+            className="h-6 w-6 flex-shrink-0 text-[var(--muted-foreground)] transition-all hover:text-[var(--destructive)] sm:opacity-0 sm:group-hover:opacity-100"
             aria-label="移除商品"
           >
             <Trash2 className="h-3.5 w-3.5" />

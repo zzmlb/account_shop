@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { BLUR_DATA_URL } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,11 +111,11 @@ function NewArrivalCard({ product, priority = false }: { product: Product; prior
 
         <div className="mt-3 flex items-baseline gap-2">
           <span className="text-lg font-bold text-[var(--primary)]">
-            ¥{product.price.toFixed(2)}
+            {formatPrice(product.price)}
           </span>
           {product.originalPrice && (
             <span className="text-xs text-[var(--muted-foreground)] line-through">
-              ¥{product.originalPrice.toFixed(2)}
+              {formatPrice(product.originalPrice)}
             </span>
           )}
         </div>

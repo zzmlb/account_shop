@@ -12,9 +12,17 @@ import {
   ArrowRight,
   ShoppingBag,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useCartStore, type CartItem } from "@/stores/cart-store";
 import { formatPrice } from "@/lib/utils";
 
@@ -23,6 +31,7 @@ export default function CartPageContent() {
     useCartStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -82,7 +91,7 @@ export default function CartPageContent() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={clearCart}
+          onClick={() => setClearDialogOpen(true)}
           className="text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
         >
           <Trash2 className="mr-1.5 h-4 w-4" />
@@ -159,6 +168,36 @@ export default function CartPageContent() {
           </div>
         </div>
       </div>
+
+      {/* Clear cart confirmation dialog */}
+      <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-[var(--warning)]" />
+              清空购物车
+            </DialogTitle>
+            <DialogDescription>
+              确定要移除购物车中的所有商品吗？此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setClearDialogOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                clearCart();
+                setClearDialogOpen(false);
+              }}
+            >
+              确认清空
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -221,7 +260,7 @@ function CartItemRow({
             variant="ghost"
             size="icon"
             onClick={() => onRemove(item.productId)}
-            className="h-8 w-8 flex-shrink-0 text-[var(--muted-foreground)] opacity-0 transition-all hover:text-[var(--destructive)] group-hover:opacity-100"
+            className="h-8 w-8 flex-shrink-0 text-[var(--muted-foreground)] transition-all hover:text-[var(--destructive)] sm:opacity-0 sm:group-hover:opacity-100"
             aria-label={`移除 ${item.name}`}
           >
             <Trash2 className="h-4 w-4" />

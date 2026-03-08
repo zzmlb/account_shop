@@ -14,7 +14,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 interface SearchResult {
   id: string;
@@ -153,7 +153,7 @@ export default function CommandMenu() {
         title: p.name,
         type: "product" as const,
         href: `/products/${p.slug}`,
-        description: `¥${p.price.toFixed(2)}${p.stockCount !== undefined && p.stockCount <= 0 ? " · 已售罄" : ""}`,
+        description: `${formatPrice(p.price)}${p.stockCount !== undefined && p.stockCount <= 0 ? " · 已售罄" : ""}`,
       }));
 
       // Map articles to SearchResult format

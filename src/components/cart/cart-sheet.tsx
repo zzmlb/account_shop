@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, ArrowRight, Zap, Shield, Clock } from "lucide-react";
+import { ShoppingBag, ArrowRight, Zap, Shield, Clock, AlertTriangle } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,6 +10,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -19,11 +27,13 @@ import CartItem from "./cart-item";
 
 export default function CartSheet() {
   const { items, isOpen, toggleCart, getTotal, getItemCount, clearCart } = useCartStore();
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   const total = getTotal();
   const itemCount = getItemCount();
 
   return (
+    <>
     <Sheet open={isOpen} onOpenChange={toggleCart}>
       <SheetContent
         side="right"
@@ -49,7 +59,7 @@ export default function CartSheet() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearCart}
+              onClick={() => setClearDialogOpen(true)}
               className="absolute right-12 top-4 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]"
             >
               清空
@@ -151,5 +161,36 @@ export default function CartSheet() {
         )}
       </SheetContent>
     </Sheet>
+
+    {/* Clear cart confirmation dialog */}
+    <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-[var(--warning)]" />
+            清空购物车
+          </DialogTitle>
+          <DialogDescription>
+            确定要移除购物车中的所有商品吗？此操作不可撤销。
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="outline" size="sm" onClick={() => setClearDialogOpen(false)}>
+            取消
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              clearCart();
+              setClearDialogOpen(false);
+            }}
+          >
+            确认清空
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

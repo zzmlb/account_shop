@@ -112,7 +112,9 @@ export async function PUT(request: NextRequest) {
         subject: existing.subject,
         originalMessage: existing.message.slice(0, 500),
         reply: sanitizedNote,
-      }).catch(() => {});
+      }).catch((err) => {
+        log.warn({ err, messageId: id }, "Failed to send contact reply email");
+      });
     }
 
     return NextResponse.json({ success: true, message: "状态已更新" });
