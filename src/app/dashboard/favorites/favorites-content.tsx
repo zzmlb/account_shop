@@ -74,11 +74,39 @@ function mapApiToFavorite(fav: ApiFavorite): FavoriteProduct {
   };
 }
 
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "最近收藏" },
+  { value: "oldest", label: "最早收藏" },
+  { value: "price-desc", label: "价格从高到低" },
+  { value: "price-asc", label: "价格从低到高" },
+  { value: "name", label: "名称排序" },
+];
+
+function sortFavorites(items: FavoriteProduct[], sort: SortOption): FavoriteProduct[] {
+  const sorted = [...items];
+  switch (sort) {
+    case "newest":
+      return sorted.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+    case "oldest":
+      return sorted.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime());
+    case "price-asc":
+      return sorted.sort((a, b) => a.price - b.price);
+    case "price-desc":
+      return sorted.sort((a, b) => b.price - a.price);
+    case "name":
+      return sorted.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+    default:
+      return sorted;
+  }
+}
+
 export default function FavoritesPageContent() {
   const [favorites, setFavorites] = useState<FavoriteProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const addItem = useCartStore((s) => s.addItem);
 
   const fetchFavorites = useCallback(async () => {
     try {
@@ -158,6 +186,23 @@ export default function FavoritesPageContent() {
     }
   };
 
+  const handleAddToCart = (product: FavoriteProduct) => {
+    if (!product.inStock) return;
+    addItem({
+      id: product.slug,
+      productId: product.productId,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      quantity: 1,
+      maxStock: product.stockCount,
+      image: product.image,
+    });
+    toast.success("已加入购物车");
+  };
+
+  const sortedFavorites = sortFavorites(favorites, sortBy);
   const formatPrice = (price: number) => `¥${price.toFixed(2)}`;
 
   if (loading) {
@@ -197,20 +242,34 @@ export default function FavoritesPageContent() {
           </p>
         </div>
         {favorites.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-[var(--destructive)]"
-            onClick={handleClearAll}
-            disabled={clearingAll}
-          >
-            {clearingAll ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
-            清空收藏
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <ArrowUpDown className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="h-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] py-0 pl-8 pr-8 text-xs text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-[var(--destructive)]"
+              onClick={handleClearAll}
+              disabled={clearingAll}
+            >
+              {clearingAll ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              清空收藏
+            </Button>
+          </div>
         )}
       </div>
 
@@ -225,7 +284,7 @@ export default function FavoritesPageContent() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {favorites.map((product) => {
+          {sortedFavorites.map((product) => {
             const isRemoving = removingId === product.id;
             const discount =
               product.originalPrice && product.originalPrice > product.price
@@ -322,9 +381,10 @@ export default function FavoritesPageContent() {
                     className="flex-1 gap-1.5"
                     size="sm"
                     disabled={!product.inStock}
+                    onClick={() => handleAddToCart(product)}
                   >
                     <ShoppingCart className="h-3.5 w-3.5" />
-                    {product.inStock ? "立即购买" : "缺货中"}
+                    {product.inStock ? "加入购物车" : "缺货中"}
                   </Button>
                   <Button
                     variant="outline"
