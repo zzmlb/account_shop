@@ -312,6 +312,7 @@ export default function AdminCategoriesContent() {
                   className="h-10 w-10 sm:h-8 sm:w-8"
                   onClick={() => toggleActive(cat)}
                   title={cat.isActive ? "点击隐藏" : "点击启用"}
+                  aria-label={cat.isActive ? "隐藏分类" : "启用分类"}
                 >
                   {cat.isActive ? (
                     <Eye className="h-4 w-4 text-[var(--success)]" />
@@ -329,6 +330,7 @@ export default function AdminCategoriesContent() {
                   className="h-10 w-10 sm:h-8 sm:w-8"
                   onClick={() => openEditDialog(cat)}
                   title="编辑"
+                  aria-label="编辑分类"
                 >
                   <Edit3 className="h-4 w-4" />
                 </Button>
@@ -341,6 +343,7 @@ export default function AdminCategoriesContent() {
                     setDeleteDialogOpen(true);
                   }}
                   title="删除"
+                  aria-label="删除分类"
                   disabled={cat.productCount > 0}
                 >
                   <Trash2 className="h-4 w-4" />

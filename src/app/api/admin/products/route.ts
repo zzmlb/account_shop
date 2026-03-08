@@ -164,17 +164,23 @@ export async function POST(request: NextRequest) {
     // Generate slug from name if not provided
     const productSlug = slug || generateSlug(name);
 
-    // Check slug uniqueness
-    const existing = await db.product.findUnique({
-      where: { slug: productSlug },
-    });
+    // Check slug uniqueness and name duplicates in parallel
+    const [existingSlug, existingName] = await Promise.all([
+      db.product.findUnique({ where: { slug: productSlug } }),
+      db.product.findFirst({ where: { name, isActive: true } }),
+    ]);
 
-    if (existing) {
+    if (existingSlug) {
       return NextResponse.json(
         { success: false, message: `slug 已存在: ${productSlug}` },
         { status: 409 }
       );
     }
+
+    // Warn about duplicate name (include warning in response, don't block)
+    const nameWarning = existingName
+      ? `注意: 已存在同名商品 "${existingName.name}" (ID: ${existingName.id})`
+      : undefined;
 
     const product = await db.product.create({
       data: {
@@ -199,6 +205,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      ...(nameWarning && { warning: nameWarning }),
       product: {
         id: product.id,
         name: product.name,

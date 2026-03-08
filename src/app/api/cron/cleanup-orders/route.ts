@@ -66,32 +66,31 @@ export async function POST(request: NextRequest) {
           data: { status: "EXPIRED" },
         });
 
-        // Release any reserved card keys back to AVAILABLE
-        for (const item of order.items) {
-          if (item.cardKeys.length > 0) {
-            const keyIds = item.cardKeys.map((k) => k.id);
-            const result = await tx.cardKey.updateMany({
-              where: {
-                id: { in: keyIds },
-                status: "LOCKED",
-              },
-              data: {
-                status: "AVAILABLE",
-                orderId: null,
-                soldAt: null,
-              },
-            });
-            totalKeysReleased += result.count;
-          }
+        // Batch release all locked card keys for this order
+        const allKeyIds = order.items.flatMap((item) =>
+          item.cardKeys.map((k) => k.id)
+        );
+        if (allKeyIds.length > 0) {
+          const result = await tx.cardKey.updateMany({
+            where: { id: { in: allKeyIds }, status: "LOCKED" },
+            data: { status: "AVAILABLE", orderId: null, soldAt: null },
+          });
+          totalKeysReleased += result.count;
         }
 
-        // Restore product stock counts
+        // Aggregate stock increments by product to minimize updates
+        const stockMap = new Map<string, number>();
         for (const item of order.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stockCount: { increment: item.quantity } },
-          });
+          stockMap.set(item.productId, (stockMap.get(item.productId) ?? 0) + item.quantity);
         }
+        await Promise.all(
+          Array.from(stockMap).map(([productId, qty]) =>
+            tx.product.update({
+              where: { id: productId },
+              data: { stockCount: { increment: qty } },
+            })
+          )
+        );
       });
     }
 

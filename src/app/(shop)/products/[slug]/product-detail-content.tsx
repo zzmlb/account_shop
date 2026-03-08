@@ -226,10 +226,26 @@ export default function ProductDetailContent({
 
           {/* Thumbnail strip */}
           {allImages.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div
+              className="flex gap-2 overflow-x-auto pb-1"
+              role="listbox"
+              aria-label="商品图片选择"
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+                } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setSelectedImageIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+                }
+              }}
+            >
               {allImages.map((img, idx) => (
                 <button
                   key={idx}
+                  role="option"
+                  aria-selected={idx === selectedImageIdx}
+                  aria-label={`查看第 ${idx + 1} 张图片`}
                   onClick={() => setSelectedImageIdx(idx)}
                   className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] border-2 transition-all ${
                     idx === selectedImageIdx

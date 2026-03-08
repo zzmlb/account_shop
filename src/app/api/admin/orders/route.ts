@@ -418,12 +418,15 @@ export async function PUT(request: NextRequest) {
 
       // Send card key delivery email
       if (result.allKeysAllocated && orderWithItems.email) {
+        // Batch fetch all card keys for this order's items (avoids N+1)
+        const itemIds = orderWithItems.items.map((i) => i.id);
+        const allKeys = await db.cardKey.findMany({
+          where: { orderId: { in: itemIds }, status: "SOLD" },
+          select: { content: true, orderId: true },
+        });
         const keysByProduct: Record<string, { productName: string; cardKeys: string[] }> = {};
         for (const item of orderWithItems.items) {
-          const itemKeys = await db.cardKey.findMany({
-            where: { orderId: item.id, status: "SOLD" },
-            select: { content: true },
-          });
+          const itemKeys = allKeys.filter((k) => k.orderId === item.id);
           keysByProduct[item.productId] = {
             productName: item.product.name,
             cardKeys: itemKeys.map((k) => decryptCardKey(k.content)),

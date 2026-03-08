@@ -186,7 +186,7 @@ export default function AdminOrderDetailContent({ orderId }: { orderId: string }
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon">
+          <Button asChild variant="ghost" size="icon" aria-label="返回订单列表">
             <Link href="/admin/orders">
               <ArrowLeft className="h-4 w-4" />
             </Link>

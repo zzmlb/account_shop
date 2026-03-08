@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut, Wallet } from "lucide-react";
@@ -33,6 +33,23 @@ export default function Header() {
     const interval = setInterval(fetchNotifCount, 60_000);
     return () => clearInterval(interval);
   }, [user, fetchNotifCount]);
+
+  // Close mobile menu on Escape key
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape" && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [handleEscape]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
