@@ -37,15 +37,19 @@ export async function POST(request: NextRequest) {
     if (!rl.success) return rateLimitResponse(rl);
 
     const role = session.role.toUpperCase();
-    if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
+    const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const purpose = formData.get("purpose") as string | null;
+
+    // Regular users can only upload avatar images (2MB max)
+    if (!isAdmin && purpose !== "avatar") {
       return NextResponse.json(
         { success: false, message: "无上传权限" },
         { status: 403 }
       );
     }
-
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json(
@@ -62,10 +66,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size
-    if (file.size > MAX_SIZE) {
+    // Validate file size (2MB for regular users, 5MB for admins)
+    const sizeLimit = isAdmin ? MAX_SIZE : 2 * 1024 * 1024;
+    if (file.size > sizeLimit) {
       return NextResponse.json(
-        { success: false, message: "文件大小不能超过 5MB" },
+        { success: false, message: `文件大小不能超过 ${isAdmin ? "5" : "2"}MB` },
         { status: 400 }
       );
     }

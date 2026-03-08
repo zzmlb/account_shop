@@ -69,6 +69,7 @@ const sidebarLinks = [
   { label: "退款管理", href: "/admin/refunds", icon: RotateCcw },
   { label: "留言管理", href: "/admin/messages", icon: Mails },
   { label: "通知广播", href: "/admin/broadcast", icon: Bell },
+  { label: "操作日志", href: "/admin/audit-logs", icon: ShieldAlert },
   { label: "登录日志", href: "/admin/login-logs", icon: Shield },
   { label: "系统设置", href: "/admin/settings", icon: Settings },
 ];

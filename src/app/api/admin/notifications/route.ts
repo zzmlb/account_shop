@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
+import { logAdminAction } from "@/lib/audit";
 
 const log = createLogger("admin/notifications");
 
@@ -264,6 +265,13 @@ export async function POST(request: NextRequest) {
       { adminId: session.id, count: targetUserIds.length, title },
       "System notification sent"
     );
+
+    logAdminAction({
+      adminId: session.id,
+      action: "notification.broadcast",
+      detail: JSON.stringify({ title, recipientCount: targetUserIds.length }),
+      ip: getClientIp(request),
+    });
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { sendBalanceAdjustment, sendAccountStatusChange } from "@/server/services/email";
+import { logAdminAction } from "@/lib/audit";
 
 const log = createLogger("admin/users");
 
@@ -318,6 +319,17 @@ export async function PUT(request: NextRequest) {
         "Admin updated user (balance adjustment)"
       );
 
+      logAdminAction({
+        adminId: session.id,
+        action: "user.update",
+        target: existing.username,
+        detail: JSON.stringify({
+          balanceAdjust,
+          ...(newStatus ? { statusChange: { from: existing.status, to: newStatus } } : {}),
+        }),
+        ip: getClientIp(request),
+      });
+
       // Send email notifications (fire-and-forget)
       if (existing.email) {
         sendBalanceAdjustment({
@@ -395,6 +407,16 @@ export async function PUT(request: NextRequest) {
       },
       "Admin updated user status"
     );
+
+    if (newStatus) {
+      logAdminAction({
+        adminId: session.id,
+        action: newStatus === "BANNED" ? "user.ban" : "user.status_change",
+        target: existing.username,
+        detail: JSON.stringify({ from: existing.status, to: newStatus }),
+        ip: getClientIp(request),
+      });
+    }
 
     // Send account status change email (fire-and-forget)
     if (newStatus && newStatus !== existing.status && existing.email) {

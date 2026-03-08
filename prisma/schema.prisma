@@ -29,6 +29,7 @@ model User {
   refundRequests RefundRequest[]
   loginLogs      LoginLog[]
   notifications  Notification[]
+  auditLogs      AdminAuditLog[] @relation("AdminAuditLogs")
 
   @@map("users")
 }
@@ -399,6 +400,23 @@ enum MessageStatus {
   PENDING
   REPLIED
   CLOSED
+}
+
+// ==================== 管理员操作日志 ====================
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     User     @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  action    String   // e.g. "order.refund", "user.ban", "product.update"
+  target    String?  // ID of the affected resource
+  detail    String?  @db.Text // JSON of changed fields or action details
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
 }
 
 // ==================== 系统配置 ====================

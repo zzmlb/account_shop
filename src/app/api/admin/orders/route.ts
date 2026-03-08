@@ -6,6 +6,7 @@ import { sendCardKeyDelivery } from "@/server/services/email";
 import { createNotification } from "@/server/services/notification";
 import { decryptCardKey } from "@/lib/crypto";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { logAdminAction } from "@/lib/audit";
 
 const log = createLogger("admin/orders");
 
@@ -343,6 +344,14 @@ export async function PUT(request: NextRequest) {
           "Admin refunded guest order with card key return"
         );
 
+        logAdminAction({
+          adminId: session.id,
+          action: "order.refund",
+          target: existing.orderNo,
+          detail: JSON.stringify({ from: existing.status, to: newStatus, guest: true }),
+          ip: getClientIp(request),
+        });
+
         return NextResponse.json({
           success: true,
           message: "订单已退款（游客订单，卡密已归还库存）",
@@ -418,6 +427,14 @@ export async function PUT(request: NextRequest) {
         { adminId: session.id, orderId: id, orderNo: existing.orderNo, refundAmount },
         "Admin refunded order with card key return and balance refund"
       );
+
+      logAdminAction({
+        adminId: session.id,
+        action: "order.refund",
+        target: existing.orderNo,
+        detail: JSON.stringify({ from: existing.status, to: newStatus, refundAmount }),
+        ip: getClientIp(request),
+      });
 
       // In-app notification
       createNotification({
@@ -545,6 +562,14 @@ export async function PUT(request: NextRequest) {
       if (result.allKeysAllocated) {
         log.info({ orderNo: existing.orderNo, keys: result.allocatedKeys.length }, "Admin manual delivery completed");
 
+        logAdminAction({
+          adminId: session.id,
+          action: "order.deliver",
+          target: existing.orderNo,
+          detail: JSON.stringify({ keysAllocated: result.allocatedKeys.length }),
+          ip: getClientIp(request),
+        });
+
         // In-app notification for delivery
         if (existing.userId) {
           createNotification({
@@ -591,6 +616,14 @@ export async function PUT(request: NextRequest) {
       { adminId: session.id, orderId: id, orderNo: existing.orderNo, oldStatus: existing.status, newStatus },
       "Admin updated order status"
     );
+
+    logAdminAction({
+      adminId: session.id,
+      action: "order.status_change",
+      target: existing.orderNo,
+      detail: JSON.stringify({ from: existing.status, to: newStatus }),
+      ip: getClientIp(request),
+    });
 
     return NextResponse.json({
       success: true,

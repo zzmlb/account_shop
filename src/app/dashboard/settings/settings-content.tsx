@@ -302,6 +302,7 @@ export default function DashboardSettingsPageContent() {
       // Upload the file
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("purpose", "avatar");
       const uploadRes = await fetch("/api/upload", {
         method: "POST",
         body: formData,
