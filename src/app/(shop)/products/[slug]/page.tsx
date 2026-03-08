@@ -64,6 +64,7 @@ export default async function ProductDetailPage({
   });
 
   const productData = {
+    id: product.id,
     name: product.name,
     slug: product.slug,
     price: Number(product.price),

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronRight,
   ShoppingCart,
@@ -9,14 +10,17 @@ import {
   ShieldCheck,
   Lock,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PriceTag from "@/components/shared/price-tag";
 import StockBadge from "@/components/shared/stock-badge";
 import QuantitySelector from "@/components/product/quantity-selector";
 import ProductCard from "@/components/product/product-card";
+import { useCartStore } from "@/stores/cart-store";
 
 interface Product {
+  id: string;
   name: string;
   slug: string;
   price: number;
@@ -49,6 +53,38 @@ export default function ProductDetailContent({
   relatedProducts,
 }: ProductDetailContentProps) {
   const [quantity, setQuantity] = useState(1);
+  const router = useRouter();
+  const addItem = useCartStore((s) => s.addItem);
+
+  const handleAddToCart = () => {
+    addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      quantity,
+      maxStock: product.stockCount,
+    });
+    toast.success("已加入购物车", {
+      description: `${product.name} x${quantity}`,
+    });
+  };
+
+  const handleBuyNow = () => {
+    addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      quantity,
+      maxStock: product.stockCount,
+    });
+    router.push("/checkout");
+  };
 
   const trustBadges = [
     { icon: Zap, label: "即时交付", desc: "付款后自动发货" },
@@ -158,6 +194,7 @@ export default function ProductDetailContent({
               size="lg"
               className="flex-1 text-base"
               disabled={product.stockCount <= 0}
+              onClick={handleBuyNow}
             >
               <Zap className="mr-2 h-5 w-5" />
               {product.stockCount <= 0 ? "暂时缺货" : "立即购买"}
@@ -167,6 +204,7 @@ export default function ProductDetailContent({
               variant="outline"
               className="flex-1 text-base"
               disabled={product.stockCount <= 0}
+              onClick={handleAddToCart}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
               加入购物车
