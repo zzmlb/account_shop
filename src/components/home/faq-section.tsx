@@ -58,10 +58,12 @@ export default function FaqSection() {
             className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] transition-colors"
           >
             <button
+              id={`faq-btn-${i}`}
               type="button"
               onClick={() => toggle(i)}
               className="flex w-full items-center gap-3 px-5 py-4 text-left"
               aria-expanded={openIndex === i}
+              aria-controls={`faq-answer-${i}`}
             >
               <HelpCircle className="h-4 w-4 shrink-0 text-[var(--primary)]" />
               <span className="flex-1 text-sm font-medium text-[var(--foreground)]">
@@ -75,7 +77,7 @@ export default function FaqSection() {
               />
             </button>
             {openIndex === i && (
-              <div className="border-t border-[var(--border)] px-5 py-4">
+              <div id={`faq-answer-${i}`} role="region" aria-labelledby={`faq-btn-${i}`} className="border-t border-[var(--border)] px-5 py-4">
                 <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
                   {item.a}
                 </p>
