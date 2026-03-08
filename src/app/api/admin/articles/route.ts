@@ -298,6 +298,55 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH - Batch publish/unpublish articles
+export async function PATCH(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { ids, isPublished } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "请选择要操作的文章" },
+        { status: 400 }
+      );
+    }
+    if (typeof isPublished !== "boolean") {
+      return NextResponse.json(
+        { success: false, message: "缺少发布状态参数" },
+        { status: 400 }
+      );
+    }
+
+    const result = await db.article.updateMany({
+      where: { id: { in: ids } },
+      data: { isPublished },
+    });
+
+    log.info(
+      { adminId: session.id, count: result.count, isPublished },
+      "Admin batch updated article publish status"
+    );
+
+    return NextResponse.json({
+      success: true,
+      updated: result.count,
+      message: `已${isPublished ? "发布" : "撤回"} ${result.count} 篇文章`,
+    });
+  } catch (error) {
+    log.error({ err: error }, "Admin articles PATCH error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Delete article
 export async function DELETE(request: NextRequest) {
   try {

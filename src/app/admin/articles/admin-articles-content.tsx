@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
@@ -113,6 +114,10 @@ export default function AdminArticlesPageContent() {
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTargetArticle, setDeleteTargetArticle] = useState<ApiArticle | null>(null);
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchUpdating, setBatchUpdating] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Fetch articles
@@ -304,6 +309,48 @@ export default function AdminArticlesPageContent() {
       toast.error("网络错误，删除文章失败");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Batch publish/unpublish
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === articles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(articles.map((a) => a.id)));
+    }
+  };
+
+  const handleBatchPublish = async (isPublished: boolean) => {
+    if (selectedIds.size === 0) return;
+    setBatchUpdating(true);
+    try {
+      const res = await fetch("/api/admin/articles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), isPublished }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "操作成功");
+        setSelectedIds(new Set());
+        fetchArticles();
+      } else {
+        toast.error(data.message || "操作失败");
+      }
+    } catch {
+      toast.error("网络错误");
+    } finally {
+      setBatchUpdating(false);
     }
   };
 
@@ -551,11 +598,59 @@ export default function AdminArticlesPageContent() {
         </div>
       </div>
 
+      {/* Batch action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-2.5">
+          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+          <span className="text-sm font-medium">
+            已选 {selectedIds.size} 篇文章
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBatchPublish(true)}
+              disabled={batchUpdating}
+              className="gap-1.5"
+            >
+              {batchUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+              批量发布
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBatchPublish(false)}
+              disabled={batchUpdating}
+              className="gap-1.5"
+            >
+              {batchUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <EyeOff className="h-3.5 w-3.5" />}
+              批量撤回
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              取消选择
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
         <table className="w-full text-sm" aria-label="文章管理列表">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
+              <th className="w-10 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={articles.length > 0 && selectedIds.size === articles.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+                  aria-label="全选"
+                />
+              </th>
               <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
                 标题
               </th>
@@ -581,7 +676,7 @@ export default function AdminArticlesPageContent() {
               renderTableSkeleton()
             ) : articles.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-16 text-center">
+                <td colSpan={7} className="py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="mb-4 rounded-full bg-[var(--muted)] p-4">
                       <FileText className="h-10 w-10 text-[var(--muted-foreground)]" />
@@ -598,6 +693,15 @@ export default function AdminArticlesPageContent() {
                   key={article.id}
                   className="border-b border-[var(--border)] last:border-b-0 transition-colors hover:bg-[var(--card-hover)]"
                 >
+                  <td className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(article.id)}
+                      onChange={() => toggleSelect(article.id)}
+                      className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+                      aria-label={`选择 ${article.title}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--muted)]">
