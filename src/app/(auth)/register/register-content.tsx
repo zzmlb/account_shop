@@ -84,10 +84,15 @@ export default function RegisterContent() {
   });
 
   const watchedPassword = watch("password");
+  const watchedConfirmPassword = watch("confirmPassword");
   const passwordStrength = useMemo(
     () => getPasswordStrength(watchedPassword),
     [watchedPassword]
   );
+  const passwordsMatch =
+    watchedConfirmPassword &&
+    watchedConfirmPassword.length > 0 &&
+    watchedPassword === watchedConfirmPassword;
 
   const onSubmit = async (data: RegisterInput) => {
     if (!agreedToTerms) {
@@ -271,6 +276,11 @@ export default function RegisterContent() {
           {errors.confirmPassword && (
             <p className="text-xs text-[var(--destructive)]">
               {errors.confirmPassword.message}
+            </p>
+          )}
+          {!errors.confirmPassword && passwordsMatch && (
+            <p className="text-xs text-[var(--success)]">
+              密码匹配
             </p>
           )}
         </div>

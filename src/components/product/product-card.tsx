@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Flame } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -98,11 +98,17 @@ export default function ProductCard({
               {categoryName}
             </Badge>
           </div>
-          {/* Top-right: discount badge + favorite */}
+          {/* Top-right: badges + favorite */}
           <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
             {originalPrice && originalPrice > price && (
               <Badge className="bg-[var(--destructive)] text-[var(--destructive-foreground)]">
                 -{Math.round(((originalPrice - price) / originalPrice) * 100)}%
+              </Badge>
+            )}
+            {soldCount >= 50 && !originalPrice && (
+              <Badge className="bg-[var(--warning)] text-white gap-0.5">
+                <Flame className="h-3 w-3" />
+                热销
               </Badge>
             )}
             {productId && (

@@ -241,9 +241,10 @@ export default function OrdersPageContent() {
         <div className="flex items-center gap-3">
           {/* Date range hint */}
           {dateRange && (
-            <div className="hidden items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted-foreground)] sm:flex">
-              <Calendar className="h-3.5 w-3.5" />
-              {dateRange}
+            <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted-foreground)]">
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">{dateRange}</span>
+              <span className="sm:hidden">{dateRange.split(" ~ ")[1]}</span>
             </div>
           )}
           <div className="relative">
@@ -287,7 +288,36 @@ export default function OrdersPageContent() {
               <div className="mb-4 rounded-full bg-[var(--muted)] p-4">
                 <ShoppingBag className="h-10 w-10 text-[var(--muted-foreground)]" />
               </div>
-              <p className="text-sm text-[var(--muted-foreground)]">暂无订单</p>
+              {orders.length === 0 ? (
+                <>
+                  <p className="font-medium text-[var(--foreground)]">还没有任何订单</p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                    浏览商品并下单，订单记录将在这里显示
+                  </p>
+                  <Button asChild className="mt-4" size="sm">
+                    <Link href="/products">浏览商品</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-[var(--foreground)]">没有匹配的订单</p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                    尝试调整筛选条件或搜索关键词
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      setActiveTab("all");
+                      setSearch("");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    清除筛选
+                  </Button>
+                </>
+              )}
             </div>
           ) : (
             paginated.map((order) => {

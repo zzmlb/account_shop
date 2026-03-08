@@ -9,10 +9,13 @@ import {
   AlertTriangle,
   Package,
   ArrowUpRight,
+  ArrowDownRight,
   Upload,
   Bell,
   Crown,
   Loader2,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import {
   AreaChart,
   Area,
+  Bar,
+  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,6 +45,13 @@ interface StatsData {
   todayOrders: number;
   newUsers: number;
   lowStockCount: number;
+  yesterdaySales: number;
+  yesterdayOrders: number;
+  yesterdayUsers: number;
+  todayConversion: number;
+  yesterdayConversion: number;
+  totalProducts: number;
+  totalUsers: number;
 }
 
 interface RecentOrder {
@@ -61,6 +73,7 @@ interface HotProduct {
 interface SalesChartItem {
   date: string;
   amount: number;
+  orders: number;
 }
 
 interface ApiResponse {
@@ -90,16 +103,25 @@ function ChartTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number }>;
+  payload?: Array<{ value: number; dataKey: string }>;
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
+  const amountEntry = payload.find((p) => p.dataKey === "amount");
+  const ordersEntry = payload.find((p) => p.dataKey === "orders");
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-lg">
       <p className="text-xs text-[var(--muted-foreground)]">{label}</p>
-      <p className="text-sm font-semibold text-[var(--foreground)]">
-        ¥{payload[0].value.toLocaleString()}
-      </p>
+      {amountEntry && (
+        <p className="text-sm font-semibold text-[var(--foreground)]">
+          ¥{amountEntry.value.toLocaleString()}
+        </p>
+      )}
+      {ordersEntry && (
+        <p className="text-xs text-[var(--muted-foreground)]">
+          {ordersEntry.value} 个订单
+        </p>
+      )}
     </div>
   );
 }
@@ -162,30 +184,49 @@ export default function AdminOverviewPageContent() {
     );
   }
 
+  // Compute comparison percentages
+  const salesChange = stats?.yesterdaySales
+    ? ((stats.todaySales - stats.yesterdaySales) / stats.yesterdaySales) * 100
+    : stats?.todaySales ? 100 : 0;
+  const ordersChange = stats?.yesterdayOrders
+    ? ((stats.todayOrders - stats.yesterdayOrders) / stats.yesterdayOrders) * 100
+    : stats?.todayOrders ? 100 : 0;
+  const usersChange = stats?.yesterdayUsers
+    ? ((stats.newUsers - stats.yesterdayUsers) / stats.yesterdayUsers) * 100
+    : stats?.newUsers ? 100 : 0;
+
   const statsCards = [
     {
       label: "今日销售额",
       value: `¥${(stats?.todaySales ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: DollarSign,
       color: "var(--primary)",
+      change: salesChange,
+      sub: `昨日 ¥${(stats?.yesterdaySales ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     },
     {
       label: "今日订单数",
       value: String(stats?.todayOrders ?? 0),
       icon: ShoppingCart,
       color: "var(--accent)",
+      change: ordersChange,
+      sub: `转化率 ${stats?.todayConversion ?? 0}%`,
     },
     {
       label: "新用户数",
       value: String(stats?.newUsers ?? 0),
       icon: UserPlus,
       color: "var(--success)",
+      change: usersChange,
+      sub: `总用户 ${stats?.totalUsers ?? 0}`,
     },
     {
       label: "库存告警",
       value: String(stats?.lowStockCount ?? 0),
       icon: AlertTriangle,
       color: "var(--warning)",
+      change: null,
+      sub: `在售商品 ${stats?.totalProducts ?? 0}`,
     },
   ];
 
@@ -205,6 +246,8 @@ export default function AdminOverviewPageContent() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statsCards.map((stat) => {
           const Icon = stat.icon;
+          const isUp = stat.change !== null && stat.change >= 0;
+          const TrendIcon = isUp ? ArrowUpRight : ArrowDownRight;
           return (
             <Card key={stat.label} className="overflow-hidden">
               <CardContent className="p-6">
@@ -216,6 +259,22 @@ export default function AdminOverviewPageContent() {
                     <span className="text-2xl font-bold text-[var(--foreground)]">
                       {stat.value}
                     </span>
+                    <div className="flex items-center gap-2">
+                      {stat.change !== null && (
+                        <span
+                          className={cn(
+                            "flex items-center text-xs font-medium",
+                            isUp ? "text-[var(--success)]" : "text-[var(--destructive)]"
+                          )}
+                        >
+                          <TrendIcon className="h-3 w-3 mr-0.5" />
+                          {Math.abs(stat.change).toFixed(1)}%
+                        </span>
+                      )}
+                      <span className="text-[10px] text-[var(--muted-foreground)]">
+                        {stat.sub}
+                      </span>
+                    </div>
                   </div>
                   <div
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
@@ -248,7 +307,7 @@ export default function AdminOverviewPageContent() {
           <CardContent>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
+                <ComposedChart
                   data={salesChart}
                   margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
@@ -270,20 +329,37 @@ export default function AdminOverviewPageContent() {
                     tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
                   />
                   <YAxis
+                    yAxisId="amount"
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
                     tickFormatter={(v: number) => `¥${v}`}
                   />
+                  <YAxis
+                    yAxisId="orders"
+                    orientation="right"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                  />
                   <Tooltip content={<ChartTooltip />} />
+                  <Bar
+                    yAxisId="orders"
+                    dataKey="orders"
+                    fill="var(--accent)"
+                    opacity={0.3}
+                    radius={[4, 4, 0, 0]}
+                    barSize={20}
+                  />
                   <Area
+                    yAxisId="amount"
                     type="monotone"
                     dataKey="amount"
                     stroke="#6c5ce7"
                     strokeWidth={2}
                     fill="url(#salesGradient)"
                   />
-                </AreaChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
