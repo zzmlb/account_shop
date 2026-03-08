@@ -34,4 +34,47 @@ describe("escapeCsvField", () => {
     expect(escapeCsvField("用户名")).toBe("用户名");
     expect(escapeCsvField("用户,名称")).toBe('"用户,名称"');
   });
+
+  // CSV injection prevention tests
+  it("prefixes formula-triggering = with single-quote", () => {
+    const result = escapeCsvField("=SUM(A1:A10)");
+    expect(result).not.toMatch(/^"?=/);
+    expect(result).toContain("'=SUM(A1:A10)");
+  });
+
+  it("prefixes formula-triggering + with single-quote", () => {
+    const result = escapeCsvField("+1234567890");
+    expect(result).toContain("'+1234567890");
+  });
+
+  it("prefixes formula-triggering - with single-quote", () => {
+    const result = escapeCsvField("-1+1");
+    expect(result).toContain("'-1+1");
+  });
+
+  it("prefixes formula-triggering @ with single-quote", () => {
+    const result = escapeCsvField("@SUM(A1)");
+    expect(result).toContain("'@SUM(A1)");
+  });
+
+  it("prefixes tab-prefixed values with single-quote", () => {
+    const result = escapeCsvField("\t=cmd|'/C calc'!A0");
+    expect(result).toContain("'");
+  });
+
+  it("handles =cmd|'/C calc'!A0 DDE attack", () => {
+    const result = escapeCsvField("=cmd|'/C calc'!A0");
+    expect(result).not.toMatch(/^"?=/);
+  });
+
+  it("does not prefix normal negative numbers", () => {
+    // Negative numbers do get prefixed as they start with -
+    const result = escapeCsvField("-100");
+    expect(result).toContain("'-100");
+  });
+
+  it("handles carriage return prefix", () => {
+    const result = escapeCsvField("\r=evil");
+    expect(result).toContain("'");
+  });
 });

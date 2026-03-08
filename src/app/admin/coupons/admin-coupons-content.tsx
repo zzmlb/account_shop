@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { cn } from "@/lib/utils";
 
 interface Coupon {
@@ -78,11 +79,8 @@ export default function AdminCouponsContent() {
 
   const fetchCoupons = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/coupons");
-      const data = await res.json();
-      if (data.success) {
-        setCoupons(data.coupons);
-      }
+      const data = await apiFetch<{ coupons: Coupon[] }>("/api/admin/coupons");
+      setCoupons(data.coupons);
     } catch {
       toast.error("加载优惠券失败");
     } finally {
@@ -148,29 +146,20 @@ export default function AdminCouponsContent() {
 
     setIsMutating(true);
     try {
-      const res = await fetch("/api/admin/coupons", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: formCode.trim(),
-          type: formType,
-          value: formValue,
-          minAmount: formMinAmount || undefined,
-          maxUses: formMaxUses || undefined,
-          startAt: formStartAt,
-          expireAt: formExpireAt,
-        }),
+      await apiMutate("/api/admin/coupons", "POST", {
+        code: formCode.trim(),
+        type: formType,
+        value: formValue,
+        minAmount: formMinAmount || undefined,
+        maxUses: formMaxUses || undefined,
+        startAt: formStartAt,
+        expireAt: formExpireAt,
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("优惠券创建成功");
-        setDialogOpen(false);
-        fetchCoupons();
-      } else {
-        toast.error(data.message || "创建失败");
-      }
-    } catch {
-      toast.error("创建失败");
+      toast.success("优惠券创建成功");
+      setDialogOpen(false);
+      fetchCoupons();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "创建失败");
     } finally {
       setIsMutating(false);
     }
@@ -178,24 +167,15 @@ export default function AdminCouponsContent() {
 
   const toggleActive = async (coupon: Coupon) => {
     try {
-      const res = await fetch("/api/admin/coupons", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: coupon.id, isActive: !coupon.isActive }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCoupons((prev) =>
-          prev.map((c) =>
-            c.id === coupon.id ? { ...c, isActive: !c.isActive } : c
-          )
-        );
-        toast.success(coupon.isActive ? "优惠券已停用" : "优惠券已启用");
-      } else {
-        toast.error(data.message || "操作失败");
-      }
-    } catch {
-      toast.error("操作失败");
+      await apiMutate("/api/admin/coupons", "PUT", { id: coupon.id, isActive: !coupon.isActive });
+      setCoupons((prev) =>
+        prev.map((c) =>
+          c.id === coupon.id ? { ...c, isActive: !c.isActive } : c
+        )
+      );
+      toast.success(coupon.isActive ? "优惠券已停用" : "优惠券已启用");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "操作失败");
     }
   };
 
@@ -203,21 +183,13 @@ export default function AdminCouponsContent() {
     if (!deletingCoupon) return;
     setIsMutating(true);
     try {
-      const res = await fetch(
-        `/api/admin/coupons?id=${deletingCoupon.id}`,
-        { method: "DELETE" }
-      );
-      const data = await res.json();
-      if (data.success) {
-        toast.success("优惠券已删除");
-        setDeleteDialogOpen(false);
-        setDeletingCoupon(null);
-        fetchCoupons();
-      } else {
-        toast.error(data.message || "删除失败");
-      }
-    } catch {
-      toast.error("删除失败");
+      await apiMutate(`/api/admin/coupons?id=${deletingCoupon.id}`, "DELETE");
+      toast.success("优惠券已删除");
+      setDeleteDialogOpen(false);
+      setDeletingCoupon(null);
+      fetchCoupons();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "删除失败");
     } finally {
       setIsMutating(false);
     }
@@ -239,18 +211,11 @@ export default function AdminCouponsContent() {
   const handleCleanExpired = async () => {
     setCleaningExpired(true);
     try {
-      const res = await fetch("/api/admin/coupons?mode=expired", {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || "清理完成");
-        if (data.deleted > 0) fetchCoupons();
-      } else {
-        toast.error(data.message || "清理失败");
-      }
-    } catch {
-      toast.error("清理失败");
+      const data = await apiMutate<{ message: string; deleted: number }>("/api/admin/coupons?mode=expired", "DELETE");
+      toast.success(data.message || "清理完成");
+      if (data.deleted > 0) fetchCoupons();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "清理失败");
     } finally {
       setCleaningExpired(false);
     }

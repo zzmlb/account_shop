@@ -26,6 +26,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 
 import { Button } from "@/components/ui/button";
 import PaginationBar from "@/components/shared/pagination";
@@ -206,19 +207,12 @@ export default function AdminOrdersPageContent() {
         if (to) params.set("dateTo", to);
         if (payment) params.set("paymentMethod", payment);
 
-        const res = await fetch(`/api/admin/orders?${params.toString()}`);
-        const data = await res.json();
-
-        if (!res.ok || !data.success) {
-          toast.error(data.message || "获取订单列表失败");
-          return;
-        }
-
+        const data = await apiFetch<{ orders: Order[]; pagination: { page: number; pageSize: number; total: number; totalPages: number }; stats?: typeof orderStats }>(`/api/admin/orders?${params.toString()}`);
         setOrders(data.orders);
         setPagination(data.pagination);
         if (data.stats) setOrderStats(data.stats);
-      } catch {
-        toast.error("网络错误，无法获取订单列表");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "获取订单列表失败");
       } finally {
         setLoading(false);
       }
@@ -269,22 +263,11 @@ export default function AdminOrdersPageContent() {
     const actionLabel = actionLabels[newStatus] || newStatus;
     setActionLoading(orderId);
     try {
-      const res = await fetch(`/api/admin/orders?id=${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        toast.error(data.message || `${actionLabel}失败`);
-        return;
-      }
-
+      const data = await apiMutate<{ message: string }>(`/api/admin/orders?id=${orderId}`, "PUT", { status: newStatus });
       toast.success(data.message || `${actionLabel}成功`);
       fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
-    } catch {
-      toast.error(`网络错误，${actionLabel}操作失败`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `${actionLabel}失败`);
     } finally {
       setActionLoading(null);
     }
@@ -335,21 +318,12 @@ export default function AdminOrdersPageContent() {
     }
     setBatchCancelling(true);
     try {
-      const res = await fetch("/api/admin/orders", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, status: "CANCELLED" }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setSelectedOrders(new Set());
-        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
-      } else {
-        toast.error(data.message || "批量取消失败");
-      }
-    } catch {
-      toast.error("网络错误，批量取消失败");
+      const data = await apiMutate<{ message: string }>("/api/admin/orders", "PATCH", { ids, status: "CANCELLED" });
+      toast.success(data.message);
+      setSelectedOrders(new Set());
+      fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "批量取消失败");
     } finally {
       setBatchCancelling(false);
     }
@@ -366,21 +340,12 @@ export default function AdminOrdersPageContent() {
     }
     setBatchDelivering(true);
     try {
-      const res = await fetch("/api/admin/orders", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, status: "DELIVERED" }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setSelectedOrders(new Set());
-        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
-      } else {
-        toast.error(data.message || "批量发货失败");
-      }
-    } catch {
-      toast.error("网络错误，批量发货失败");
+      const data = await apiMutate<{ message: string }>("/api/admin/orders", "PATCH", { ids, status: "DELIVERED" });
+      toast.success(data.message);
+      setSelectedOrders(new Set());
+      fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "批量发货失败");
     } finally {
       setBatchDelivering(false);
     }
@@ -446,10 +411,9 @@ export default function AdminOrdersPageContent() {
       if (dateFrom) params.set("dateFrom", dateFrom);
       if (dateTo) params.set("dateTo", dateTo);
 
-      const res = await fetch(`/api/admin/orders?${params.toString()}`);
-      const data = await res.json();
+      const data = await apiFetch<{ orders: Order[] }>(`/api/admin/orders?${params.toString()}`);
 
-      if (!data.success || !data.orders?.length) {
+      if (!data.orders?.length) {
         toast.error("没有可导出的订单数据");
         return;
       }

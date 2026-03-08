@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { exportToCsv } from "@/lib/csv-export";
 import ConfirmDialog from "@/components/shared/confirm-dialog";
 
@@ -149,17 +150,11 @@ export default function AdminUsersPageContent() {
       if (dateFrom) params.set("dateFrom", dateFrom);
       if (dateTo) params.set("dateTo", dateTo);
 
-      const res = await fetch(`/api/admin/users?${params.toString()}`);
-      const data = await res.json();
-
-      if (data.success) {
-        setUsers(data.users);
-        setPagination(data.pagination);
-      } else {
-        toast.error("获取用户列表失败");
-      }
-    } catch {
-      toast.error("网络错误，获取用户列表失败");
+      const data = await apiFetch<{ users: ApiUser[]; pagination: Pagination }>(`/api/admin/users?${params.toString()}`);
+      setUsers(data.users);
+      setPagination(data.pagination);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "获取用户列表失败");
     } finally {
       setLoading(false);
     }
@@ -186,21 +181,11 @@ export default function AdminUsersPageContent() {
     setConfirmAction(null);
     setActionLoading(user.id);
     try {
-      const res = await fetch(`/api/admin/users?id=${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success(`已${actionLabel}用户 ${user.username}`);
-        await fetchUsers();
-      } else {
-        toast.error(data.error || `${actionLabel}失败`);
-      }
-    } catch {
-      toast.error(`网络错误，${actionLabel}失败`);
+      await apiMutate(`/api/admin/users?id=${user.id}`, "PUT", { status: newStatus });
+      toast.success(`已${actionLabel}用户 ${user.username}`);
+      await fetchUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `${actionLabel}失败`);
     } finally {
       setActionLoading(null);
     }
@@ -222,27 +207,17 @@ export default function AdminUsersPageContent() {
 
     setActionLoading(selectedUser.id);
     try {
-      const res = await fetch(`/api/admin/users?id=${selectedUser.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balanceAdjust: amount }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success(
-          `已调整用户 ${selectedUser.username} 的余额：${amount >= 0 ? "+" : ""}${amount.toFixed(2)}`
-        );
-        setBalanceDialogOpen(false);
-        setSelectedUser(null);
-        setAdjustAmount("");
-        setAdjustReason("");
-        await fetchUsers();
-      } else {
-        toast.error(data.error || "余额调整失败");
-      }
-    } catch {
-      toast.error("网络错误，余额调整失败");
+      await apiMutate(`/api/admin/users?id=${selectedUser.id}`, "PUT", { balanceAdjust: amount });
+      toast.success(
+        `已调整用户 ${selectedUser.username} 的余额：${amount >= 0 ? "+" : ""}${amount.toFixed(2)}`
+      );
+      setBalanceDialogOpen(false);
+      setSelectedUser(null);
+      setAdjustAmount("");
+      setAdjustReason("");
+      await fetchUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "余额调整失败");
     } finally {
       setActionLoading(null);
     }
@@ -292,21 +267,12 @@ export default function AdminUsersPageContent() {
     setConfirmAction(null);
     setBatchLoading(true);
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, status: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message);
-        setSelectedUsers(new Set());
-        fetchUsers();
-      } else {
-        toast.error(data.message || `批量${actionLabel}失败`);
-      }
-    } catch {
-      toast.error(`网络错误，批量${actionLabel}失败`);
+      const data = await apiMutate<{ message: string }>("/api/admin/users", "PATCH", { ids, status: newStatus });
+      toast.success(data.message);
+      setSelectedUsers(new Set());
+      fetchUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `批量${actionLabel}失败`);
     } finally {
       setBatchLoading(false);
     }

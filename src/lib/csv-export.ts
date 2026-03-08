@@ -33,7 +33,13 @@ export function exportToCsv<T>(
 }
 
 export function escapeCsvField(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+  // Prevent CSV injection: prefix formula-triggering characters with a single-quote
+  // Excel/Sheets interpret cells starting with =, +, -, @, \t, \r as formulas
+  if (/^[=+\-@\t\r]/.test(value)) {
+    value = `'${value}`;
+  }
+
+  if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("'")) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
