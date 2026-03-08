@@ -153,6 +153,7 @@ export default function AdminProductsPageContent() {
   const [formStockCount, setFormStockCount] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formImage, setFormImage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [formStatus, setFormStatus] = useState<"上架" | "下架">("上架");
 
   // ---------------------------------------------------------------------------
@@ -487,6 +488,31 @@ export default function AdminProductsPageContent() {
     }
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.success) {
+        setFormImage(data.url);
+        toast.success("图片上传成功");
+      } else {
+        toast.error(data.message || "上传失败");
+      }
+    } catch {
+      toast.error("上传失败");
+    } finally {
+      setIsUploading(false);
+      // Reset file input so the same file can be re-selected
+      e.target.value = "";
+    }
+  }
+
   function resetForm() {
     setFormName("");
     setFormSlug("");
@@ -735,17 +761,40 @@ export default function AdminProductsPageContent() {
                 {/* 商品图片 */}
                 <div className="grid gap-2">
                   <Label htmlFor="product-image">
-                    商品图片 URL{" "}
+                    商品图片{" "}
                     <span className="text-xs text-[var(--muted-foreground)]">
-                      (可选，支持 http/https 链接)
+                      (可选，可上传或输入链接)
                     </span>
                   </Label>
-                  <Input
-                    id="product-image"
-                    placeholder="https://example.com/image.jpg"
-                    value={formImage}
-                    onChange={(e) => setFormImage(e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="product-image"
+                      placeholder="https://example.com/image.jpg"
+                      value={formImage}
+                      onChange={(e) => setFormImage(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="default"
+                      disabled={isUploading}
+                      onClick={() => document.getElementById("image-upload-input")?.click()}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "上传"
+                      )}
+                    </Button>
+                    <input
+                      id="image-upload-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </div>
                   {formImage.trim() && (
                     <div className="relative mt-1 h-32 w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}

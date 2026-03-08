@@ -30,16 +30,17 @@ import { useAuthStore } from "@/stores/auth-store";
 
 /* ---- Types ---- */
 interface OrderItem {
-  product: { name: string; slug: string };
+  productName: string;
+  productSlug: string;
   quantity: number;
-  unitPrice: string;
+  unitPrice: number;
 }
 
 interface Order {
   id: string;
   orderNo: string;
   status: string;
-  totalAmount: string;
+  totalAmount: number;
   createdAt: string;
   email: string;
   items: OrderItem[];
@@ -75,7 +76,7 @@ function formatDate(iso: string): string {
 function buildProductSummary(items: OrderItem[]): string {
   if (items.length === 0) return "未知商品";
   const first = items[0];
-  const label = `${first.product.name}${first.quantity > 1 ? ` x${first.quantity}` : ""}`;
+  const label = `${first.productName}${first.quantity > 1 ? ` x${first.quantity}` : ""}`;
   if (items.length > 1) return `${label} 等${items.length}件`;
   return label;
 }
