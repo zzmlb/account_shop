@@ -13,7 +13,6 @@ import {
   Upload,
   Bell,
   Crown,
-  Loader2,
   RefreshCw,
   RotateCcw,
   Shield,
@@ -243,8 +242,51 @@ export default function AdminOverviewPageContent() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      <div className="space-y-6 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-7 w-32 rounded bg-[var(--muted)]" />
+            <div className="mt-2 h-3 w-56 rounded bg-[var(--muted)]" />
+          </div>
+          <div className="h-9 w-24 rounded-[var(--radius-md)] bg-[var(--muted)]" />
+        </div>
+        {/* Stats cards skeleton */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-3 w-16 rounded bg-[var(--muted)]" />
+                  <div className="h-6 w-20 rounded bg-[var(--muted)]" />
+                </div>
+                <div className="h-10 w-10 rounded-[var(--radius-md)] bg-[var(--muted)]" />
+              </div>
+              <div className="mt-3 h-3 w-24 rounded bg-[var(--muted)]" />
+            </div>
+          ))}
+        </div>
+        {/* Chart + table skeleton */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
+            <div className="h-4 w-28 rounded bg-[var(--muted)]" />
+            <div className="mt-4 h-56 rounded bg-[var(--muted)]" />
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
+            <div className="h-4 w-28 rounded bg-[var(--muted)]" />
+            <div className="mt-4 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-[var(--muted)]" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 w-2/3 rounded bg-[var(--muted)]" />
+                    <div className="h-2 w-1/3 rounded bg-[var(--muted)]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

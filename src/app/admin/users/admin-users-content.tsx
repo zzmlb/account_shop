@@ -83,6 +83,8 @@ export default function AdminUsersPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -119,6 +121,12 @@ export default function AdminUsersPageContent() {
       if (debouncedSearch) {
         params.set("search", debouncedSearch);
       }
+      if (roleFilter) {
+        params.set("role", roleFilter);
+      }
+      if (statusFilter) {
+        params.set("status", statusFilter);
+      }
 
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       const data = await res.json();
@@ -134,7 +142,7 @@ export default function AdminUsersPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearch, pageSize]);
+  }, [currentPage, debouncedSearch, pageSize, roleFilter, statusFilter]);
 
   useEffect(() => {
     fetchUsers();
@@ -279,15 +287,36 @@ export default function AdminUsersPageContent() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
-        <Input
-          placeholder="搜索用户名或邮箱..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search & Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
+          <Input
+            placeholder="搜索用户名或邮箱..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <select
+          value={roleFilter}
+          onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+          className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
+        >
+          <option value="">全部角色</option>
+          <option value="USER">用户</option>
+          <option value="ADMIN">管理员</option>
+          <option value="SUPER_ADMIN">超级管理员</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+          className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
+        >
+          <option value="">全部状态</option>
+          <option value="ACTIVE">正常</option>
+          <option value="BANNED">已封禁</option>
+        </select>
       </div>
 
       {/* Users Table */}

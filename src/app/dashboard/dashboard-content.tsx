@@ -12,7 +12,6 @@ import {
   TrendingUp,
   HelpCircle,
   Zap,
-  Loader2,
   Bell,
   RotateCcw,
   Megaphone,
@@ -250,8 +249,32 @@ export default function DashboardPageContent() {
   /* ---- Loading state ---- */
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      <div className="space-y-8 animate-pulse">
+        {/* Welcome skeleton */}
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-6">
+          <div className="h-3 w-20 rounded bg-[var(--muted)]" />
+          <div className="mt-3 h-6 w-48 rounded bg-[var(--muted)]" />
+          <div className="mt-2 h-3 w-64 rounded bg-[var(--muted)]" />
+        </div>
+        {/* Stats grid skeleton */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
+              <div className="flex items-center gap-4">
+                <div className="h-11 w-11 shrink-0 rounded-[var(--radius-md)] bg-[var(--muted)]" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-3 w-16 rounded bg-[var(--muted)]" />
+                  <div className="h-5 w-12 rounded bg-[var(--muted)]" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Chart skeleton */}
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
+          <div className="h-4 w-32 rounded bg-[var(--muted)]" />
+          <div className="mt-4 h-48 rounded bg-[var(--muted)]" />
+        </div>
       </div>
     );
   }

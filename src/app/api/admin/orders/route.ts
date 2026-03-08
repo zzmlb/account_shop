@@ -256,30 +256,68 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // If refunding, handle balance refund in a transaction
+    // If refunding, handle balance refund + return card keys in a transaction
     if (newStatus === "REFUNDED") {
-      if (!existing.userId) {
-        // Guest order - just update the status, no balance to refund
-        const updated = await db.order.update({
-          where: { id },
-          data: { status: newStatus },
-          include: {
-            user: {
-              select: { id: true, username: true, email: true },
+      // Get order items with card keys for returning
+      const orderWithItems = await db.order.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              cardKeys: { where: { status: "SOLD" } },
             },
-            items: {
-              include: {
-                product: {
-                  select: { id: true, name: true, slug: true },
+          },
+        },
+      });
+
+      if (!existing.userId) {
+        // Guest order - return card keys and update status, no balance to refund
+        const updated = await db.$transaction(async (tx) => {
+          // Return card keys to available
+          if (orderWithItems) {
+            for (const item of orderWithItems.items) {
+              if (item.cardKeys.length > 0) {
+                await tx.cardKey.updateMany({
+                  where: { orderId: item.id, status: "SOLD" },
+                  data: { status: "AVAILABLE", orderId: null, soldAt: null },
+                });
+                await tx.product.update({
+                  where: { id: item.productId },
+                  data: {
+                    stockCount: { increment: item.cardKeys.length },
+                    soldCount: { decrement: item.cardKeys.length },
+                  },
+                });
+              }
+            }
+          }
+
+          return tx.order.update({
+            where: { id },
+            data: { status: newStatus },
+            include: {
+              user: {
+                select: { id: true, username: true, email: true },
+              },
+              items: {
+                include: {
+                  product: {
+                    select: { id: true, name: true, slug: true },
+                  },
                 },
               },
             },
-          },
+          });
         });
+
+        log.info(
+          { adminId: session.id, orderId: id, orderNo: existing.orderNo },
+          "Admin refunded guest order with card key return"
+        );
 
         return NextResponse.json({
           success: true,
-          message: "订单已退款（游客订单，无余额退还）",
+          message: "订单已退款（游客订单，卡密已归还库存）",
           order: formatOrder(updated),
         });
       }
@@ -287,6 +325,25 @@ export async function PUT(request: NextRequest) {
       const refundAmount = Number(existing.payAmount);
 
       const updated = await db.$transaction(async (tx) => {
+        // Return card keys to available
+        if (orderWithItems) {
+          for (const item of orderWithItems.items) {
+            if (item.cardKeys.length > 0) {
+              await tx.cardKey.updateMany({
+                where: { orderId: item.id, status: "SOLD" },
+                data: { status: "AVAILABLE", orderId: null, soldAt: null },
+              });
+              await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                  stockCount: { increment: item.cardKeys.length },
+                  soldCount: { decrement: item.cardKeys.length },
+                },
+              });
+            }
+          }
+        }
+
         // Update order status
         const updatedOrder = await tx.order.update({
           where: { id },
@@ -329,6 +386,11 @@ export async function PUT(request: NextRequest) {
         return updatedOrder;
       });
 
+      log.info(
+        { adminId: session.id, orderId: id, orderNo: existing.orderNo, refundAmount },
+        "Admin refunded order with card key return and balance refund"
+      );
+
       // In-app notification
       createNotification({
         userId: existing.userId!,
@@ -340,7 +402,7 @@ export async function PUT(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `订单已退款，已退还 ${refundAmount} 至用户余额`,
+        message: `订单已退款，已退还 ¥${refundAmount.toFixed(2)} 至用户余额，卡密已归还库存`,
         order: formatOrder(updated),
       });
     }

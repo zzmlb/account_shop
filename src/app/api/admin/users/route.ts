@@ -53,6 +53,9 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const pageSize = Math.max(1, Math.min(50, parseInt(searchParams.get("pageSize") || "20", 10)));
 
+    const role = searchParams.get("role");
+    const status = searchParams.get("status");
+
     const where: Record<string, unknown> = {};
 
     if (search) {
@@ -60,6 +63,14 @@ export async function GET(request: NextRequest) {
         { username: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
       ];
+    }
+
+    if (role && ["USER", "ADMIN", "SUPER_ADMIN"].includes(role.toUpperCase())) {
+      where.role = role.toUpperCase();
+    }
+
+    if (status && ["ACTIVE", "BANNED", "INACTIVE"].includes(status.toUpperCase())) {
+      where.status = status.toUpperCase();
     }
 
     const [users, total] = await Promise.all([

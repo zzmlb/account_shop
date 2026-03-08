@@ -163,8 +163,17 @@ export default function AdminMessagesContent() {
 
       {/* Messages list */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-32 rounded bg-[var(--muted)]" />
+                <div className="h-5 w-16 rounded-full bg-[var(--muted)]" />
+              </div>
+              <div className="h-3 w-3/4 rounded bg-[var(--muted)]" />
+              <div className="h-3 w-1/2 rounded bg-[var(--muted)]" />
+            </div>
+          ))}
         </div>
       ) : messages.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { SlidersHorizontal, Loader2, Search, X, LayoutGrid, List, ShoppingCart, Star } from "lucide-react";
+import { SlidersHorizontal, Search, X, LayoutGrid, List, ShoppingCart, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
@@ -301,8 +301,18 @@ export default function ProductsPageContent() {
         {/* Product grid */}
         <div className="flex-1">
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
+                  <div className="mb-3 h-40 rounded-[var(--radius-md)] bg-[var(--muted)]" />
+                  <div className="mb-2 h-4 w-3/4 rounded bg-[var(--muted)]" />
+                  <div className="mb-3 h-3 w-1/2 rounded bg-[var(--muted)]" />
+                  <div className="flex items-center justify-between">
+                    <div className="h-5 w-16 rounded bg-[var(--muted)]" />
+                    <div className="h-3 w-12 rounded bg-[var(--muted)]" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
