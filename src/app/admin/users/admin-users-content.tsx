@@ -12,6 +12,8 @@ import {
   Users,
   Loader2,
   Download,
+  CalendarDays,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -87,6 +89,12 @@ export default function AdminUsersPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -129,6 +137,11 @@ export default function AdminUsersPageContent() {
       if (statusFilter) {
         params.set("status", statusFilter);
       }
+      if (sortBy) {
+        params.set("sortBy", sortBy);
+      }
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
 
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       const data = await res.json();
@@ -144,7 +157,7 @@ export default function AdminUsersPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearch, pageSize, roleFilter, statusFilter]);
+  }, [currentPage, debouncedSearch, pageSize, roleFilter, statusFilter, sortBy, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchUsers();
@@ -219,6 +232,62 @@ export default function AdminUsersPageContent() {
       toast.error("网络错误，余额调整失败");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // Clear selection when filters/page change
+  useEffect(() => {
+    setSelectedUsers(new Set());
+  }, [currentPage, debouncedSearch, roleFilter, statusFilter, sortBy, dateFrom, dateTo]);
+
+  const allSelected =
+    users.length > 0 && users.every((u) => selectedUsers.has(u.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(users.map((u) => u.id)));
+    }
+  };
+
+  const toggleSelectUser = (id: string) => {
+    setSelectedUsers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBatchStatus = async (newStatus: "ACTIVE" | "BANNED") => {
+    const ids = Array.from(selectedUsers);
+    if (ids.length === 0) return;
+    const actionLabel = newStatus === "BANNED" ? "封禁" : "解封";
+    if (!window.confirm(`确定要批量${actionLabel} ${ids.length} 个用户吗？`)) return;
+
+    setBatchLoading(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setSelectedUsers(new Set());
+        fetchUsers();
+      } else {
+        toast.error(data.message || `批量${actionLabel}失败`);
+      }
+    } catch {
+      toast.error(`网络错误，批量${actionLabel}失败`);
+    } finally {
+      setBatchLoading(false);
     }
   };
 
@@ -321,7 +390,136 @@ export default function AdminUsersPageContent() {
           <option value="ACTIVE">正常</option>
           <option value="BANNED">已封禁</option>
         </select>
+        <select
+          value={sortBy}
+          onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+          className="h-9 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
+        >
+          <option value="">最新注册</option>
+          <option value="oldest">最早注册</option>
+          <option value="balance-desc">余额最高</option>
+          <option value="balance-asc">余额最低</option>
+        </select>
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2",
+              dateFrom || dateTo
+                ? "text-[var(--primary)] border-[var(--primary)]/50"
+                : "text-[var(--muted-foreground)]"
+            )}
+            onClick={() => setShowDateFilter(!showDateFilter)}
+          >
+            <CalendarDays className="h-4 w-4" />
+            {dateFrom || dateTo ? `${dateFrom || "..."}~${dateTo || "..."}` : "注册日期"}
+          </Button>
+          {showDateFilter && (
+            <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4 shadow-lg">
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                    开始日期
+                  </label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => {
+                      setDateFrom(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
+                    结束日期
+                  </label>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => {
+                      setDateTo(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                      setCurrentPage(1);
+                      setShowDateFilter(false);
+                    }}
+                  >
+                    清除
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setShowDateFilter(false)}
+                  >
+                    确认
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Bulk action bar */}
+      {selectedUsers.size > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-2.5">
+          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+          <span className="text-sm">
+            已选择 <strong>{selectedUsers.size}</strong> 个用户
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              className="gap-1.5"
+              onClick={() => handleBatchStatus("BANNED")}
+              disabled={batchLoading}
+            >
+              {batchLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Ban className="h-3.5 w-3.5" />
+              )}
+              批量封禁
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => handleBatchStatus("ACTIVE")}
+              disabled={batchLoading}
+            >
+              {batchLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-3.5 w-3.5" />
+              )}
+              批量解封
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedUsers(new Set())}
+            >
+              取消选择
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Users Table */}
       <Card>
@@ -330,6 +528,15 @@ export default function AdminUsersPageContent() {
             <table className="w-full" aria-label="用户管理列表">
               <thead>
                 <tr className="border-b border-[var(--border)]">
+                  <th className="w-10 px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected && users.length > 0}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
+                      aria-label="全选"
+                    />
+                  </th>
                   <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     用户名
                   </th>
@@ -363,19 +570,21 @@ export default function AdminUsersPageContent() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse border-b border-[var(--border)]">
-                      <td className="px-4 py-3"><div className="h-4 w-8 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-3 py-3"><div className="h-4 w-4 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-4 w-32 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-5 w-14 rounded-full bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-5 w-12 rounded-full bg-[var(--muted)]" /></td>
-                      <td className="px-4 py-3"><div className="h-4 w-16 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3 hidden lg:table-cell"><div className="h-4 w-16 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-14 rounded bg-[var(--muted)]" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-14 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3 text-right"><div className="ml-auto h-8 w-8 rounded bg-[var(--muted)]" /></td>
                     </tr>
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-12">
+                    <td colSpan={10} className="text-center py-12">
                       <Users className="h-10 w-10 mx-auto text-[var(--muted-foreground)] mb-3" />
                       <p className="text-sm text-[var(--muted-foreground)]">
                         暂无用户数据
@@ -386,11 +595,24 @@ export default function AdminUsersPageContent() {
                   users.map((user) => {
                     const role = roleConfig[user.role];
                     const isActionLoading = actionLoading === user.id;
+                    const isSelected = selectedUsers.has(user.id);
                     return (
                       <tr
                         key={user.id}
-                        className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors"
+                        className={cn(
+                          "border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors",
+                          isSelected && "bg-[var(--primary)]/5"
+                        )}
                       >
+                        <td className="px-3 py-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectUser(user.id)}
+                            className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
+                            aria-label={`选择用户 ${user.username}`}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <span className="text-sm font-medium text-[var(--foreground)]">
                             {user.username}

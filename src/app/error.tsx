@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RotateCcw, Home, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function RootError({
@@ -28,14 +28,43 @@ export default function RootError({
         <h1 className="mb-2 text-2xl font-bold text-[var(--foreground)]">
           出了点问题
         </h1>
-        <p className="mb-8 text-[var(--muted-foreground)]">
-          页面遇到了意外错误，请稍后重试。如果问题持续存在，请联系客服。
+        <p className="mb-4 text-[var(--muted-foreground)]">
+          页面遇到了意外错误，请稍后重试。
         </p>
 
+        {/* Recovery suggestions */}
+        <div className="mb-6 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] p-4 text-left text-sm text-[var(--muted-foreground)]">
+          <p className="mb-2 font-medium text-[var(--foreground)]">可以尝试：</p>
+          <ul className="list-inside list-disc space-y-1">
+            <li>刷新页面重试</li>
+            <li>清除浏览器缓存后再试</li>
+            <li>如问题持续存在，请联系客服</li>
+          </ul>
+        </div>
+
+        {/* Error reference ID */}
+        {error.digest && (
+          <p className="mb-6 text-xs text-[var(--muted-foreground)]">
+            错误参考码：<code className="rounded bg-[var(--muted)] px-1.5 py-0.5 font-mono">{error.digest}</code>
+          </p>
+        )}
+
         <div className="flex items-center justify-center gap-3">
-          <Button onClick={reset}>重试</Button>
-          <Button variant="outline" asChild>
-            <Link href="/">返回首页</Link>
+          <Button onClick={reset} className="gap-1.5">
+            <RotateCcw className="h-4 w-4" />
+            重试
+          </Button>
+          <Button variant="outline" asChild className="gap-1.5">
+            <Link href="/">
+              <Home className="h-4 w-4" />
+              返回首页
+            </Link>
+          </Button>
+          <Button variant="ghost" asChild className="gap-1.5">
+            <Link href="/contact">
+              <MessageCircle className="h-4 w-4" />
+              联系客服
+            </Link>
           </Button>
         </div>
       </div>

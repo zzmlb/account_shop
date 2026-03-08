@@ -12,6 +12,7 @@ import {
   Copy,
   Search,
   AlertTriangle,
+  Shuffle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -222,6 +223,14 @@ export default function AdminCouponsContent() {
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.success("已复制优惠码");
+  };
+
+  const generateCode = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    setFormCode(code);
+    setFormErrors((prev) => ({ ...prev, code: "" }));
   };
 
   const isExpired = (expireAt: string) => new Date(expireAt) < new Date();
@@ -481,16 +490,27 @@ export default function AdminCouponsContent() {
               <Label htmlFor="coupon-code">
                 优惠码 <span className="text-[var(--destructive)]">*</span>
               </Label>
-              <Input
-                id="coupon-code"
-                placeholder="例如: WELCOME20"
-                value={formCode}
-                onChange={(e) => {
-                  setFormCode(e.target.value.toUpperCase());
-                  setFormErrors((prev) => ({ ...prev, code: "" }));
-                }}
-                className={`font-mono ${formErrors.code ? "border-[var(--destructive)]" : ""}`}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="coupon-code"
+                  placeholder="例如: WELCOME20"
+                  value={formCode}
+                  onChange={(e) => {
+                    setFormCode(e.target.value.toUpperCase());
+                    setFormErrors((prev) => ({ ...prev, code: "" }));
+                  }}
+                  className={`flex-1 font-mono ${formErrors.code ? "border-[var(--destructive)]" : ""}`}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={generateCode}
+                  title="自动生成优惠码"
+                >
+                  <Shuffle className="h-4 w-4" />
+                </Button>
+              </div>
               {formErrors.code && (
                 <p className="text-xs text-[var(--destructive)]">{formErrors.code}</p>
               )}

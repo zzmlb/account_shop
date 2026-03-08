@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, ArrowRight, Zap, Shield } from "lucide-react";
+import { ShoppingBag, ArrowRight, Zap, Shield, Clock } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -123,6 +123,10 @@ export default function CartSheet() {
                 <span className="flex items-center gap-1">
                   <Zap className="h-3 w-3 text-[var(--primary)]" />
                   自动发货
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-[var(--primary)]" />
+                  付款后秒到
                 </span>
                 <span className="flex items-center gap-1">
                   <Shield className="h-3 w-3 text-[var(--success)]" />
