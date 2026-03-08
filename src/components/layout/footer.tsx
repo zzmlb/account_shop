@@ -84,7 +84,7 @@ export default function Footer() {
           </p>
 
           {/* Social + Payment */}
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6">
             {/* Social links */}
             <div className="flex items-center gap-2">
               {[
@@ -103,7 +103,7 @@ export default function Footer() {
               ))}
             </div>
 
-            <div className="h-4 w-px bg-[var(--border)]" />
+            <div className="hidden h-4 w-px bg-[var(--border)] md:block" />
 
             {/* Payment methods */}
             <div className="flex items-center gap-4">

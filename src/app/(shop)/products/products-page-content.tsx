@@ -204,7 +204,7 @@ export default function ProductsPageContent() {
         </div>
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
-          <div className="hidden sm:flex items-center rounded-[var(--radius-md)] border border-[var(--border)] p-0.5">
+          <div className="flex items-center rounded-[var(--radius-md)] border border-[var(--border)] p-0.5">
             <button
               onClick={() => setViewMode("grid")}
               className={`flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] transition-colors ${

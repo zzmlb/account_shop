@@ -88,6 +88,7 @@ export default function ProductDetailContent({
   const addItem = useCartStore((s) => s.addItem);
   const cartItems = useCartStore((s) => s.items);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addItem);
+  const recentlyViewedItems = useRecentlyViewedStore((s) => s.items);
   const inCartItem = cartItems.find((i) => i.productId === product.id);
   const inCartQty = inCartItem?.quantity ?? 0;
 
@@ -484,6 +485,38 @@ export default function ProductDetailContent({
           </div>
         </div>
       )}
+
+      {/* Recently viewed (exclude current product) */}
+      {(() => {
+        const recent = recentlyViewedItems.filter((i) => i.slug !== product.slug).slice(0, 4);
+        if (recent.length === 0) return null;
+        return (
+          <div className="mt-12">
+            <div className="mb-6 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-[var(--primary)]" />
+              <h2 className="text-xl font-bold text-[var(--foreground)]">
+                最近浏览
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {recent.map((item) => (
+                <ProductCard
+                  key={item.slug}
+                  productId={item.productId}
+                  name={item.name}
+                  slug={item.slug}
+                  price={item.price}
+                  originalPrice={item.originalPrice}
+                  image={item.image}
+                  stockCount={1}
+                  soldCount={0}
+                  categoryName={item.categoryName}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
