@@ -593,6 +593,8 @@ export default function AdminOrdersPageContent() {
             size="sm"
             className={`gap-2 ${dateFrom || dateTo ? "text-[var(--primary)] border-[var(--primary)]/50" : "text-[var(--muted-foreground)]"}`}
             onClick={() => setShowDateFilter(!showDateFilter)}
+            aria-expanded={showDateFilter}
+            aria-label="日期范围筛选"
           >
             <CalendarDays className="h-4 w-4" />
             {dateFrom || dateTo ? `${dateFrom || "..."}~${dateTo || "..."}` : "日期范围"}

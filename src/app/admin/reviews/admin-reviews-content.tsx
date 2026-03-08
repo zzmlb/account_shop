@@ -315,6 +315,7 @@ export default function AdminReviewsContent() {
             setRatingFilter(e.target.value);
             setPage(1);
           }}
+          aria-label="按评分筛选"
           className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">全部评分</option>
@@ -330,6 +331,7 @@ export default function AdminReviewsContent() {
             setVisibleFilter(e.target.value);
             setPage(1);
           }}
+          aria-label="按可见状态筛选"
           className="h-10 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">全部状态</option>

@@ -209,6 +209,8 @@ export default function BalancePageContent() {
               <button
                 key={amount}
                 onClick={() => { setSelectedAmount(amount); setCustomAmount(""); }}
+                aria-label={`选择充值金额 ¥${amount}`}
+                aria-pressed={selectedAmount === amount && !customAmount}
                 className={cn(
                   "flex flex-col items-center rounded-[var(--radius-md)] border-2 p-4 transition-all",
                   selectedAmount === amount && !customAmount
@@ -230,6 +232,7 @@ export default function BalancePageContent() {
                 max="10000"
                 step="1"
                 placeholder="10 ~ 10000"
+                aria-label="自定义充值金额，范围10-10000"
                 value={customAmount}
                 onChange={(e) => {
                   setCustomAmount(e.target.value);
