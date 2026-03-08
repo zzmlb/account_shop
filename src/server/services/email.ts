@@ -1,15 +1,46 @@
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("email");
 
+// Resend client (preferred if configured)
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+// SMTP transport (fallback when Resend not configured)
+const smtpTransport = (() => {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || "587", 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) return null;
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+})();
+
 const FROM_EMAIL = process.env.EMAIL_FROM || "PJ37 Digital <noreply@pj37.com>";
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || "PJ37 Digital";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+/** Send email via Resend or SMTP */
+async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  if (resend) {
+    await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+    return true;
+  }
+  if (smtpTransport) {
+    await smtpTransport.sendMail({ from: FROM_EMAIL, to, subject, html });
+    return true;
+  }
+  log.warn("No email transport configured (set RESEND_API_KEY or SMTP_HOST/SMTP_USER/SMTP_PASS)");
+  return false;
+}
 
 interface OrderEmailData {
   to: string;
@@ -178,20 +209,14 @@ function passwordResetHtml(data: PasswordResetEmailData): string {
 }
 
 export async function sendOrderConfirmation(data: OrderEmailData): Promise<boolean> {
-  if (!resend) {
-    log.warn("Resend not configured, skipping order confirmation email");
-    return false;
-  }
-
   try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: data.to,
-      subject: `订单确认 - ${data.orderNo} | ${SITE_NAME}`,
-      html: orderConfirmationHtml(data),
-    });
-    log.info({ orderNo: data.orderNo, to: data.to }, "Order confirmation email sent");
-    return true;
+    const sent = await sendEmail(
+      data.to,
+      `订单确认 - ${data.orderNo} | ${SITE_NAME}`,
+      orderConfirmationHtml(data),
+    );
+    if (sent) log.info({ orderNo: data.orderNo, to: data.to }, "Order confirmation email sent");
+    return sent;
   } catch (error) {
     log.error({ err: error, orderNo: data.orderNo }, "Failed to send order confirmation email");
     return false;
@@ -199,20 +224,14 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<boole
 }
 
 export async function sendCardKeyDelivery(data: CardKeyEmailData): Promise<boolean> {
-  if (!resend) {
-    log.warn("Resend not configured, skipping card key delivery email");
-    return false;
-  }
-
   try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: data.to,
-      subject: `卡密发货 - ${data.orderNo} | ${SITE_NAME}`,
-      html: cardKeyDeliveryHtml(data),
-    });
-    log.info({ orderNo: data.orderNo, to: data.to }, "Card key delivery email sent");
-    return true;
+    const sent = await sendEmail(
+      data.to,
+      `卡密发货 - ${data.orderNo} | ${SITE_NAME}`,
+      cardKeyDeliveryHtml(data),
+    );
+    if (sent) log.info({ orderNo: data.orderNo, to: data.to }, "Card key delivery email sent");
+    return sent;
   } catch (error) {
     log.error({ err: error, orderNo: data.orderNo }, "Failed to send card key delivery email");
     return false;
@@ -220,20 +239,14 @@ export async function sendCardKeyDelivery(data: CardKeyEmailData): Promise<boole
 }
 
 export async function sendPasswordReset(data: PasswordResetEmailData): Promise<boolean> {
-  if (!resend) {
-    log.warn("Resend not configured, skipping password reset email");
-    return false;
-  }
-
   try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: data.to,
-      subject: `密码重置 | ${SITE_NAME}`,
-      html: passwordResetHtml(data),
-    });
-    log.info({ to: data.to }, "Password reset email sent");
-    return true;
+    const sent = await sendEmail(
+      data.to,
+      `密码重置 | ${SITE_NAME}`,
+      passwordResetHtml(data),
+    );
+    if (sent) log.info({ to: data.to }, "Password reset email sent");
+    return sent;
   } catch (error) {
     log.error({ err: error }, "Failed to send password reset email");
     return false;

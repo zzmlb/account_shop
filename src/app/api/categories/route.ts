@@ -28,7 +28,10 @@ export async function GET() {
       productCount: c._count.products,
     }));
 
-    return NextResponse.json({ success: true, categories: formatted });
+    const response = NextResponse.json({ success: true, categories: formatted });
+    // Categories rarely change — cache for 5 minutes, stale for 30min
+    response.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=1800");
+    return response;
   } catch (error) {
     log.error({ err: error }, "Categories API error");
     return NextResponse.json(

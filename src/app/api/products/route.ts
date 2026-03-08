@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       createdAt: p.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       products: formatted,
       pagination: {
@@ -102,6 +102,9 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / pageSize),
       },
     });
+    // Cache public product listings for 60s, allow stale for 5min while revalidating
+    response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    return response;
   } catch (error) {
     log.error({ err: error }, "Products API error");
     return NextResponse.json(
