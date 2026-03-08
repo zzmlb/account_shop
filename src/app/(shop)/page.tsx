@@ -4,9 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import HeroSection from "@/components/home/hero-section";
 import CategoryGrid from "@/components/home/category-grid";
 import FeaturedProducts from "@/components/home/featured-products";
+import NewArrivals from "@/components/home/new-arrivals";
 import TrustSection from "@/components/home/trust-section";
 import RecentlyViewed from "@/components/home/recently-viewed";
-import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/constants";
+import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -76,15 +77,46 @@ function FeaturedProductsSkeleton() {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/products?search={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
+
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
       <HeroSection />
       <Suspense fallback={<CategoryGridSkeleton />}>
         <CategoryGrid />
       </Suspense>
       <Suspense fallback={<FeaturedProductsSkeleton />}>
         <FeaturedProducts />
+      </Suspense>
+      <Suspense fallback={<FeaturedProductsSkeleton />}>
+        <NewArrivals />
       </Suspense>
       <RecentlyViewed />
       <TrustSection />

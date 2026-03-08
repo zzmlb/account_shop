@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 import { notFound } from "next/navigation";
 import ArticleDetailContent from "./article-detail-content";
 import type { Metadata } from "next";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,26 @@ export default async function ArticleDetailPage({ params }: Props) {
     },
   });
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    datePublished: article.createdAt.toISOString(),
+    dateModified: article.updatedAt.toISOString(),
+    url: `${SITE_URL}/articles/${article.slug}`,
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+    },
+    articleSection: article.category,
+  };
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
     <ArticleDetailContent
       article={{
         id: article.id,
@@ -84,5 +104,6 @@ export default async function ArticleDetailPage({ params }: Props) {
         date: r.createdAt.toISOString().split("T")[0],
       }))}
     />
+    </>
   );
 }
