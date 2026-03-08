@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, ChevronRight, Eye, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ export interface ArticleItem {
   slug: string;
   excerpt: string;
   category: string;
+  tags?: string[];
   date: string;
   readCount: number;
 }
@@ -23,6 +25,13 @@ interface ArticlesPageContentProps {
 
 const CATEGORIES = ["全部", "公告", "教程", "帮助"] as const;
 
+const TAG_TO_CATEGORY: Record<string, string> = {
+  faq: "帮助",
+  guide: "教程",
+  announcement: "公告",
+  "after-sale": "帮助",
+};
+
 const categoryColorMap: Record<string, string> = {
   公告: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
   教程: "bg-[var(--primary)]/10 text-[var(--primary)]",
@@ -32,7 +41,16 @@ const categoryColorMap: Record<string, string> = {
 export default function ArticlesPageContent({
   articles,
 }: ArticlesPageContentProps) {
-  const [activeCategory, setActiveCategory] = useState<string>("全部");
+  const searchParams = useSearchParams();
+  const tagParam = searchParams.get("tag");
+
+  // Map tag param to initial category
+  const initialCategory = tagParam
+    ? TAG_TO_CATEGORY[tagParam] || "全部"
+    : "全部";
+
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
+  const [activeTag] = useState<string | null>(tagParam);
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredArticles = useMemo(() => {
@@ -40,6 +58,11 @@ export default function ArticlesPageContent({
 
     if (activeCategory !== "全部") {
       result = result.filter((a) => a.category === activeCategory);
+    }
+
+    // If tag param is set and doesn't map to a category, filter by tag directly
+    if (activeTag && !TAG_TO_CATEGORY[activeTag]) {
+      result = result.filter((a) => a.tags?.includes(activeTag));
     }
 
     if (searchQuery.trim()) {
@@ -52,7 +75,7 @@ export default function ArticlesPageContent({
     }
 
     return result;
-  }, [articles, activeCategory, searchQuery]);
+  }, [articles, activeCategory, activeTag, searchQuery]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

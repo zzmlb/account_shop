@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     );
 
     const body = await request.json();
-    const { items, paymentMethod, email } = body;
+    const { items, paymentMethod, email, couponCode } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -128,6 +128,60 @@ export async function POST(request: NextRequest) {
       productDetails.push({ product, quantity: item.quantity, unitPrice: Number(product.price) });
     }
 
+    // Validate and apply coupon discount server-side
+    let discount = 0;
+    let couponId: string | null = null;
+
+    if (couponCode && typeof couponCode === "string") {
+      const coupon = await db.coupon.findUnique({
+        where: { code: couponCode.trim().toUpperCase() },
+      });
+
+      if (coupon && coupon.isActive) {
+        const now = new Date();
+        const isValid =
+          now >= coupon.startAt &&
+          now <= coupon.expireAt &&
+          (coupon.maxUses === null || coupon.usedCount < coupon.maxUses);
+
+        const minAmount = coupon.minAmount ? Number(coupon.minAmount) : 0;
+
+        if (isValid && totalAmount >= minAmount) {
+          const couponValue = Number(coupon.value);
+          if (coupon.type === "FIXED") {
+            discount = Math.min(couponValue, totalAmount);
+          } else {
+            discount = Math.round((totalAmount * couponValue) / 100 * 100) / 100;
+            discount = Math.min(discount, totalAmount);
+          }
+          couponId = coupon.id;
+
+          // Increment coupon usage count
+          await db.coupon.update({
+            where: { id: coupon.id },
+            data: { usedCount: { increment: 1 } },
+          });
+
+          // Track user-coupon association if user is logged in
+          if (session?.id) {
+            await db.userCoupon.create({
+              data: {
+                userId: session.id,
+                couponId: coupon.id,
+                usedAt: now,
+              },
+            });
+          }
+
+          log.info({ couponCode: coupon.code, discount, orderId: couponId }, "Coupon applied to order");
+        } else {
+          log.warn({ couponCode: coupon.code, reason: "invalid or unmet conditions" }, "Coupon rejected");
+        }
+      }
+    }
+
+    const payAmount = Math.max(0, Math.round((totalAmount - discount) * 100) / 100);
+
     // Create order with items
     const order = await db.order.create({
       data: {
@@ -135,9 +189,10 @@ export async function POST(request: NextRequest) {
         userId: session?.id,
         email: email || null,
         totalAmount,
-        payAmount: totalAmount,
+        payAmount,
         status: "PENDING",
         paymentMethod: paymentMethod || null,
+        couponId,
         expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min expiry
         items: {
           create: productDetails.map((d) => ({
@@ -154,7 +209,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    log.info({ orderNo: order.orderNo, userId: session?.id, total: Number(order.totalAmount) }, "Order created");
+    log.info({ orderNo: order.orderNo, userId: session?.id, total: Number(order.totalAmount), payAmount: Number(order.payAmount), discount, couponId }, "Order created");
 
     return NextResponse.json({
       success: true,
@@ -162,6 +217,8 @@ export async function POST(request: NextRequest) {
         id: order.id,
         orderNo: order.orderNo,
         totalAmount: Number(order.totalAmount),
+        payAmount: Number(order.payAmount),
+        discount,
         status: order.status,
         createdAt: order.createdAt.toISOString(),
         expireAt: order.expireAt.toISOString(),

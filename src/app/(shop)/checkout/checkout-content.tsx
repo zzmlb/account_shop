@@ -55,6 +55,12 @@ const PAYMENT_METHODS = [
   },
 ] as const;
 
+interface CouponState {
+  code: string;
+  couponId: string;
+  discount: number;
+}
+
 export default function CheckoutContent() {
   const router = useRouter();
   const { items, clearCart, getTotal, getItemCount } = useCartStore();
@@ -62,6 +68,7 @@ export default function CheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState("balance");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponState | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -124,6 +131,7 @@ export default function CheckoutContent() {
           })),
           paymentMethod,
           email,
+          couponCode: appliedCoupon?.code || undefined,
         }),
       });
 
@@ -320,6 +328,7 @@ export default function CheckoutContent() {
             onSubmit={handleSubmit}
             submitLabel="提交订单"
             isSubmitting={isSubmitting}
+            onCouponChange={setAppliedCoupon}
           />
         </div>
       </div>

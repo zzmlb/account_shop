@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       id: a.id,
       title: a.title,
       slug: a.slug,
-      excerpt: a.content.replace(/<[^>]*>/g, "").slice(0, 150),
+      excerpt: a.content.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 150),
       category: a.category,
       tags: a.tags,
       viewCount: a.viewCount,

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { db } from "@/server/db";
 import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
 
@@ -18,11 +19,19 @@ export default async function ArticlesPage() {
     id: a.id,
     title: a.title,
     slug: a.slug,
-    excerpt: a.content.length > 120 ? a.content.slice(0, 120) + "..." : a.content,
+    excerpt: (() => {
+      const text = a.content.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+      return text.length > 120 ? text.slice(0, 120) + "..." : text;
+    })(),
     category: a.category,
+    tags: a.tags,
     date: a.createdAt.toISOString().split("T")[0],
     readCount: a.viewCount,
   }));
 
-  return <ArticlesPageContent articles={articles} />;
+  return (
+    <Suspense>
+      <ArticlesPageContent articles={articles} />
+    </Suspense>
+  );
 }

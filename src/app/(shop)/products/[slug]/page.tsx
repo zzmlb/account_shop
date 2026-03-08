@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import ProductDetailContent from "./product-detail-content";
 import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -69,16 +70,7 @@ export default async function ProductDetailPage({
   });
 
   if (!product) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">
-          商品未找到
-        </h1>
-        <p className="mt-2 text-[var(--muted-foreground)]">
-          该商品可能已下架或链接无效
-        </p>
-      </div>
-    );
+    notFound();
   }
 
   // Get related products from same category

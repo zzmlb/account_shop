@@ -8,23 +8,31 @@ import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 
+interface CouponState {
+  code: string;
+  couponId: string;
+  discount: number;
+}
+
 interface CartSummaryProps {
   onSubmit?: () => void;
   submitLabel?: string;
   isSubmitting?: boolean;
+  onCouponChange?: (coupon: CouponState | null) => void;
 }
 
 export default function CartSummary({
   onSubmit,
   submitLabel = "确认支付",
   isSubmitting = false,
+  onCouponChange,
 }: CartSummaryProps) {
   const { items, getTotal } = useCartStore();
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [, setCouponId] = useState<string | null>(null);
+  const [couponId, setCouponId] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   const subtotal = getTotal();
@@ -51,17 +59,20 @@ export default function CartSummary({
         setDiscount(data.discount);
         setCouponId(data.couponId);
         setCouponError("");
+        onCouponChange?.({ code: couponCode.trim().toUpperCase(), couponId: data.couponId, discount: data.discount });
       } else {
         setCouponApplied(false);
         setDiscount(0);
         setCouponId(null);
         setCouponError(data.message || "无效的优惠码");
+        onCouponChange?.(null);
       }
     } catch {
       setCouponApplied(false);
       setDiscount(0);
       setCouponId(null);
       setCouponError("验证优惠码时出错，请重试");
+      onCouponChange?.(null);
     } finally {
       setIsValidating(false);
     }
@@ -73,6 +84,7 @@ export default function CartSummary({
     setCouponError("");
     setDiscount(0);
     setCouponId(null);
+    onCouponChange?.(null);
   };
 
   return (

@@ -34,6 +34,8 @@ interface OrderData {
   email: string;
   paymentMethod: string;
   totalAmount: number;
+  payAmount?: number;
+  discount?: number;
   createdAt: string;
   items: OrderItem[];
   cardKeys: string[];
@@ -313,14 +315,44 @@ export default function OrderDetailContent({ id }: { id: string }) {
               </span>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[var(--foreground)]">
-                订单总额
-              </span>
-              <span className="text-xl font-bold text-[var(--primary)]">
-                {formatPrice(order.totalAmount)}
-              </span>
-            </div>
+            {order.discount && order.discount > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted-foreground)]">
+                    商品小计
+                  </span>
+                  <span className="text-sm text-[var(--foreground)]">
+                    {formatPrice(order.totalAmount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--success)]">
+                    优惠折扣
+                  </span>
+                  <span className="text-sm text-[var(--success)]">
+                    -{formatPrice(order.discount)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-[var(--foreground)]">
+                    实付金额
+                  </span>
+                  <span className="text-xl font-bold text-[var(--primary)]">
+                    {formatPrice(order.payAmount ?? order.totalAmount)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[var(--foreground)]">
+                  订单总额
+                </span>
+                <span className="text-xl font-bold text-[var(--primary)]">
+                  {formatPrice(order.totalAmount)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

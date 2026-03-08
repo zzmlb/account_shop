@@ -61,8 +61,8 @@ export default function ProductDetailContent({
 
   const handleAddToCart = () => {
     addItem({
-      id: product.id,
-      productId: product.id,
+      id: product.slug,
+      productId: product.slug,
       name: product.name,
       slug: product.slug,
       price: product.price,
@@ -77,8 +77,8 @@ export default function ProductDetailContent({
 
   const handleBuyNow = () => {
     addItem({
-      id: product.id,
-      productId: product.id,
+      id: product.slug,
+      productId: product.slug,
       name: product.name,
       slug: product.slug,
       price: product.price,

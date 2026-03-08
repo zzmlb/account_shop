@@ -50,12 +50,18 @@ export async function GET(
     const includeCardKeys =
       order.status === "DELIVERED" || order.status === "PAID";
 
+    const totalAmount = Number(order.totalAmount);
+    const payAmount = Number(order.payAmount);
+    const discount = Math.round((totalAmount - payAmount) * 100) / 100;
+
     const formatted = {
       orderNo: order.orderNo,
       status: order.status,
       email: order.email,
       paymentMethod: order.paymentMethod,
-      totalAmount: Number(order.totalAmount),
+      totalAmount,
+      payAmount,
+      discount: discount > 0 ? discount : 0,
       createdAt: order.createdAt.toISOString(),
       items: order.items.map((item) => ({
         name: item.product.name,
