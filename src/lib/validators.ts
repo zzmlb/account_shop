@@ -24,7 +24,9 @@ export const registerSchema = z
     password: z
       .string()
       .min(6, "密码至少6个字符")
-      .max(50, "密码最多50个字符"),
+      .max(50, "密码最多50个字符")
+      .regex(/[A-Za-z]/, "密码需包含至少一个字母")
+      .regex(/[0-9]/, "密码需包含至少一个数字"),
     confirmPassword: z
       .string()
       .min(1, "请确认密码"),
@@ -181,7 +183,12 @@ export const createReviewSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "请输入当前密码"),
-  newPassword: z.string().min(6, "新密码至少6个字符").max(50, "密码最多50个字符"),
+  newPassword: z
+    .string()
+    .min(6, "新密码至少6个字符")
+    .max(50, "密码最多50个字符")
+    .regex(/[A-Za-z]/, "密码需包含至少一个字母")
+    .regex(/[0-9]/, "密码需包含至少一个数字"),
 });
 
 /* ------------------------------------------------------------------ */

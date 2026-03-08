@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("contact");
 
@@ -54,10 +55,10 @@ export async function POST(request: NextRequest) {
 
     await db.contactMessage.create({
       data: {
-        name: name.trim(),
+        name: stripHtml(name),
         email: email.trim().toLowerCase(),
-        subject: subject.trim(),
-        message: message.trim(),
+        subject: stripHtml(subject),
+        message: stripHtml(message),
       },
     });
 

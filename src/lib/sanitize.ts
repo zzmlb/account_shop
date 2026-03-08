@@ -1,6 +1,14 @@
 import DOMPurify from "isomorphic-dompurify";
 
 /**
+ * Strip all HTML tags from a string. Use for plain-text user inputs
+ * (reviews, contact messages, etc.) as defense-in-depth.
+ */
+export function stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, "").trim();
+}
+
+/**
  * Sanitize HTML content to prevent XSS attacks.
  * Only allows safe tags used in article/content rendering.
  */

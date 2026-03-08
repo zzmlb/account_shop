@@ -73,6 +73,13 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  // Get review stats for aggregateRating schema
+  const reviewStats = await db.review.aggregate({
+    where: { productId: product.id, isVisible: true },
+    _avg: { rating: true },
+    _count: true,
+  });
+
   // Get related products from same category
   const relatedProducts = await db.product.findMany({
     where: {
@@ -112,6 +119,11 @@ export default async function ProductDetailPage({
     categoryName: p.category.name,
   }));
 
+  const avgRating = reviewStats._avg.rating
+    ? Math.round(reviewStats._avg.rating * 10) / 10
+    : null;
+  const reviewCount = reviewStats._count;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -129,6 +141,15 @@ export default async function ProductDetailPage({
         : "https://schema.org/OutOfStock",
       seller: { "@type": "Organization", name: SITE_NAME },
     },
+    ...(avgRating && reviewCount > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: avgRating,
+        reviewCount,
+        bestRating: 5,
+        worstRating: 1,
+      },
+    }),
   };
 
   return (

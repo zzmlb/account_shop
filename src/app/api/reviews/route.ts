@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { apiLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { createReviewSchema, formatZodError } from "@/lib/validators";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("reviews");
 
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
         productId,
         userId: session.id,
         rating,
-        content,
+        content: stripHtml(content),
       },
       include: {
         user: { select: { username: true, avatar: true } },
