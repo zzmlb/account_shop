@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { db } from "@/server/db";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import ArticlesPageContent, { type ArticleItem } from "./articles-page-content";
 
 export const revalidate = 120; // ISR: revalidate every 2 minutes
@@ -12,6 +13,7 @@ export const metadata = {
     description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
     type: "website" as const,
   },
+  alternates: { canonical: `${SITE_URL}/articles` },
 };
 
 export default async function ArticlesPage() {
@@ -34,9 +36,29 @@ export default async function ArticlesPage() {
     readCount: a.viewCount,
   }));
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `帮助中心 - ${SITE_NAME}`,
+    description: "浏览公告、教程和常见问题，快速找到您需要的帮助",
+    url: `${SITE_URL}/articles`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    numberOfItems: articles.length,
+  };
+
   return (
-    <Suspense>
-      <ArticlesPageContent articles={articles} />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Suspense>
+        <ArticlesPageContent articles={articles} />
+      </Suspense>
+    </>
   );
 }

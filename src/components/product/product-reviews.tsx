@@ -237,15 +237,20 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
           <textarea
             value={formContent}
             onChange={(e) => setFormContent(e.target.value)}
-            placeholder="分享您的使用体验..."
+            placeholder="分享您的使用体验（至少5个字符）..."
             maxLength={1000}
             rows={3}
             className="mb-3 w-full resize-none rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
           />
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[var(--muted-foreground)]">
-              {formContent.length}/1000
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-[var(--muted-foreground)]">
+                {formContent.length}/1000
+              </span>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                提交后需审核才会显示
+              </span>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
