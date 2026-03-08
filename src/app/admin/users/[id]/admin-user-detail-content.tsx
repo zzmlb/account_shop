@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 interface UserDetail {
   id: string;
@@ -74,18 +74,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "destruct
   REFUNDED: { label: "已退款", variant: "outline" },
   EXPIRED: { label: "已过期", variant: "outline" },
 };
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "刚刚";
-  if (mins < 60) return `${mins}分钟前`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}小时前`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}天前`;
-  return formatDateTime(iso);
-}
 
 export default function AdminUserDetailContent({ userId }: { userId: string }) {
   const [user, setUser] = useState<UserDetail | null>(null);

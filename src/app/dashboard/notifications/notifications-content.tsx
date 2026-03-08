@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { timeAgo } from "@/lib/utils";
 import ConfirmDialog from "@/components/shared/confirm-dialog";
 
 interface Notification {
@@ -49,24 +50,6 @@ const typeConfig = {
   SYSTEM: { icon: Megaphone, label: "系统", color: "text-purple-500", bg: "bg-purple-500/10" },
   COUPON: { icon: Ticket, label: "优惠", color: "text-pink-500", bg: "bg-pink-500/10" },
 };
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const date = new Date(dateStr).getTime();
-  const diff = now - date;
-
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return `${minutes}分钟前`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}小时前`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}天前`;
-
-  return new Date(dateStr).toLocaleDateString("zh-CN");
-}
 
 function getDateGroup(dateStr: string): string {
   const now = new Date();

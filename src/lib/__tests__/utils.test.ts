@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { cn, formatPrice, formatDateTime, formatDateTimeFull, formatDate, slugify } from "../utils";
+import { describe, it, expect, vi } from "vitest";
+import { cn, formatPrice, formatDateTime, formatDateTimeFull, formatDate, timeAgo, slugify } from "../utils";
 
 describe("cn", () => {
   it("merges class names", () => {
@@ -90,5 +90,56 @@ describe("slugify", () => {
 
   it("preserves numbers and underscores", () => {
     expect(slugify("product_123")).toBe("product_123");
+  });
+});
+
+describe("timeAgo", () => {
+  it("returns '刚刚' for just now", () => {
+    expect(timeAgo(new Date().toISOString())).toBe("刚刚");
+  });
+
+  it("returns minutes ago", () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    expect(timeAgo(fiveMinAgo)).toBe("5分钟前");
+  });
+
+  it("returns hours ago", () => {
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    expect(timeAgo(threeHoursAgo)).toBe("3小时前");
+  });
+
+  it("returns days ago", () => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    expect(timeAgo(sevenDaysAgo)).toBe("7天前");
+  });
+
+  it("returns formatted date for 30+ days ago", () => {
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    const result = timeAgo(sixtyDaysAgo);
+    expect(result).toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it("returns '刚刚' for future dates", () => {
+    const future = new Date(Date.now() + 60000).toISOString();
+    expect(timeAgo(future)).toBe("刚刚");
+  });
+
+  it("returns dash for invalid date", () => {
+    expect(timeAgo("invalid")).toBe("-");
+  });
+
+  it("handles boundary: exactly 1 minute ago", () => {
+    const oneMinAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    expect(timeAgo(oneMinAgo)).toBe("1分钟前");
+  });
+
+  it("handles boundary: exactly 1 hour ago", () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    expect(timeAgo(oneHourAgo)).toBe("1小时前");
+  });
+
+  it("handles boundary: exactly 1 day ago", () => {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    expect(timeAgo(oneDayAgo)).toBe("1天前");
   });
 });
