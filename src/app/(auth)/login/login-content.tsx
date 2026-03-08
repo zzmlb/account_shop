@@ -190,15 +190,21 @@ export default function LoginContent() {
         </div>
       </div>
 
-      {/* Social login buttons (placeholder) */}
+      {/* Social login buttons (coming soon) */}
       <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" disabled className="w-full">
+        <Button variant="outline" disabled className="w-full relative">
           <Github className="h-4 w-4" />
           GitHub
+          <span className="absolute -top-2 -right-2 rounded-full bg-[var(--muted)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--muted-foreground)]">
+            即将上线
+          </span>
         </Button>
-        <Button variant="outline" disabled className="w-full">
+        <Button variant="outline" disabled className="w-full relative">
           <Chrome className="h-4 w-4" />
           Google
+          <span className="absolute -top-2 -right-2 rounded-full bg-[var(--muted)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--muted-foreground)]">
+            即将上线
+          </span>
         </Button>
       </div>
 

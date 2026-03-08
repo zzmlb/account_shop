@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("admin/reviews");
 
@@ -185,7 +186,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const trimmedReply = reply.trim();
+    const trimmedReply = stripHtml(reply);
     const updated = await db.review.update({
       where: { id },
       data: {

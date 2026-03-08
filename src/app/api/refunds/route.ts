@@ -3,6 +3,7 @@ import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("refunds");
 
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
       data: {
         orderId,
         userId: session.id,
-        reason: reason.trim(),
+        reason: stripHtml(reason),
         amount: order.payAmount,
       },
     });

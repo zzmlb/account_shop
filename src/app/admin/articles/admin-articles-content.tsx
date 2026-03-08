@@ -36,6 +36,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/shared/rich-text-editor"),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]" /> }
+);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -333,7 +339,7 @@ export default function AdminArticlesPageContent() {
               新建文章
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>新建文章</DialogTitle>
               <DialogDescription>
@@ -380,13 +386,11 @@ export default function AdminArticlesPageContent() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="articleContent">内容</Label>
-                <textarea
-                  id="articleContent"
-                  className="flex min-h-[160px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-                  value={createContent}
-                  onChange={(e) => setCreateContent(e.target.value)}
-                  placeholder="请输入文章内容..."
+                <Label>内容</Label>
+                <RichTextEditor
+                  content={createContent}
+                  onChange={setCreateContent}
+                  placeholder="开始编辑文章内容..."
                 />
               </div>
             </div>
@@ -408,7 +412,7 @@ export default function AdminArticlesPageContent() {
 
       {/* Edit dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>编辑文章</DialogTitle>
             <DialogDescription>
@@ -455,13 +459,11 @@ export default function AdminArticlesPageContent() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editArticleContent">内容</Label>
-              <textarea
-                id="editArticleContent"
-                className="flex min-h-[160px] w-full rounded-[var(--radius-md)] border border-[var(--input)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] ring-offset-[var(--background)] placeholder:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                placeholder="请输入文章内容..."
+              <Label>内容</Label>
+              <RichTextEditor
+                content={editContent}
+                onChange={setEditContent}
+                placeholder="开始编辑文章内容..."
               />
             </div>
           </div>

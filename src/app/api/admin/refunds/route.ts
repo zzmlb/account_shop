@@ -5,6 +5,7 @@ import { createLogger } from "@/lib/logger";
 import { sendRefundNotification } from "@/server/services/email";
 import { createNotification } from "@/server/services/notification";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { stripHtml } from "@/lib/sanitize";
 
 const log = createLogger("admin/refunds");
 
@@ -204,7 +205,7 @@ export async function PUT(request: NextRequest) {
           where: { id },
           data: {
             status: "APPROVED",
-            adminNote: adminNote || null,
+            adminNote: adminNote ? stripHtml(adminNote) : null,
           },
         });
 

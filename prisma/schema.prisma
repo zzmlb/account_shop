@@ -105,6 +105,7 @@ model Product {
 
   @@index([categoryId])
   @@index([isActive, sortOrder])
+  @@index([isActive, createdAt])
   @@map("products")
 }
 
@@ -161,6 +162,7 @@ model Order {
   @@index([orderNo])
   @@index([status])
   @@index([status, createdAt])
+  @@index([status, expireAt])
   @@index([createdAt])
   @@map("orders")
 }
@@ -227,6 +229,8 @@ model Coupon {
 
   users UserCoupon[]
 
+  @@index([isActive, expireAt])
+  @@index([code, isActive])
   @@map("coupons")
 }
 
@@ -276,7 +280,7 @@ model Review {
   updatedAt  DateTime @updatedAt
 
   @@unique([userId, productId])
-  @@index([productId, isVisible])
+  @@index([productId, isVisible, createdAt])
   @@index([userId])
   @@map("reviews")
 }
@@ -294,6 +298,7 @@ model Article {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([isPublished, createdAt])
   @@map("articles")
 }
 
