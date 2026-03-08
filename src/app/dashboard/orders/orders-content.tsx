@@ -460,8 +460,8 @@ export default function OrdersPageContent() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-lg font-bold">
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                      <span className="text-base font-bold sm:text-lg">
                         ¥{order.payAmount.toFixed(2)}
                       </span>
                       {hasCardKeys && (

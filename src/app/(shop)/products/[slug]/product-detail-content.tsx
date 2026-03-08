@@ -85,6 +85,7 @@ export default function ProductDetailContent({
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
   const currentImage = (!mainImgError && allImages[selectedImageIdx]) || null;
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -181,10 +182,23 @@ export default function ProductDetailContent({
           {/* Main image */}
           <div
             ref={imageContainerRef}
-            className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] cursor-zoom-in"
+            className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] cursor-zoom-in touch-pan-y"
             onMouseEnter={() => currentImage && setIsZoomed(true)}
             onMouseLeave={() => setIsZoomed(false)}
             onMouseMove={handleImageMouseMove}
+            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+            onTouchEnd={(e) => {
+              if (allImages.length <= 1) return;
+              const diff = touchStartX.current - e.changedTouches[0].clientX;
+              if (Math.abs(diff) > 50) {
+                setMainImgError(false);
+                if (diff > 0) {
+                  setSelectedImageIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+                } else {
+                  setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+                }
+              }
+            }}
           >
             {currentImage ? (
               <Image
