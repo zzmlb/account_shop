@@ -12,7 +12,9 @@ import {
   Mail,
   ShieldCheck,
   ShoppingBag,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -100,7 +102,14 @@ export default function CheckoutContent() {
   }
 
   const handleSubmit = async () => {
-    if (!email.trim()) return;
+    if (!email.trim()) {
+      toast.error("请输入邮箱地址");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("请输入有效的邮箱地址");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -121,6 +130,9 @@ export default function CheckoutContent() {
 
       const orderData = await orderRes.json();
       if (!orderData.success) {
+        toast.error("下单失败", {
+          description: orderData.message || "请检查商品库存后重试",
+        });
         setIsSubmitting(false);
         return;
       }
@@ -133,6 +145,12 @@ export default function CheckoutContent() {
           body: JSON.stringify({ paymentMethod: "balance" }),
         });
         const payData = await payRes.json();
+
+        if (!payData.success) {
+          toast.error("支付失败", {
+            description: payData.message || "余额不足或支付异常",
+          });
+        }
 
         // Store order info for the detail page
         sessionStorage.setItem(
@@ -179,6 +197,9 @@ export default function CheckoutContent() {
       clearCart();
       router.push(`/order/${orderData.order.orderNo}`);
     } catch {
+      toast.error("网络错误", {
+        description: "请检查网络连接后重试",
+      });
       setIsSubmitting(false);
     }
   };

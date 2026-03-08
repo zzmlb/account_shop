@@ -3,6 +3,9 @@ import { loginSchema } from "@/lib/validators";
 import { db } from "@/server/db";
 import { verifyPassword, encodeSession } from "@/lib/auth";
 import { loginLimiter } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("auth/login");
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,6 +81,8 @@ export async function POST(request: NextRequest) {
       avatar: user.avatar,
     });
 
+    log.info({ userId: user.id, username: user.username }, "User logged in successfully");
+
     const response = NextResponse.json({
       success: true,
       user: userData,
@@ -92,7 +97,8 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Login error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

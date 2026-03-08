@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
 import { apiLimiter } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("orders");
 
 function generateOrderNo(): string {
   const now = new Date();
@@ -57,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, orders: formatted });
   } catch (error) {
-    console.error("Orders API error:", error);
+    log.error({ err: error }, "Orders fetch error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -95,9 +98,15 @@ export async function POST(request: NextRequest) {
     const productDetails = [];
 
     for (const item of items) {
-      const product = await db.product.findUnique({
+      // Look up by id first, fall back to slug for client compatibility
+      let product = await db.product.findUnique({
         where: { id: item.productId },
       });
+      if (!product) {
+        product = await db.product.findUnique({
+          where: { slug: item.productId },
+        });
+      }
 
       if (!product || !product.isActive) {
         return NextResponse.json(
@@ -144,6 +153,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    log.info({ orderNo: order.orderNo, userId: session?.id, total: Number(order.totalAmount) }, "Order created");
+
     return NextResponse.json({
       success: true,
       order: {
@@ -161,7 +172,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Create order error:", error);
+    log.error({ err: error }, "Create order error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
