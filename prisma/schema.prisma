@@ -152,6 +152,8 @@ model Order {
   @@index([userId])
   @@index([orderNo])
   @@index([status])
+  @@index([status, createdAt])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -190,6 +192,7 @@ model BalanceLog {
   createdAt   DateTime    @default(now())
 
   @@index([userId])
+  @@index([userId, createdAt])
   @@map("balance_logs")
 }
 

@@ -94,8 +94,48 @@ async function parseSession(
   return { isAuthenticated: false, isAdmin: false };
 }
 
+const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // --- CSRF Protection for API mutation requests ---
+  if (pathname.startsWith("/api/") && MUTATION_METHODS.has(request.method)) {
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+
+    // If Origin or Referer is present, verify it matches the request host
+    if (origin || referer) {
+      const requestHost = request.nextUrl.host;
+      let sourceHost: string | null = null;
+
+      if (origin) {
+        try {
+          sourceHost = new URL(origin).host;
+        } catch {
+          return NextResponse.json(
+            { success: false, message: "Invalid request origin" },
+            { status: 403 }
+          );
+        }
+      } else if (referer) {
+        try {
+          sourceHost = new URL(referer).host;
+        } catch {
+          // Ignore invalid referer
+        }
+      }
+
+      if (sourceHost && sourceHost !== requestHost) {
+        return NextResponse.json(
+          { success: false, message: "跨站请求被拒绝" },
+          { status: 403 }
+        );
+      }
+    }
+  }
+
+  // --- Auth checks for page routes ---
   const sessionCookie = request.cookies.get("session")?.value;
 
   let isAuthenticated = false;
@@ -141,6 +181,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/:path*",
     "/dashboard/:path*",
     "/admin/:path*",
     "/login",

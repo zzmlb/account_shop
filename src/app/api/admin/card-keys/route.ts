@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const pageSize = Math.max(
       1,
-      Math.min(200, parseInt(searchParams.get("pageSize") || "50", 10))
+      Math.min(100, parseInt(searchParams.get("pageSize") || "50", 10))
     );
 
     const where: Record<string, unknown> = {};
