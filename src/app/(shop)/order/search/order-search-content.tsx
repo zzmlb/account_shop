@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface SearchResult {
   orderId: string;
@@ -64,6 +65,14 @@ export default function OrderSearchPageContent() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const [searchError, setSearchError] = useState("");
   const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
+  const user = useAuthStore((s) => s.user);
+
+  // Auto-fill email for logged-in users
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = async () => {
     if (!orderNo.trim()) {

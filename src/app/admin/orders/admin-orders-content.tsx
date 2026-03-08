@@ -20,6 +20,7 @@ import {
   Key,
   User,
   CreditCard,
+  CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -279,6 +280,111 @@ export default function AdminOrdersPageContent() {
 
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [batchCancelling, setBatchCancelling] = useState(false);
+
+  // Clear selection when filters/page change
+  useEffect(() => {
+    setSelectedOrders(new Set());
+  }, [currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter]);
+
+  const allSelected =
+    orders.length > 0 && orders.every((o) => selectedOrders.has(o.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedOrders(new Set());
+    } else {
+      setSelectedOrders(new Set(orders.map((o) => o.id)));
+    }
+  };
+
+  const toggleSelectOrder = (id: string) => {
+    setSelectedOrders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBatchCancel = async () => {
+    const ids = Array.from(selectedOrders);
+    const cancellable = orders.filter(
+      (o) => ids.includes(o.id) && (o.status === "PENDING" || o.status === "PAID")
+    );
+    if (cancellable.length === 0) {
+      toast.error("所选订单中没有可取消的订单（仅待支付/已支付可取消）");
+      return;
+    }
+    setBatchCancelling(true);
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status: "CANCELLED" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setSelectedOrders(new Set());
+        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo, paymentFilter);
+      } else {
+        toast.error(data.message || "批量取消失败");
+      }
+    } catch {
+      toast.error("网络错误，批量取消失败");
+    } finally {
+      setBatchCancelling(false);
+    }
+  };
+
+  const handleExportSelected = () => {
+    const selected = orders.filter((o) => selectedOrders.has(o.id));
+    if (selected.length === 0) {
+      toast.error("请先选择要导出的订单");
+      return;
+    }
+    const header = "订单号,用户,邮箱,商品,数量,原价,实付,支付方式,状态,创建时间,支付时间\n";
+    const rows = selected
+      .map((o) => {
+        const user = o.user?.username || "-";
+        const email = o.user?.email || o.email || "-";
+        const products = o.items.map((i) => i.productName).join("; ");
+        const qty = o.items.reduce((s, i) => s + i.quantity, 0);
+        const status = statusConfig[o.status]?.label || o.status;
+        const payment = formatPaymentMethod(o.paymentMethod);
+        const paidAt = o.paidAt ? formatDateTime(o.paidAt) : "-";
+        return [
+          o.orderNo,
+          user,
+          email,
+          `"${products}"`,
+          qty,
+          o.totalAmount.toFixed(2),
+          o.payAmount.toFixed(2),
+          payment,
+          status,
+          formatDateTime(o.createdAt),
+          paidAt,
+        ].join(",");
+      })
+      .join("\n");
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + header + rows], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders_selected_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`已导出 ${selected.length} 条订单`);
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -490,6 +596,48 @@ export default function AdminOrdersPageContent() {
         </select>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedOrders.size > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-4 py-2.5">
+          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+          <span className="text-sm">
+            已选择 <strong>{selectedOrders.size}</strong> 个订单
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={handleExportSelected}
+            >
+              <Download className="h-3.5 w-3.5" />
+              导出所选
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="gap-1.5"
+              onClick={handleBatchCancel}
+              disabled={batchCancelling}
+            >
+              {batchCancelling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5" />
+              )}
+              批量取消
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedOrders(new Set())}
+            >
+              取消选择
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Orders Table - Desktop */}
       <Card className="hidden md:block">
         <CardContent className="p-0">
@@ -497,6 +645,15 @@ export default function AdminOrdersPageContent() {
             <table className="w-full" aria-label="订单管理列表">
               <thead>
                 <tr className="border-b border-[var(--border)]">
+                  <th className="w-10 px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected && orders.length > 0}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
+                      aria-label="全选"
+                    />
+                  </th>
                   <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     订单号
                   </th>
@@ -527,6 +684,7 @@ export default function AdminOrdersPageContent() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse border-b border-[var(--border)]">
+                      <td className="px-3 py-3"><div className="h-4 w-4 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-[var(--muted)]" /></td>
                       <td className="px-4 py-3"><div className="h-4 w-28 rounded bg-[var(--muted)]" /></td>
@@ -539,7 +697,7 @@ export default function AdminOrdersPageContent() {
                   ))
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-12">
+                    <td colSpan={9} className="text-center py-12">
                       <Package className="h-10 w-10 mx-auto text-[var(--muted-foreground)] mb-3" />
                       <p className="text-sm text-[var(--muted-foreground)]">
                         暂无订单数据
@@ -556,13 +714,23 @@ export default function AdminOrdersPageContent() {
                       order.user?.email || order.email || "-";
                     const displayName =
                       order.user?.username || displayEmail;
+                    const isSelected = selectedOrders.has(order.id);
 
                     return (
                       <tr
                         key={order.id}
-                        className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors cursor-pointer"
+                        className={`border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors cursor-pointer ${isSelected ? "bg-[var(--primary)]/5" : ""}`}
                         onClick={() => setDetailOrder(order)}
                       >
+                        <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOrder(order.id)}
+                            className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
+                            aria-label={`选择订单 ${order.orderNo}`}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <span className="text-sm font-mono font-medium text-[var(--foreground)]">
                             {order.orderNo}
@@ -751,18 +919,30 @@ export default function AdminOrdersPageContent() {
               };
               const displayEmail = order.user?.email || order.email || "-";
               const displayName = order.user?.username || displayEmail;
+              const isSelected = selectedOrders.has(order.id);
 
               return (
                 <Card
                   key={order.id}
-                  className="cursor-pointer hover:bg-[var(--muted)]/50 transition-colors"
+                  className={`cursor-pointer hover:bg-[var(--muted)]/50 transition-colors ${isSelected ? "ring-1 ring-[var(--primary)]" : ""}`}
                   onClick={() => setDetailOrder(order)}
                 >
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-mono font-medium text-[var(--foreground)]">
-                        {order.orderNo}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOrder(order.id)}
+                            className="h-4 w-4 rounded border-[var(--input)] accent-[var(--primary)] cursor-pointer"
+                            aria-label={`选择订单 ${order.orderNo}`}
+                          />
+                        </div>
+                        <span className="text-sm font-mono font-medium text-[var(--foreground)]">
+                          {order.orderNo}
+                        </span>
+                      </div>
                       <Badge variant={status.variant} className={status.className}>
                         {status.label}
                       </Badge>

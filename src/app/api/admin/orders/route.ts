@@ -585,6 +585,68 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH - Batch update order statuses (admin only)
+export async function PATCH(request: NextRequest) {
+  try {
+    const rl = apiLimiter(getClientIp(request));
+    if (!rl.success) return rateLimitResponse(rl);
+
+    const { session, error } = getAdminSession(request);
+    if (!session) return error!;
+
+    const body = await request.json();
+    const { ids, status: newStatus } = body as { ids: string[]; status: string };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "请选择至少一个订单" },
+        { status: 400 }
+      );
+    }
+
+    if (ids.length > 100) {
+      return NextResponse.json(
+        { success: false, message: "单次批量操作最多100个订单" },
+        { status: 400 }
+      );
+    }
+
+    // Only allow batch cancel for safety (refund/deliver need individual review)
+    if (newStatus !== "CANCELLED") {
+      return NextResponse.json(
+        { success: false, message: "批量操作仅支持取消订单" },
+        { status: 400 }
+      );
+    }
+
+    // Only cancel orders that are PENDING or PAID
+    const result = await db.order.updateMany({
+      where: {
+        id: { in: ids },
+        status: { in: ["PENDING", "PAID"] },
+      },
+      data: { status: "CANCELLED" },
+    });
+
+    log.info(
+      { adminId: session.id, ids, affected: result.count },
+      "Admin batch cancelled orders"
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: `已取消 ${result.count} 个订单（${ids.length - result.count} 个订单状态不符，已跳过）`,
+      affected: result.count,
+    });
+  } catch (error) {
+    log.error({ err: error }, "Admin orders PATCH error");
+    return NextResponse.json(
+      { success: false, message: "服务器内部错误" },
+      { status: 500 }
+    );
+  }
+}
+
 // Helper to format an order for response
 function formatOrder(o: {
   id: string;
