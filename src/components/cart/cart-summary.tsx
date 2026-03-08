@@ -24,7 +24,7 @@ export default function CartSummary({
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [_couponId, setCouponId] = useState<string | null>(null);
+  const [, setCouponId] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   const subtotal = getTotal();

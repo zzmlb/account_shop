@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, favorites: formatted });
   } catch (error) {
-    console.error("Favorites GET error:", error);
+    log.error({ err: error }, "Favorites GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Favorites POST error:", error);
+    log.error({ err: error }, "Favorites POST error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -152,7 +152,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Favorites DELETE error:", error);
+    log.error({ err: error }, "Favorites DELETE error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

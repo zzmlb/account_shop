@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface Product {
   slug: string;
   price: number;
   originalPrice: number | null;
+  image: string | null;
   stock: number;
   sold: number;
   gradient: string;
@@ -45,11 +47,20 @@ function ProductCard({ product }: { product: Product }) {
         "hover:shadow-[0_8px_30px_rgba(108,92,231,0.2)]"
       )}
     >
-      {/* Image placeholder */}
+      {/* Product image or gradient fallback */}
       <div
         className="relative h-36 w-full overflow-hidden rounded-t-[var(--radius-lg)]"
-        style={{ background: product.gradient }}
+        style={product.image ? undefined : { background: product.gradient }}
       >
+        {product.image && (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
         {discount > 0 && (
           <Badge className="absolute left-3 top-3 bg-[var(--destructive)] text-[var(--destructive-foreground)]">
             -{discount}%
@@ -109,6 +120,7 @@ export default async function FeaturedProducts() {
     slug: p.slug,
     price: Number(p.price),
     originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    image: p.image,
     stock: p.stockCount,
     sold: p.soldCount,
     gradient: GRADIENTS[i % GRADIENTS.length],

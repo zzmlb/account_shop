@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("orders/pay");
 
 // Simulate payment - in production this would integrate with real payment gateway
 export async function POST(
@@ -159,7 +162,7 @@ export async function POST(
       cardKeys: allocatedKeys,
     });
   } catch (error) {
-    console.error("Payment error:", error);
+    log.error({ err: error }, "Payment error");
     return NextResponse.json(
       { success: false, message: "支付处理失败" },
       { status: 500 }

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("categories");
 
 export async function GET() {
   try {
@@ -27,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, categories: formatted });
   } catch (error) {
-    console.error("Categories API error:", error);
+    log.error({ err: error }, "Categories API error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

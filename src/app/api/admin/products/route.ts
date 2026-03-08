@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("admin/products");
 
 function isAdmin(role: string): boolean {
   const upper = role.toUpperCase();
@@ -100,7 +103,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, products: formatted });
   } catch (error) {
-    console.error("Admin products GET error:", error);
+    log.error({ err: error }, "Admin products GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -227,7 +230,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Admin products POST error:", error);
+    log.error({ err: error }, "Admin products POST error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -355,7 +358,7 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Admin products PUT error:", error);
+    log.error({ err: error }, "Admin products PUT error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -399,7 +402,7 @@ export async function DELETE(request: NextRequest) {
       message: "商品已下架",
     });
   } catch (error) {
-    console.error("Admin products DELETE error:", error);
+    log.error({ err: error }, "Admin products DELETE error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

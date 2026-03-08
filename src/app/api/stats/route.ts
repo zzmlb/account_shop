@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("stats");
 
 function formatCount(count: number): string {
   if (count >= 10000) {
@@ -38,7 +41,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Public stats GET error:", error);
+    log.error({ err: error }, "Public stats GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

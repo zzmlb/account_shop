@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("balance-logs");
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
       balance: user ? Number(user.balance) : 0,
     });
   } catch (error) {
-    console.error("Balance logs API error:", error);
+    log.error({ err: error }, "Balance logs API error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("products");
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,6 +10,9 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category");
     const search = searchParams.get("search");
     const sort = searchParams.get("sort");
+    const inStock = searchParams.get("inStock");
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "12", 10);
 
@@ -24,12 +30,26 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Build orderBy
+    if (inStock === "true") {
+      where.stockCount = { gt: 0 };
+    }
+
+    if (minPrice) {
+      where.price = { ...(where.price as Record<string, unknown> || {}), gte: parseFloat(minPrice) };
+    }
+    if (maxPrice) {
+      where.price = { ...(where.price as Record<string, unknown> || {}), lte: parseFloat(maxPrice) };
+    }
+
+    // Build orderBy (support both dash and underscore formats)
     let orderBy: Record<string, string> = { soldCount: "desc" };
     switch (sort) {
-      case "price_asc": orderBy = { price: "asc" }; break;
-      case "price_desc": orderBy = { price: "desc" }; break;
-      case "sales": orderBy = { soldCount: "desc" }; break;
+      case "price_asc":
+      case "price-asc": orderBy = { price: "asc" }; break;
+      case "price_desc":
+      case "price-desc": orderBy = { price: "desc" }; break;
+      case "sales":
+      case "best-selling": orderBy = { soldCount: "desc" }; break;
       case "newest": orderBy = { createdAt: "desc" }; break;
     }
 
@@ -72,7 +92,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Products API error:", error);
+    log.error({ err: error }, "Products API error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

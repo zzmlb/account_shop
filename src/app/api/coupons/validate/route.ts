@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
           : `已享受 ${couponValue}% 折扣，减免 ¥${discount.toFixed(2)}`,
     });
   } catch (error) {
-    console.error("Coupon validate error:", error);
+    log.error({ err: error }, "Coupon validate error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

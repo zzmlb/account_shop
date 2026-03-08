@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,14 +12,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { id: "email", name: "邮箱账号" },
-  { id: "social", name: "社交媒体" },
-  { id: "streaming", name: "流媒体" },
-  { id: "gaming", name: "游戏账号" },
-  { id: "software", name: "软件工具" },
-  { id: "vpn", name: "VPN 服务" },
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  productCount: number;
+}
 
 const SORT_OPTIONS = [
   { value: "default", label: "默认排序" },
@@ -36,6 +34,16 @@ interface ProductFiltersProps {
 export default function ProductFilters({ className }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setCategories(data.categories);
+      })
+      .catch(() => {});
+  }, []);
 
   const createQueryString = useCallback(
     (params: Record<string, string | null>) => {
@@ -57,20 +65,11 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
     router.push(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
   };
 
-  const selectedCategories = searchParams?.get("category")?.split(",") ?? [];
+  const selectedCategory = searchParams?.get("category") ?? "";
   const minPrice = searchParams?.get("minPrice") ?? "";
   const maxPrice = searchParams?.get("maxPrice") ?? "";
   const inStock = searchParams?.get("inStock") === "true";
   const sort = searchParams?.get("sort") ?? "default";
-
-  const toggleCategory = (categoryId: string) => {
-    const updated = selectedCategories.includes(categoryId)
-      ? selectedCategories.filter((c) => c !== categoryId)
-      : [...selectedCategories, categoryId];
-    updateFilter({
-      category: updated.length > 0 ? updated.join(",") : null,
-    });
-  };
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -104,42 +103,56 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
           商品分类
         </h4>
         <div className="space-y-2">
-          {CATEGORIES.map((category) => {
-            const isChecked = selectedCategories.includes(category.id);
+          {/* All categories option */}
+          <label className="flex cursor-pointer items-center gap-2">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!selectedCategory}
+              onClick={() => updateFilter({ category: null })}
+              className={cn(
+                "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[var(--input)] transition-colors",
+                !selectedCategory &&
+                  "border-[var(--primary)] bg-[var(--primary)]"
+              )}
+            >
+              {!selectedCategory && (
+                <span className="block h-2 w-2 rounded-full bg-white" />
+              )}
+            </button>
+            <span className="text-sm text-[var(--foreground)]">全部</span>
+          </label>
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.name;
             return (
               <label
-                key={category.id}
+                key={cat.id}
                 className="flex cursor-pointer items-center gap-2"
               >
                 <button
                   type="button"
-                  role="checkbox"
-                  aria-checked={isChecked}
-                  onClick={() => toggleCategory(category.id)}
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() =>
+                    updateFilter({
+                      category: isSelected ? null : cat.name,
+                    })
+                  }
                   className={cn(
-                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--input)] transition-colors",
-                    isChecked &&
-                      "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[var(--input)] transition-colors",
+                    isSelected &&
+                      "border-[var(--primary)] bg-[var(--primary)]"
                   )}
                 >
-                  {isChecked && (
-                    <svg
-                      className="h-3 w-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                  {isSelected && (
+                    <span className="block h-2 w-2 rounded-full bg-white" />
                   )}
                 </button>
                 <span className="text-sm text-[var(--foreground)]">
-                  {category.name}
+                  {cat.name}
+                </span>
+                <span className="ml-auto text-xs text-[var(--muted-foreground)]">
+                  {cat.productCount}
                 </span>
               </label>
             );

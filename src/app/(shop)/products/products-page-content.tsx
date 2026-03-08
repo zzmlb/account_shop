@@ -23,6 +23,7 @@ interface ApiProduct {
   category: string;
   price: number;
   originalPrice?: number;
+  image?: string | null;
   stock: number;
   salesCount: number;
 }
@@ -82,6 +83,7 @@ export default function ProductsPageContent() {
             slug: p.slug,
             price: p.price,
             originalPrice: p.originalPrice,
+            image: p.image || undefined,
             stockCount: p.stock,
             soldCount: p.salesCount,
             categoryName: p.category,

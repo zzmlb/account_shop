@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("orders/detail");
 
 export async function GET(
   request: NextRequest,
@@ -68,7 +71,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, order: formatted });
   } catch (error) {
-    console.error("Order detail API error:", error);
+    log.error({ err: error }, "Order detail API error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

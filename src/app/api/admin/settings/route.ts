@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("admin/settings");
 
 function isAdmin(role: string): boolean {
   const upper = role.toUpperCase();
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, settings });
   } catch (error) {
-    console.error("Admin settings GET error:", error);
+    log.error({ err: error }, "Admin settings GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -91,7 +94,7 @@ export async function PUT(request: NextRequest) {
       message: "设置已保存",
     });
   } catch (error) {
-    console.error("Admin settings PUT error:", error);
+    log.error({ err: error }, "Admin settings PUT error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

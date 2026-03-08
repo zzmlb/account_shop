@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, coupons: formatted });
   } catch (error) {
-    console.error("Coupons GET error:", error);
+    log.error({ err: error }, "Coupons GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

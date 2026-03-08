@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
       salesChart,
     });
   } catch (error) {
-    console.error("Admin stats GET error:", error);
+    log.error({ err: error }, "Admin stats GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeSession } from "@/lib/auth";
 import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("admin/articles");
 
 function isAdmin(role: string): boolean {
   const upper = role.toUpperCase();
@@ -104,7 +107,7 @@ export async function GET(request: NextRequest) {
       limit,
     });
   } catch (error) {
-    console.error("Admin articles GET error:", error);
+    log.error({ err: error }, "Admin articles GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -171,7 +174,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Admin articles POST error:", error);
+    log.error({ err: error }, "Admin articles POST error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -257,7 +260,7 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Admin articles PUT error:", error);
+    log.error({ err: error }, "Admin articles PUT error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -296,7 +299,7 @@ export async function DELETE(request: NextRequest) {
       message: "文章已删除",
     });
   } catch (error) {
-    console.error("Admin articles DELETE error:", error);
+    log.error({ err: error }, "Admin articles DELETE error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

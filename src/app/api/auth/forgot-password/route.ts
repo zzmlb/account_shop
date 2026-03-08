@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { forgotPasswordSchema } from "@/lib/validators";
 import { db } from "@/server/db";
 import { loginLimiter } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("auth/forgot-password");
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (user) {
       // TODO: In the future, generate a reset token, store it, and send an email.
       // For now we just accept the request silently.
-      console.log(`Password reset requested for user ${user.id}`);
+      log.info({ userId: user.id }, "Password reset requested");
     }
 
     // Always return the same success response regardless of whether the email exists
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
       message: "如果该邮箱已注册，我们会发送重置链接",
     });
   } catch (error) {
-    console.error("Forgot password error:", error);
+    log.error({ err: error }, "Forgot password error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

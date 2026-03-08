@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getSessionFromRequest } from "@/lib/auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("admin/categories");
 
 function isAdmin(role: string): boolean {
   const r = role.toUpperCase();
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, categories: formatted });
   } catch (error) {
-    console.error("Admin categories GET error:", error);
+    log.error({ err: error }, "Admin categories GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, category });
   } catch (error) {
-    console.error("Admin categories POST error:", error);
+    log.error({ err: error }, "Admin categories POST error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -157,7 +160,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, category: updated });
   } catch (error) {
-    console.error("Admin categories PUT error:", error);
+    log.error({ err: error }, "Admin categories PUT error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -202,7 +205,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: "分类已删除" });
   } catch (error) {
-    console.error("Admin categories DELETE error:", error);
+    log.error({ err: error }, "Admin categories DELETE error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }

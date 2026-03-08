@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Admin orders GET error:", error);
+    log.error({ err: error }, "Admin orders GET error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
@@ -330,7 +330,7 @@ export async function PUT(request: NextRequest) {
       order: formatOrder(updated),
     });
   } catch (error) {
-    console.error("Admin orders PUT error:", error);
+    log.error({ err: error }, "Admin orders PUT error");
     return NextResponse.json(
       { success: false, message: "服务器内部错误" },
       { status: 500 }
