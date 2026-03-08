@@ -7,6 +7,7 @@ import { Search, ChevronRight, Eye, Calendar, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import AnimatedSection from "@/components/shared/animated-section";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 export interface ArticleItem {
   id: string;
@@ -87,6 +88,10 @@ export default function ArticlesPageContent({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <Breadcrumb
+        items={[{ label: "帮助中心" }]}
+        className="mb-4"
+      />
       {/* Header */}
       <AnimatedSection className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">

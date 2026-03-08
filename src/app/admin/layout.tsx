@@ -84,6 +84,8 @@ export default function AdminLayout({
   const [notifCount, setNotifCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [pendingRefunds, setPendingRefunds] = useState(0);
+  const [pendingMessages, setPendingMessages] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +114,24 @@ export default function AdminLayout({
               setPendingRefunds(match ? parseInt(match[1], 10) : 0);
             } else {
               setPendingRefunds(0);
+            }
+            const msgNotif = (data.notifications || []).find(
+              (n: Notification) => n.id === "pending-messages"
+            );
+            if (msgNotif) {
+              const match = msgNotif.title.match(/(\d+)/);
+              setPendingMessages(match ? parseInt(match[1], 10) : 0);
+            } else {
+              setPendingMessages(0);
+            }
+            const orderNotif = (data.notifications || []).find(
+              (n: Notification) => n.id === "pending-orders"
+            );
+            if (orderNotif) {
+              const match = orderNotif.title.match(/(\d+)/);
+              setPendingOrders(match ? parseInt(match[1], 10) : 0);
+            } else {
+              setPendingOrders(0);
             }
           }
         })
@@ -182,6 +202,8 @@ export default function AdminLayout({
   const sidebarBadges: Record<string, number> = {};
   if (lowStockCount > 0) sidebarBadges["/admin/products"] = lowStockCount;
   if (pendingRefunds > 0) sidebarBadges["/admin/refunds"] = pendingRefunds;
+  if (pendingMessages > 0) sidebarBadges["/admin/messages"] = pendingMessages;
+  if (pendingOrders > 0) sidebarBadges["/admin/orders"] = pendingOrders;
 
   /* ---------- Sidebar nav content (shared between desktop + mobile) ---------- */
   const SidebarNav = ({ onLinkClick }: { onLinkClick?: () => void }) => (
