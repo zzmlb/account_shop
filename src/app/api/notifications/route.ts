@@ -145,7 +145,8 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete a notification
+// DELETE - Delete notification(s)
+// Supports single ?id=xxx or batch via JSON body { ids: [...] }
 export async function DELETE(request: NextRequest) {
   try {
     const rl = apiLimiter(getClientIp(request));
@@ -155,18 +156,56 @@ export async function DELETE(request: NextRequest) {
     if (!session) return error!;
 
     const id = new URL(request.url).searchParams.get("id");
-    if (!id) {
+
+    if (id) {
+      // Single delete via query param
+      await db.notification.deleteMany({
+        where: { id, userId: session.id },
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    // Batch delete via JSON body
+    let body: { ids?: unknown };
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
         { success: false, message: "缺少通知ID" },
         { status: 400 }
       );
     }
 
-    await db.notification.deleteMany({
-      where: { id, userId: session.id },
-    });
+    if (Array.isArray(body.ids) && body.ids.length > 0) {
+      if (body.ids.length > 200) {
+        return NextResponse.json(
+          { success: false, message: "单次最多删除200条通知" },
+          { status: 400 }
+        );
+      }
+      const validIds = body.ids.filter(
+        (v: unknown): v is string => typeof v === "string" && v.length > 0
+      );
+      if (validIds.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "无效的通知ID" },
+          { status: 400 }
+        );
+      }
+      const result = await db.notification.deleteMany({
+        where: { id: { in: validIds }, userId: session.id },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `已删除 ${result.count} 条通知`,
+        count: result.count,
+      });
+    }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { success: false, message: "缺少通知ID" },
+      { status: 400 }
+    );
   } catch (error) {
     log.error({ err: error }, "删除通知失败");
     return NextResponse.json(

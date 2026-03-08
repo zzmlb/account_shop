@@ -163,6 +163,60 @@ describe("createOrderSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects more than 50 item types", () => {
+    const items = Array.from({ length: 51 }, (_, i) => ({
+      productId: `prod-${i}`,
+      quantity: 1,
+    }));
+    const result = createOrderSchema.safeParse({ items });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts order without optional fields", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 2 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty productId", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "", quantity: 1 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts empty email string", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      email: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid email format", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      email: "not-an-email",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts couponCode up to 50 chars", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1 }],
+      couponCode: "A".repeat(50),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects non-integer quantity", () => {
+    const result = createOrderSchema.safeParse({
+      items: [{ productId: "abc", quantity: 1.5 }],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("createReviewSchema", () => {
@@ -184,11 +238,56 @@ describe("createReviewSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects rating below 1", () => {
+    const result = createReviewSchema.safeParse({
+      productId: "prod1",
+      rating: 0,
+      content: "Very bad product",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects too short content", () => {
     const result = createReviewSchema.safeParse({
       productId: "prod1",
       rating: 3,
       content: "好",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects content exceeding 1000 chars", () => {
+    const result = createReviewSchema.safeParse({
+      productId: "prod1",
+      rating: 4,
+      content: "x".repeat(1001),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts content at exactly 1000 chars", () => {
+    const result = createReviewSchema.safeParse({
+      productId: "prod1",
+      rating: 4,
+      content: "x".repeat(1000),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty productId", () => {
+    const result = createReviewSchema.safeParse({
+      productId: "",
+      rating: 3,
+      content: "Some review content",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-integer rating", () => {
+    const result = createReviewSchema.safeParse({
+      productId: "prod1",
+      rating: 3.5,
+      content: "Good enough product",
     });
     expect(result.success).toBe(false);
   });
@@ -209,6 +308,46 @@ describe("changePasswordSchema", () => {
       newPassword: "123456",
     });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects new password without number", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "OldPass1",
+      newPassword: "abcdefgh",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty current password", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "",
+      newPassword: "NewPass1",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects new password shorter than 6 chars", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "OldPass1",
+      newPassword: "Ab1",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects new password exceeding 50 chars", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "OldPass1",
+      newPassword: "A1" + "x".repeat(49),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts password with special characters", () => {
+    const result = changePasswordSchema.safeParse({
+      currentPassword: "old",
+      newPassword: "P@ssw0rd!",
+    });
+    expect(result.success).toBe(true);
   });
 });
 

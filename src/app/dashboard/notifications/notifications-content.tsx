@@ -16,11 +16,14 @@ import {
   Inbox,
   AlertCircle,
   Trash2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ConfirmDialog from "@/components/shared/confirm-dialog";
 
 interface Notification {
   id: string;
@@ -93,6 +96,9 @@ export default function NotificationsContent() {
   const [markingAll, setMarkingAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
 
   const fetchNotifications = useCallback(
     async (page: number, filter: "all" | "unread") => {
@@ -187,6 +193,59 @@ export default function NotificationsContent() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === notifications.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(notifications.map((n) => n.id)));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    setBatchDeleteConfirm(false);
+    if (selectedIds.size === 0) return;
+    setBatchDeleting(true);
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const deletedUnread = notifications.filter(
+          (n) => selectedIds.has(n.id) && !n.isRead
+        ).length;
+        setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
+        setUnreadCount((c) => Math.max(0, c - deletedUnread));
+        setSelectedIds(new Set());
+        toast.success(data.message || "批量删除成功");
+      } else {
+        toast.error(data.message || "批量删除失败");
+      }
+    } catch {
+      toast.error("网络错误，批量删除失败");
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
+
+  // Clear selection when filter/page changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [pagination.page, activeFilter, typeFilter]);
+
+  const allSelected = notifications.length > 0 && selectedIds.size === notifications.length;
+
   // Group notifications by date
   const groupedNotifications = notifications.reduce<{ group: string; items: Notification[] }[]>(
     (groups, n) => {
@@ -222,23 +281,64 @@ export default function NotificationsContent() {
           </div>
         </div>
 
-        {unreadCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMarkAllRead}
-            disabled={markingAll}
-            className="gap-2"
-          >
-            {markingAll ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCheck className="h-4 w-4" />
-            )}
-            全部已读
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={markingAll}
+              className="gap-2"
+            >
+              {markingAll ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCheck className="h-4 w-4" />
+              )}
+              全部已读
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Batch action bar */}
+      {notifications.length > 0 && (
+        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-2">
+          <button
+            onClick={toggleSelectAll}
+            className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            aria-label={allSelected ? "取消全选" : "全选"}
+          >
+            {allSelected ? (
+              <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            {allSelected ? "取消全选" : "全选"}
+          </button>
+          {selectedIds.size > 0 && (
+            <>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                已选 {selectedIds.size} 条
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="ml-auto gap-1.5 h-7 text-xs"
+                onClick={() => setBatchDeleteConfirm(true)}
+                disabled={batchDeleting}
+              >
+                {batchDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                批量删除
+              </Button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="space-y-2">
@@ -373,9 +473,21 @@ export default function NotificationsContent() {
                         n.isRead
                           ? "border-[var(--border)] bg-transparent hover:bg-[var(--muted)]/50"
                           : "border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10",
+                        selectedIds.has(n.id) && "ring-1 ring-[var(--primary)] border-[var(--primary)]/40",
                         n.href && "cursor-pointer"
                       )}
                     >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(n.id); }}
+                        className="mt-1 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
+                        aria-label={selectedIds.has(n.id) ? "取消选择" : "选择"}
+                      >
+                        {selectedIds.has(n.id) ? (
+                          <CheckSquare className="h-4 w-4 text-[var(--primary)]" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
                       <div
                         className={cn(
                           "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
@@ -450,6 +562,17 @@ export default function NotificationsContent() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={batchDeleteConfirm}
+        onOpenChange={setBatchDeleteConfirm}
+        title="批量删除通知"
+        description={`确定要删除选中的 ${selectedIds.size} 条通知吗？此操作不可撤销。`}
+        confirmLabel="删除"
+        variant="destructive"
+        isLoading={batchDeleting}
+        onConfirm={handleBatchDelete}
+      />
     </div>
   );
 }
