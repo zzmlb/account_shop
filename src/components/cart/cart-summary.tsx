@@ -32,7 +32,6 @@ export default function CartSummary({
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [couponId, setCouponId] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
   const subtotal = getTotal();
@@ -57,20 +56,19 @@ export default function CartSummary({
       if (data.success) {
         setCouponApplied(true);
         setDiscount(data.discount);
-        setCouponId(data.couponId);
+        
         setCouponError("");
         onCouponChange?.({ code: couponCode.trim().toUpperCase(), couponId: data.couponId, discount: data.discount });
       } else {
         setCouponApplied(false);
         setDiscount(0);
-        setCouponId(null);
+
         setCouponError(data.message || "无效的优惠码");
         onCouponChange?.(null);
       }
     } catch {
       setCouponApplied(false);
       setDiscount(0);
-      setCouponId(null);
       setCouponError("验证优惠码时出错，请重试");
       onCouponChange?.(null);
     } finally {
@@ -83,7 +81,6 @@ export default function CartSummary({
     setCouponApplied(false);
     setCouponError("");
     setDiscount(0);
-    setCouponId(null);
     onCouponChange?.(null);
   };
 

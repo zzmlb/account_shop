@@ -18,7 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
+import { useAuthStore } from "@/stores/auth-store";
 import CartSummary from "@/components/cart/cart-summary";
+
+interface ServerProduct {
+  slug: string;
+  price: number;
+  stockCount: number;
+  name: string;
+}
 
 const PAYMENT_METHODS = [
   {
@@ -66,6 +74,7 @@ export default function CheckoutContent() {
   const { items, clearCart, getTotal, getItemCount } = useCartStore();
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
+  const user = useAuthStore((s) => s.user);
   const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("balance");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,6 +85,13 @@ export default function CheckoutContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Auto-fill email from user session
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user, email]);
 
   // Validate cart prices and stock against server on mount
   useEffect(() => {
@@ -88,8 +104,8 @@ export default function CheckoutContent() {
         const data = await res.json();
         if (!data.success || !Array.isArray(data.products)) return;
 
-        const serverProducts = new Map(
-          data.products.map((p: { slug: string; price: number; stockCount: number; name: string }) => [p.slug, p])
+        const serverProducts = new Map<string, ServerProduct>(
+          data.products.map((p: ServerProduct) => [p.slug, p])
         );
 
         let changed = false;

@@ -110,8 +110,9 @@ function useCountdown(expireAt: string | undefined, status: string | undefined) 
       return;
     }
 
+    const target = expireAt;
     function calc() {
-      const diff = new Date(expireAt).getTime() - Date.now();
+      const diff = new Date(target).getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft("已过期");
         return;
