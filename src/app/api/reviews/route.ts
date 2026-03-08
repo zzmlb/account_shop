@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         orderBy = { createdAt: "desc" };
     }
 
-    const [reviews, total] = await Promise.all([
+    const [reviews, total, stats] = await Promise.all([
       db.review.findMany({
         where,
         include: {
@@ -63,14 +63,12 @@ export async function GET(request: NextRequest) {
         take: pageSize,
       }),
       db.review.count({ where }),
+      db.review.groupBy({
+        by: ["rating"],
+        where: { productId, isVisible: true },
+        _count: true,
+      }),
     ]);
-
-    // Calculate rating stats
-    const stats = await db.review.groupBy({
-      by: ["rating"],
-      where: { productId, isVisible: true },
-      _count: true,
-    });
 
     const ratingCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let totalRating = 0;

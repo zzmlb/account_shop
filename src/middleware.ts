@@ -198,6 +198,17 @@ export async function middleware(request: NextRequest) {
     });
   }
 
+  // Cache headers for API responses
+  if (pathname.startsWith("/api/") && request.method === "GET") {
+    // Public read endpoints get short cache
+    if (pathname.startsWith("/api/products") || pathname.startsWith("/api/categories") || pathname.startsWith("/api/activity")) {
+      response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    } else {
+      // Private API responses should not be cached
+      response.headers.set("Cache-Control", "private, no-cache, no-store");
+    }
+  }
+
   // Security headers
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");

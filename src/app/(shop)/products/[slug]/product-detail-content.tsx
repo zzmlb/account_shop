@@ -23,7 +23,16 @@ import QuantitySelector from "@/components/product/quantity-selector";
 import ProductCard from "@/components/product/product-card";
 import FavoriteButton from "@/components/product/favorite-button";
 import ShareButtons from "@/components/product/share-buttons";
-import ProductReviews from "@/components/product/product-reviews";
+import dynamic from "next/dynamic";
+
+const ProductReviews = dynamic(() => import("@/components/product/product-reviews"), {
+  loading: () => (
+    <div className="mt-12 animate-pulse space-y-4">
+      <div className="h-8 w-48 rounded bg-[var(--muted)]" />
+      <div className="h-32 rounded-lg bg-[var(--muted)]" />
+    </div>
+  ),
+});
 import { useCartStore } from "@/stores/cart-store";
 import { useRecentlyViewedStore } from "@/stores/recently-viewed-store";
 import { BLUR_DATA_URL } from "@/lib/constants";

@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       where: { userId: session.id, isRead: false },
     });
 
-    return NextResponse.json({ count });
+    const response = NextResponse.json({ count });
+    response.headers.set("Cache-Control", "private, max-age=15, stale-while-revalidate=60");
+    return response;
   } catch {
     return NextResponse.json({ count: 0 });
   }
