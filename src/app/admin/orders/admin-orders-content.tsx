@@ -215,6 +215,17 @@ export default function AdminOrdersPageContent() {
     fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo);
   }, [currentPage, activeTab, searchQuery, dateFrom, dateTo, fetchOrders]);
 
+  // Refresh data when tab becomes visible
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchOrders(currentPage, activeTab, searchQuery, dateFrom, dateTo);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchOrders, currentPage, activeTab, searchQuery, dateFrom, dateTo]);
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setCurrentPage(1);
@@ -461,7 +472,7 @@ export default function AdminOrdersPageContent() {
       <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" aria-label="订单管理列表">
               <thead>
                 <tr className="border-b border-[var(--border)]">
                   <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">

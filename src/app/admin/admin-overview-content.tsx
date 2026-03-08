@@ -219,7 +219,17 @@ export default function AdminOverviewPageContent() {
     const interval = setInterval(() => {
       fetchStats(periodRef.current);
     }, 60_000);
-    return () => clearInterval(interval);
+    // Refresh when tab becomes visible after being hidden
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchStats(periodRef.current);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [fetchStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePeriodChange = (period: number) => {

@@ -295,7 +295,7 @@ export default function AdminReviewsContent() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
-          <table className="w-full">
+          <table className="w-full" aria-label="评价管理列表">
             <thead>
               <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted-foreground)]">
                 <th className="px-4 py-3">用户</th>

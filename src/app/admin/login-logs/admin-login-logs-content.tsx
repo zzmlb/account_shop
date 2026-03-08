@@ -157,7 +157,7 @@ export default function AdminLoginLogsContent() {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
-              <table className="w-full">
+              <table className="w-full" aria-label="登录日志列表">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted-foreground)]">
                     <th className="px-4 py-3">状态</th>

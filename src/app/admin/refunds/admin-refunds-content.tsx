@@ -111,6 +111,15 @@ export default function AdminRefundsContent() {
     fetchRefunds();
   }, [fetchRefunds]);
 
+  // Refresh data when tab becomes visible
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchRefunds();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchRefunds]);
+
   const handleTabChange = (val: string) => {
     setStatusFilter(val as StatusFilter);
     setPage(1);

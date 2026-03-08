@@ -553,7 +553,7 @@ export default function AdminArticlesPageContent() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" aria-label="文章管理列表">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
               <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">

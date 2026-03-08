@@ -292,7 +292,7 @@ export default function AdminUsersPageContent() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" aria-label="用户管理列表">
               <thead>
                 <tr className="border-b border-[var(--border)]">
                   <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">

@@ -889,7 +889,7 @@ export default function AdminCardKeysPageContent() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" aria-label="卡密管理列表">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
               <th className="w-10 px-4 py-3">
