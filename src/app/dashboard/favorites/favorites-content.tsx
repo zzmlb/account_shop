@@ -122,6 +122,7 @@ export default function FavoritesPageContent() {
 
   const handleClearAll = async () => {
     if (favorites.length === 0) return;
+    if (!window.confirm(`确定要清空全部 ${favorites.length} 个收藏吗？此操作不可撤销。`)) return;
     setClearingAll(true);
     try {
       const results = await Promise.allSettled(

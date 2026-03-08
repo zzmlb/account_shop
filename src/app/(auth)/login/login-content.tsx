@@ -85,6 +85,7 @@ export default function LoginContent() {
             id="username"
             placeholder="请输入用户名"
             autoComplete="username"
+            autoFocus
             className={cn(
               "bg-[var(--background)]",
               errors.username && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]"

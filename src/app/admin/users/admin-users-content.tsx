@@ -146,6 +146,8 @@ export default function AdminUsersPageContent() {
       user.status === "ACTIVE" ? "BANNED" : "ACTIVE";
     const actionLabel = newStatus === "BANNED" ? "封禁" : "解封";
 
+    if (!window.confirm(`确定要${actionLabel}用户「${user.username}」吗？`)) return;
+
     setActionLoading(user.id);
     try {
       const res = await fetch(`/api/admin/users?id=${user.id}`, {

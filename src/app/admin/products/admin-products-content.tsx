@@ -1114,7 +1114,7 @@ export default function AdminProductsPageContent() {
         <div className="hidden md:block">
           <Card>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" aria-label="商品管理列表">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
                     <th className="px-4 py-3 text-left">

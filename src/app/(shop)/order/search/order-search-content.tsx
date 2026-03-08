@@ -153,6 +153,7 @@ export default function OrderSearchPageContent() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearch();
               }}
+              autoFocus
               className="font-mono"
             />
           </div>
