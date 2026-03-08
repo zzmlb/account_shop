@@ -71,6 +71,7 @@ interface HotProduct {
   rank: number;
   name: string;
   sales: number;
+  views: number;
   revenue: number;
 }
 
@@ -460,7 +461,7 @@ export default function AdminOverviewPageContent() {
                         {product.name}
                       </p>
                       <p className="text-xs text-[var(--muted-foreground)]">
-                        销量 {product.sales} 件
+                        销量 {product.sales} 件 &middot; 浏览 {product.views} 次
                       </p>
                     </div>
                     <span className="text-sm font-semibold text-[var(--foreground)] whitespace-nowrap">

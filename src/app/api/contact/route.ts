@@ -14,15 +14,26 @@ export async function POST(request: NextRequest) {
     if (!rl.success) return rateLimitResponse(rl);
 
     const body = await request.json();
-    const { name, email, subject, message, website } = body;
+    const { name, email, subject, message, website, _t } = body;
 
     // Honeypot anti-spam: if the hidden field is filled, it's a bot
     if (website) {
-      // Return success to not alert the bot, but don't save anything
       return NextResponse.json({
         success: true,
         message: "留言已提交，我们会尽快回复您",
       });
+    }
+
+    // Time-based bot detection: form must be open for at least 3 seconds
+    if (_t && typeof _t === "number") {
+      const elapsed = Date.now() - _t;
+      if (elapsed < 3000) {
+        log.info({ ip, elapsed }, "Contact form submitted too fast (likely bot)");
+        return NextResponse.json({
+          success: true,
+          message: "留言已提交，我们会尽快回复您",
+        });
+      }
     }
 
     // Validation

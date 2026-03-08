@@ -1,0 +1,73 @@
+import { db } from "@/server/db";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("order-cleanup");
+
+// Run cleanup at most once every 5 minutes
+let lastCleanup = 0;
+const CLEANUP_INTERVAL = 5 * 60 * 1000;
+
+/**
+ * Lightweight expired order cleanup that runs in-process.
+ * Call this from any frequently-hit route; it self-throttles to
+ * run at most once every 5 minutes.
+ * Fire-and-forget — never blocks the caller.
+ */
+export function maybeCleanupExpiredOrders() {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  lastCleanup = now;
+
+  cleanupExpiredOrders().catch((err) => {
+    log.warn({ err }, "Background order cleanup failed");
+  });
+}
+
+async function cleanupExpiredOrders() {
+  const now = new Date();
+
+  const expiredOrders = await db.order.findMany({
+    where: {
+      status: "PENDING",
+      expireAt: { lt: now },
+    },
+    include: {
+      items: {
+        include: {
+          cardKeys: { select: { id: true } },
+        },
+      },
+    },
+    take: 50, // Process at most 50 per run to avoid long-running queries
+  });
+
+  if (expiredOrders.length === 0) return;
+
+  for (const order of expiredOrders) {
+    await db.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "EXPIRED" },
+      });
+
+      for (const item of order.items) {
+        if (item.cardKeys.length > 0) {
+          const keyIds = item.cardKeys.map((k) => k.id);
+          await tx.cardKey.updateMany({
+            where: { id: { in: keyIds }, status: "LOCKED" },
+            data: { status: "AVAILABLE", orderId: null, soldAt: null },
+          });
+        }
+      }
+
+      for (const item of order.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockCount: { increment: item.quantity } },
+        });
+      }
+    });
+  }
+
+  log.info({ count: expiredOrders.length }, "Auto-cleaned expired orders");
+}

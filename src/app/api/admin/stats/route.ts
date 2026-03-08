@@ -165,6 +165,7 @@ export async function GET(request: NextRequest) {
         name: true,
         price: true,
         soldCount: true,
+        viewCount: true,
       },
     });
 
@@ -172,6 +173,7 @@ export async function GET(request: NextRequest) {
       rank: idx + 1,
       name: p.name,
       sales: p.soldCount,
+      views: p.viewCount,
       revenue: Number(p.price) * p.soldCount,
     }));
 

@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import AdminUserDetailContent from "./admin-user-detail-content";
+
+export const metadata: Metadata = {
+  title: "用户详情",
+};
 
 export default async function AdminUserDetailPage({
   params,

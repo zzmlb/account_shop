@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, memo } from "react";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ interface FavoriteButtonProps {
   size?: "sm" | "md";
 }
 
-export default function FavoriteButton({
+export default memo(function FavoriteButton({
   productId,
   className,
   size = "sm",
@@ -68,4 +68,4 @@ export default function FavoriteButton({
       <Heart className={cn(iconSize, isFavorited && "fill-current")} />
     </button>
   );
-}
+})

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { maybeCleanupExpiredOrders } from "@/server/services/order-cleanup";
 
 const log = createLogger("health");
 
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
   }
 
   const allOk = Object.values(checks).every((v) => v === "ok");
+
+  // Trigger background expired order cleanup (self-throttled to every 5 min)
+  if (allOk) maybeCleanupExpiredOrders();
 
   return NextResponse.json(
     {

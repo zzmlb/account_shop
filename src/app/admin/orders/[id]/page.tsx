@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminOrderDetailContent from "./admin-order-detail-content";
 import { Skeleton } from "@/components/ui/skeleton";
+
+export const metadata: Metadata = {
+  title: "订单详情",
+};
 
 export const dynamic = "force-dynamic";
 

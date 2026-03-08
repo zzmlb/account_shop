@@ -78,14 +78,12 @@ export default function ProductsPageContent() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [quickViewProduct, setQuickViewProduct] = useState<ProductItem | null>(null);
   const addItem = useCartStore((s) => s.addItem);
-  const perPage = 9;
+  const perPage = 12;
 
   // Read filter params from URL (set by ProductFilters component)
   const category = searchParams?.get("category") ?? "";
@@ -94,11 +92,7 @@ export default function ProductsPageContent() {
   const minPrice = searchParams?.get("minPrice") ?? "";
   const maxPrice = searchParams?.get("maxPrice") ?? "";
   const inStock = searchParams?.get("inStock") ?? "";
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [category, sort, search, minPrice, maxPrice, inStock]);
+  const page = Math.max(1, parseInt(searchParams?.get("page") ?? "1", 10) || 1);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -136,7 +130,7 @@ export default function ProductsPageContent() {
         setTotal(data.pagination.total);
       }
     } catch {
-      // Silently fail, show empty state
+      toast.error("商品加载失败，请刷新重试");
     } finally {
       setLoading(false);
     }
@@ -146,49 +140,20 @@ export default function ProductsPageContent() {
     fetchProducts();
   }, [fetchProducts]);
 
-  const loadMore = useCallback(async () => {
-    if (page >= totalPages) return;
-    setLoadingMore(true);
-    try {
-      const nextPage = page + 1;
-      const params = new URLSearchParams();
-      params.set("page", String(nextPage));
-      params.set("pageSize", String(perPage));
-      if (category) params.set("category", category);
-      if (sort) params.set("sort", sort);
-      if (search) params.set("search", search);
-      if (minPrice) params.set("minPrice", minPrice);
-      if (maxPrice) params.set("maxPrice", maxPrice);
-      if (inStock === "true") params.set("inStock", "true");
-
-      const res = await fetch(`/api/products?${params.toString()}`);
-      const data: ApiResponse = await res.json();
-      if (data.success) {
-        setProducts((prev) => [
-          ...prev,
-          ...data.products.map((p) => ({
-            productId: p.id,
-            name: p.name,
-            slug: p.slug,
-            price: p.price,
-            originalPrice: p.originalPrice,
-            image: p.image || undefined,
-            stockCount: p.stock,
-            soldCount: p.salesCount,
-            categoryName: p.category,
-            avgRating: p.avgRating,
-            reviewCount: p.reviewCount,
-            description: p.description,
-          })),
-        ]);
-        setPage(nextPage);
+  // Navigate to a specific page via URL
+  const goToPage = useCallback(
+    (targetPage: number) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      if (targetPage <= 1) {
+        params.delete("page");
+      } else {
+        params.set("page", String(targetPage));
       }
-    } catch {
-      // Silently fail
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [page, totalPages, perPage, category, sort, search, minPrice, maxPrice, inStock]);
+      router.push(`/products${params.toString() ? `?${params.toString()}` : ""}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [searchParams, router]
+  );
 
   const hasActiveFilters = !!(search || category || minPrice || maxPrice || inStock);
 
@@ -375,25 +340,62 @@ export default function ProductsPageContent() {
             <ProductGrid products={products} searchQuery={search} onQuickView={setQuickViewProduct} />
           )}
 
-          {/* Load more / Pagination */}
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-8 flex flex-col items-center gap-4">
-              {page < totalPages && (
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant="outline"
-                  size="lg"
-                  className="w-full max-w-xs"
-                  onClick={loadMore}
-                  disabled={loadingMore}
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => goToPage(page - 1)}
                 >
-                  {loadingMore ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  {loadingMore ? "加载中..." : "加载更多"}
+                  上一页
                 </Button>
-              )}
+                {(() => {
+                  const pages: (number | "...")[] = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (page > 3) pages.push("...");
+                    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+                      pages.push(i);
+                    }
+                    if (page < totalPages - 2) pages.push("...");
+                    pages.push(totalPages);
+                  }
+                  return pages.map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`dots-${idx}`} className="px-2 text-sm text-[var(--muted-foreground)]">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => goToPage(p)}
+                        className={`flex h-8 min-w-[2rem] items-center justify-center rounded-[var(--radius-sm)] px-2.5 text-sm font-medium transition-colors ${
+                          p === page
+                            ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                            : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  );
+                })()}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => goToPage(page + 1)}
+                >
+                  下一页
+                </Button>
+              </div>
               <span className="text-xs text-[var(--muted-foreground)]">
-                已显示 {products.length} / {total} 件商品
+                第 {page} / {totalPages} 页 · 共 {total} 件商品
               </span>
             </div>
           )}

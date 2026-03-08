@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("reviews-featured");
 
 // GET - Fetch featured reviews for homepage testimonials
 export async function GET(request: NextRequest) {
@@ -40,7 +43,8 @@ export async function GET(request: NextRequest) {
     const res = NextResponse.json({ success: true, reviews: masked });
     res.headers.set("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1800");
     return res;
-  } catch {
+  } catch (error) {
+    log.error({ err: error }, "Failed to fetch featured reviews");
     return NextResponse.json({ success: true, reviews: [] });
   }
 }

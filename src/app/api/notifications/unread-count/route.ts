@@ -13,9 +13,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ count: 0 });
   }
 
-  const count = await db.notification.count({
-    where: { userId: session.id, isRead: false },
-  });
+  try {
+    const count = await db.notification.count({
+      where: { userId: session.id, isRead: false },
+    });
 
-  return NextResponse.json({ count });
+    return NextResponse.json({ count });
+  } catch {
+    return NextResponse.json({ count: 0 });
+  }
 }
