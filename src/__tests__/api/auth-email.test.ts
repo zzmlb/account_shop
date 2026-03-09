@@ -164,4 +164,30 @@ describe("PUT /api/auth/email", () => {
       data: { email: "verify@example.com" },
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 500 on unexpected DB error", async () => {
+    mockUserFindUnique.mockRejectedValue(new Error("DB down"));
+
+    const res = await PUT(makeReq({ email: "test@example.com" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
+
+  it("checks email uniqueness via findUnique with email where clause", async () => {
+    mockUserFindUnique.mockResolvedValue(null);
+    mockUserUpdate.mockResolvedValue({ id: "user-1", email: "check@example.com" });
+
+    await PUT(makeReq({ email: "check@example.com" }));
+
+    expect(mockUserFindUnique).toHaveBeenCalledWith({
+      where: { email: "check@example.com" },
+    });
+  });
 });

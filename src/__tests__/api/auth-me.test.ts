@@ -223,4 +223,36 @@ describe("Auth Me API", () => {
       expect(mockUserUpdate).not.toHaveBeenCalled();
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("GET returns 500 on DB error", async () => {
+    mockUserFindUnique.mockRejectedValue(new Error("DB down"));
+
+    const req = new NextRequest("http://localhost/api/auth/me");
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body.success).toBe(false);
+    expect(body.message).toBe("服务器内部错误");
+  });
+
+  it("PUT returns 500 on update error", async () => {
+    mockUserUpdate.mockRejectedValue(new Error("update failed"));
+
+    const req = new NextRequest("http://localhost/api/auth/me", {
+      method: "PUT",
+      body: JSON.stringify({ avatar: "/valid-avatar.jpg" }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const res = await PUT(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body.success).toBe(false);
+    expect(body.message).toBe("更新失败");
+  });
 });

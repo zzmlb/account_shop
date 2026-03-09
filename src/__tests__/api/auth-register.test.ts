@@ -266,4 +266,33 @@ describe("POST /api/auth/register", () => {
     expect(mockFindUnique).not.toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("should return 500 on database create error", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockRejectedValue(new Error("DB write failed"));
+
+    const req = createRequest(validBody);
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.success).toBe(false);
+  });
+
+  it("sets session cookie with 7-day maxAge", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue(createdUser);
+
+    const req = createRequest(validBody);
+    const response = await POST(req);
+
+    const setCookieHeader = response.headers.getSetCookie();
+    const sessionCookie = setCookieHeader.find((c: string) => c.startsWith("session="));
+    // 7 days = 604800 seconds
+    expect(sessionCookie).toContain("Max-Age=604800");
+  });
 });

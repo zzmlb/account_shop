@@ -249,4 +249,24 @@ describe("GET /api/balance-logs", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("filters by PURCHASE type", async () => {
+    const req = createGetRequest({ type: "PURCHASE" });
+    await GET(req);
+
+    const whereArg = mockBalanceLogFindMany.mock.calls[0][0].where;
+    expect(whereArg.type).toBe("PURCHASE");
+  });
+
+  it("clamps pageSize to max 500", async () => {
+    const req = createGetRequest({ pageSize: "999" });
+    await GET(req);
+
+    const findManyArg = mockBalanceLogFindMany.mock.calls[0][0];
+    expect(findManyArg.take).toBe(500);
+  });
 });
