@@ -199,6 +199,22 @@ describe("POST /api/contact", () => {
     });
   });
 
+  it("returns 500 on database error", async () => {
+    mockContactMessageCreate.mockRejectedValue(new Error("DB error"));
+
+    const res = await POST(makeReq({
+      name: "张三",
+      email: "zhang@example.com",
+      subject: "咨询产品",
+      message: "您好，我想了解一下贵公司的产品详情。",
+    }));
+    const json = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(json.success).toBe(false);
+    expect(json.message).toBe("服务器内部错误");
+  });
+
   it("lowercases and trims email", async () => {
     const res = await POST(makeReq({
       name: "张三",

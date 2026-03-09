@@ -4,10 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Wallet,
-  CreditCard,
-  Smartphone,
-  Bitcoin,
   Mail,
   ShieldCheck,
   ShoppingBag,
@@ -16,27 +12,19 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
-  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { cn, formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiFetch } from "@/lib/api-fetch";
 import CartSummary from "@/components/cart/cart-summary";
 import Breadcrumb from "@/components/ui/breadcrumb";
+import { CheckoutPaymentMethods, PAYMENT_METHODS } from "./checkout-payment-methods";
+import { CheckoutConfirmDialog } from "./checkout-confirm-dialog";
 
 interface ServerProduct {
   slug: string;
@@ -44,42 +32,6 @@ interface ServerProduct {
   stockCount: number;
   name: string;
 }
-
-const PAYMENT_METHODS = [
-  {
-    id: "balance",
-    label: "余额支付",
-    description: "使用账户余额直接支付",
-    icon: Wallet,
-    color: "text-[var(--success)]",
-    bgColor: "bg-[var(--success)]/10",
-  },
-  {
-    id: "alipay",
-    label: "支付宝",
-    description: "支持花呗、余额宝",
-    icon: CreditCard,
-    color: "text-[#1677ff]",
-    bgColor: "bg-[#1677ff]/10",
-  },
-  {
-    id: "wechat",
-    label: "微信支付",
-    description: "微信扫码支付",
-    icon: Smartphone,
-    color: "text-[#07c160]",
-    bgColor: "bg-[#07c160]/10",
-  },
-  {
-    id: "usdt",
-    label: "USDT",
-    description: "TRC20 / ERC20 链上支付（即将上线）",
-    icon: Bitcoin,
-    color: "text-[#f7931a]",
-    bgColor: "bg-[#f7931a]/10",
-    disabled: true,
-  },
-] as const;
 
 interface CouponState {
   code: string;

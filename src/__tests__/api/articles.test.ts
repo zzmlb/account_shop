@@ -240,4 +240,71 @@ describe("GET /api/articles", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("获取文章列表失败");
   });
+
+  // 9. Paginates correctly
+  it("paginates correctly", async () => {
+    mockArticleFindMany.mockResolvedValue([]);
+    mockArticleCount.mockResolvedValue(100);
+
+    const response = await GET(createRequest({ page: "3", pageSize: "10" }));
+    const data = await response.json();
+
+    expect(data.page).toBe(3);
+    expect(data.limit).toBe(10);
+    expect(data.pagination).toEqual({
+      page: 3,
+      pageSize: 10,
+      total: 100,
+      totalPages: 10,
+    });
+
+    expect(mockArticleFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 20, // (3-1) * 10
+        take: 10,
+      })
+    );
+  });
+
+  // 10. Truncates search query to 200 chars
+  it("truncates search query to 200 chars", async () => {
+    mockArticleFindMany.mockResolvedValue([]);
+    mockArticleCount.mockResolvedValue(0);
+
+    const longSearch = "a".repeat(300);
+    await GET(createRequest({ search: longSearch }));
+
+    const whereArg = mockArticleFindMany.mock.calls[0][0].where;
+    expect(whereArg.OR[0].title.contains.length).toBe(200);
+    expect(whereArg.OR[1].content.contains.length).toBe(200);
+  });
+
+  // 11. Combines category, tag, and search filters
+  it("combines category, tag, and search filters", async () => {
+    mockArticleFindMany.mockResolvedValue([]);
+    mockArticleCount.mockResolvedValue(0);
+
+    await GET(createRequest({ category: "FAQ", tag: "guide", search: "test" }));
+
+    const whereArg = mockArticleFindMany.mock.calls[0][0].where;
+    expect(whereArg.isPublished).toBe(true);
+    expect(whereArg.category).toBe("FAQ");
+    expect(whereArg.tags).toEqual({ has: "guide" });
+    expect(whereArg.OR).toBeDefined();
+  });
+
+  // 12. Extracts date as YYYY-MM-DD from createdAt
+  it("extracts date as YYYY-MM-DD from createdAt", async () => {
+    const article = {
+      ...mockArticle,
+      createdAt: new Date("2026-03-08T15:30:00Z"),
+    };
+    mockArticleFindMany.mockResolvedValue([article]);
+    mockArticleCount.mockResolvedValue(1);
+
+    const response = await GET(createRequest());
+    const data = await response.json();
+
+    expect(data.articles[0].date).toBe("2026-03-08");
+  });
 });
