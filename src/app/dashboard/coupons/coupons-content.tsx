@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
+import { COPY_FEEDBACK_MS } from "@/lib/constants";
 import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -306,7 +307,7 @@ export default function CouponsPageContent() {
       document.body.removeChild(textarea);
     }
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    setTimeout(() => setCopiedId(null), COPY_FEEDBACK_MS);
   }, []);
 
   const now = new Date();

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { EMAIL_DEBOUNCE_MS, STOCK_REVALIDATE_INTERVAL_MS } from "@/lib/constants";
 import {
   Mail,
   ShieldCheck,
@@ -74,7 +75,7 @@ export default function CheckoutContent() {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
     const timer = setTimeout(() => {
       localStorage.setItem("pj37-checkout-email", email);
-    }, 1000);
+    }, EMAIL_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [email]);
 
@@ -135,7 +136,7 @@ export default function CheckoutContent() {
     if (!mounted || items.length === 0) return;
     const interval = setInterval(() => {
       setPriceChecked(false); // triggers re-validation
-    }, 2 * 60 * 1000);
+    }, STOCK_REVALIDATE_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [mounted, items.length]);
 

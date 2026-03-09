@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { COPY_FEEDBACK_MS } from "@/lib/constants";
 import {
   Ticket,
   Clock,
@@ -99,7 +100,7 @@ export default function PromotionsContent() {
     navigator.clipboard.writeText(code).then(() => {
       setCopiedCode(code);
       toast.success("优惠码已复制");
-      setTimeout(() => setCopiedCode(null), 2000);
+      setTimeout(() => setCopiedCode(null), COPY_FEEDBACK_MS);
     });
   };
 

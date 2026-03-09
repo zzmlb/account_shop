@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { TIMER_TICK_MS, ORDER_POLL_INTERVAL_MS, COPY_FEEDBACK_MS } from "@/lib/constants";
 import {
   ArrowLeft,
   Clock,
@@ -122,7 +123,7 @@ function useCountdown(expireAt: string | undefined, status: string | undefined) 
     }
 
     calc();
-    const timer = setInterval(calc, 1000);
+    const timer = setInterval(calc, TIMER_TICK_MS);
     return () => clearInterval(timer);
   }, [expireAt, status]);
 
@@ -172,7 +173,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
       } catch {
         // Silently retry on next interval
       }
-    }, 5000);
+    }, ORDER_POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, [id, order?.status, order]);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { createLogger } from "@/lib/logger";
 import { rateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { RETENTION_LOGIN_LOGS_MS, RETENTION_PASSWORD_RESET_MS, RETENTION_NOTIFICATIONS_MS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 const log = createLogger("cron/cleanup-data");
@@ -39,9 +40,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const now = new Date();
-    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = new Date(now.getTime() - RETENTION_LOGIN_LOGS_MS);
+    const sevenDaysAgo = new Date(now.getTime() - RETENTION_PASSWORD_RESET_MS);
+    const thirtyDaysAgo = new Date(now.getTime() - RETENTION_NOTIFICATIONS_MS);
 
     // Run all cleanup operations in parallel (independent tables)
     const [deletedLogs, deletedTokens, deletedNotifications, deactivatedCoupons] = await Promise.all([

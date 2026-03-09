@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { loginLimiter } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { sendPasswordReset } from "@/server/services/email";
+import { PASSWORD_RESET_EXPIRY_MS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 const log = createLogger("auth/forgot-password");
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           token,
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+          expiresAt: new Date(Date.now() + PASSWORD_RESET_EXPIRY_MS),
         },
       });
 

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { COPY_FEEDBACK_MS } from "@/lib/constants";
 import {
   ShoppingBag,
   Eye,
@@ -225,7 +226,7 @@ export default function OrdersPageContent() {
     try {
       await navigator.clipboard.writeText(key);
       setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 2000);
+      setTimeout(() => setCopiedKey(null), COPY_FEEDBACK_MS);
     } catch {
       // Fallback for older browsers
       const ta = document.createElement("textarea");
@@ -237,7 +238,7 @@ export default function OrdersPageContent() {
       document.execCommand("copy");
       document.body.removeChild(ta);
       setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 2000);
+      setTimeout(() => setCopiedKey(null), COPY_FEEDBACK_MS);
     }
   };
 

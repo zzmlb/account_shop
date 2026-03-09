@@ -21,6 +21,33 @@ export const NOTIFICATION_POLL_INTERVAL_MS = 60_000;
 /** Rotation interval for live activity feed (ms) */
 export const ACTIVITY_ROTATION_MS = 4000;
 
+/** Debounce delay for email input saves (ms) */
+export const EMAIL_DEBOUNCE_MS = 1000;
+
+/** Interval for periodic stock re-validation on checkout (ms) */
+export const STOCK_REVALIDATE_INTERVAL_MS = 2 * 60 * 1000;
+
+/** Interval for order status polling (ms) */
+export const ORDER_POLL_INTERVAL_MS = 5000;
+
+/** Countdown timer tick interval (ms) */
+export const TIMER_TICK_MS = 1000;
+
+/** Password reset token expiry (ms) — 30 minutes */
+export const PASSWORD_RESET_EXPIRY_MS = 30 * 60 * 1000;
+
+/** Data retention: login logs (ms) — 90 days */
+export const RETENTION_LOGIN_LOGS_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Data retention: password reset tokens (ms) — 7 days */
+export const RETENTION_PASSWORD_RESET_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Data retention: read notifications (ms) — 30 days */
+export const RETENTION_NOTIFICATIONS_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Contact form message max length */
+export const CONTACT_MESSAGE_MAX_LENGTH = 2000;
+
 /** Share popup window dimensions */
 export const SHARE_POPUP_WIDTH = 600;
 export const SHARE_POPUP_HEIGHT = 400;

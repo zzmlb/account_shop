@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CONTACT_MESSAGE_MAX_LENGTH } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -175,11 +176,11 @@ export default function ContactForm() {
           required
           aria-required="true"
           minLength={10}
-          maxLength={2000}
+          maxLength={CONTACT_MESSAGE_MAX_LENGTH}
           rows={5}
         />
         <p className="mt-1 text-right text-xs text-[var(--muted-foreground)]">
-          {form.message.length}/2000
+          {form.message.length}/{CONTACT_MESSAGE_MAX_LENGTH}
         </p>
       </div>
 

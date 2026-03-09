@@ -186,7 +186,7 @@ describe("GET /api/coupons/available", () => {
   it("returns 200 with empty array when no coupons available", async () => {
     mockCouponFindMany.mockResolvedValue([]);
 
-    const res = await GET(makeReq("order-1"));
+    const res = await GET(makeReq());
     const data = await res.json();
 
     expect(res.status).toBe(200);
