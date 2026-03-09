@@ -135,7 +135,7 @@ export default function CartSummary({
 
       {/* Coupon code input */}
       <div className="mb-4">
-        <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-[var(--foreground)]">
+        <label htmlFor="coupon-code" className="mb-2 flex items-center gap-1.5 text-sm font-medium text-[var(--foreground)]">
           <Tag className="h-4 w-4 text-[var(--primary)]" />
           优惠码
         </label>
@@ -161,6 +161,7 @@ export default function CartSummary({
         ) : (
           <div className="flex gap-2">
             <Input
+              id="coupon-code"
               placeholder="输入优惠码"
               value={couponCode}
               onChange={(e) => {
@@ -174,7 +175,6 @@ export default function CartSummary({
                 }
               }}
               className={cn("flex-1", couponError && "border-[var(--destructive)] focus-visible:ring-[var(--destructive)]")}
-              aria-label="优惠码"
               aria-invalid={!!couponError}
               aria-describedby={couponError ? "coupon-error" : undefined}
             />

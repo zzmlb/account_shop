@@ -186,6 +186,7 @@ export default function OrderSearchPageContent() {
           <Button
             onClick={handleSearch}
             disabled={isSearching || !orderNo.trim()}
+            aria-busy={isSearching}
             className="w-full"
             size="lg"
           >
@@ -265,6 +266,7 @@ export default function OrderSearchPageContent() {
                 <Button
                   variant="outline"
                   size="sm"
+                  aria-expanded={revealedKeys.size === result.cardKeys.length}
                   onClick={() => {
                     if (revealedKeys.size === result.cardKeys.length) {
                       setRevealedKeys(new Set());
@@ -310,7 +312,8 @@ export default function OrderSearchPageContent() {
                           size="icon"
                           onClick={() => toggleKeyReveal(index)}
                           className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                          aria-label={isRevealed ? "隐藏" : "显示"}
+                          aria-label={isRevealed ? "隐藏卡密" : "显示卡密"}
+                          aria-expanded={isRevealed}
                         >
                           {isRevealed ? (
                             <EyeOff className="h-4 w-4" />

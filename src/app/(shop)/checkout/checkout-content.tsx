@@ -549,14 +549,18 @@ export default function CheckoutContent() {
           </div>
 
           {/* Stock validation status */}
-          <div className={cn(
-            "flex items-center gap-3 rounded-[var(--radius-md)] border px-4 py-3 transition-colors",
-            stockValidating
-              ? "border-[var(--border)] bg-[var(--muted)]/30"
-              : priceChecked
-                ? "border-green-500/20 bg-green-500/5"
-                : "border-[var(--warning)]/20 bg-[var(--warning)]/5"
-          )}>
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            role="status"
+            className={cn(
+              "flex items-center gap-3 rounded-[var(--radius-md)] border px-4 py-3 transition-colors",
+              stockValidating
+                ? "border-[var(--border)] bg-[var(--muted)]/30"
+                : priceChecked
+                  ? "border-green-500/20 bg-green-500/5"
+                  : "border-[var(--warning)]/20 bg-[var(--warning)]/5"
+            )}>
             {stockValidating ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent flex-shrink-0" />
