@@ -292,7 +292,7 @@ export default function CouponsPageContent() {
     fetchCoupons();
   }, [fetchCoupons]);
 
-  const handleCopyCode = async (id: string, code: string) => {
+  const handleCopyCode = useCallback(async (id: string, code: string) => {
     try {
       await navigator.clipboard.writeText(code);
     } catch {
@@ -307,7 +307,7 @@ export default function CouponsPageContent() {
     }
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
+  }, []);
 
   const now = new Date();
   const availableCoupons = coupons.filter((c) => !c.usedAt && new Date(c.validTo) >= now);

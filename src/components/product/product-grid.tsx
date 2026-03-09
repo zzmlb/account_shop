@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import ProductCard from "@/components/product/product-card";
 import EmptyState from "@/components/shared/empty-state";
@@ -24,7 +25,7 @@ interface ProductGridProps {
   onQuickView?: (product: ProductItem) => void;
 }
 
-export default function ProductGrid({ products, className, searchQuery, onQuickView }: ProductGridProps) {
+const ProductGrid = memo(function ProductGrid({ products, className, searchQuery, onQuickView }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <EmptyState
@@ -48,4 +49,6 @@ export default function ProductGrid({ products, className, searchQuery, onQuickV
       ))}
     </div>
   );
-}
+});
+
+export default ProductGrid;
