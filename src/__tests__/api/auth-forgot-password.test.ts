@@ -123,6 +123,60 @@ describe("POST /api/auth/forgot-password", () => {
     expect(emailArgs.resetToken).toBeTruthy();
   });
 
+  it("returns 500 on database error", async () => {
+    mockUserFindFirst.mockRejectedValue(new Error("DB connection failed"));
+
+    const res = await POST(makeReq({ email: "test@example.com" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
+
+  it("invalidates existing unused tokens before creating new one", async () => {
+    mockUserFindFirst.mockResolvedValue({
+      id: "user-1",
+      username: "testuser",
+      email: "test@example.com",
+    });
+
+    await POST(makeReq({ email: "test@example.com" }));
+
+    // Should invalidate existing tokens first
+    expect(mockPasswordResetUpdateMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", usedAt: null },
+      data: { usedAt: expect.any(Date) },
+    });
+
+    // Then create new token
+    const createArg = mockPasswordResetCreate.mock.calls[0][0];
+    expect(createArg.data.userId).toBe("user-1");
+    expect(createArg.data.token).toBeTruthy();
+    expect(createArg.data.token.length).toBe(64); // 32 bytes hex = 64 chars
+    expect(createArg.data.expiresAt).toBeInstanceOf(Date);
+    // Token should expire ~30 minutes from now
+    const diff = createArg.data.expiresAt.getTime() - Date.now();
+    expect(diff).toBeGreaterThan(29 * 60 * 1000);
+    expect(diff).toBeLessThanOrEqual(30 * 60 * 1000);
+  });
+
+  it("does not create token or send email when user has no email", async () => {
+    mockUserFindFirst.mockResolvedValue({
+      id: "user-1",
+      username: "testuser",
+      email: null,
+    });
+
+    const res = await POST(makeReq({ email: "test@example.com" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockPasswordResetCreate).not.toHaveBeenCalled();
+    expect(mockSendPasswordReset).not.toHaveBeenCalled();
+  });
+
   it("returns same response regardless of email existence", async () => {
     // Test with existing user
     mockUserFindFirst.mockResolvedValue({

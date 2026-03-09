@@ -102,4 +102,36 @@ describe("GET /api/auth/check-reset-token", () => {
     const data = await res.json();
     expect(data.valid).toBe(true);
   });
+
+  it("returns invalid for token exceeding 200 chars", async () => {
+    const longToken = "a".repeat(201);
+    const res = await GET(makeReq(longToken));
+    const data = await res.json();
+    expect(data.valid).toBe(false);
+    expect(data.reason).toBe("invalid");
+    // Should not query DB for oversized tokens
+    expect(mockPasswordResetFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns error reason on database failure", async () => {
+    mockPasswordResetFindUnique.mockRejectedValue(new Error("DB error"));
+
+    const res = await GET(makeReq("some-token"));
+    const data = await res.json();
+    expect(data.valid).toBe(false);
+    expect(data.reason).toBe("error");
+  });
+
+  it("queries DB with correct token", async () => {
+    mockPasswordResetFindUnique.mockResolvedValue({
+      expiresAt: new Date(Date.now() + 3600000),
+      usedAt: null,
+    });
+
+    await GET(makeReq("abc123"));
+    expect(mockPasswordResetFindUnique).toHaveBeenCalledWith({
+      where: { token: "abc123" },
+      select: { expiresAt: true, usedAt: true },
+    });
+  });
 });

@@ -144,4 +144,48 @@ describe("GET /api/auth/check-username", () => {
       select: { id: true },
     });
   });
+
+  it("returns available: false for empty username param", async () => {
+    const req = new NextRequest(
+      "http://localhost:3001/api/auth/check-username?username=",
+    );
+
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.available).toBe(false);
+    expect(mockUserFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns available: false for whitespace-only username (trims to empty)", async () => {
+    const req = new NextRequest(
+      "http://localhost:3001/api/auth/check-username?username=%20%20",
+    );
+
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.available).toBe(false);
+    expect(mockUserFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns available: true for exactly 2-char username", async () => {
+    mockUserFindUnique.mockResolvedValue(null);
+
+    const req = new NextRequest(
+      "http://localhost:3001/api/auth/check-username?username=ab",
+    );
+
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.available).toBe(true);
+    expect(mockUserFindUnique).toHaveBeenCalledWith({
+      where: { username: "ab" },
+      select: { id: true },
+    });
+  });
 });
