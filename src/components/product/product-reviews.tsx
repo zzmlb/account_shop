@@ -282,6 +282,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             maxLength={1000}
             rows={3}
             disabled={submitting}
+            aria-label="评价内容"
             className="mb-3 w-full resize-none rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] disabled:opacity-50"
           />
           <div className="flex items-center justify-between">

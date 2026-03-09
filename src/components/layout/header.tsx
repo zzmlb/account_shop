@@ -157,6 +157,7 @@ export default function Header() {
               "transition-all duration-200"
             )}
             aria-label="搜索"
+            aria-haspopup="dialog"
           >
             <Search className="h-4 w-4" />
             <span className="text-xs">搜索</span>

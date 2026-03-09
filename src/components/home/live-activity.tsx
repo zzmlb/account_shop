@@ -51,7 +51,7 @@ export default function LiveActivity() {
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)]">
         {/* Header */}
         <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--primary)]/5 px-4 py-2">
-          <div className="relative flex h-2 w-2">
+          <div className="relative flex h-2 w-2" aria-hidden="true">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--success)]" />
           </div>
@@ -61,7 +61,7 @@ export default function LiveActivity() {
         </div>
 
         {/* Rotating activity item */}
-        <div className="relative h-12 overflow-hidden">
+        <div className="relative h-12 overflow-hidden" role="status" aria-live="polite">
           <div
             key={current.id}
             className="absolute inset-0 flex items-center gap-3 px-4 animate-in fade-in slide-in-from-bottom-2 duration-500"

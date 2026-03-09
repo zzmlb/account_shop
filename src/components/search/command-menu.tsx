@@ -282,7 +282,7 @@ export default function CommandMenu() {
           </kbd>
         </div>
 
-        <div className="max-h-[400px] overflow-y-auto p-2">
+        <div className="max-h-[400px] overflow-y-auto p-2" role="region" aria-live="polite" aria-label="搜索结果">
           {query.trim() === "" ? (
             <div className="space-y-4 p-2">
               {recentSearches.length > 0 && (

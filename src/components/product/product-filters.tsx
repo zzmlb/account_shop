@@ -225,8 +225,9 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
               debouncedPriceUpdate("minPrice", e.target.value);
             }}
             className="h-8 text-xs"
+            aria-label="最低价格"
           />
-          <span className="text-xs text-[var(--muted-foreground)]">-</span>
+          <span className="text-xs text-[var(--muted-foreground)]" aria-hidden="true">-</span>
           <Input
             type="number"
             min="0"
@@ -238,6 +239,7 @@ export default function ProductFilters({ className }: ProductFiltersProps) {
               debouncedPriceUpdate("maxPrice", e.target.value);
             }}
             className="h-8 text-xs"
+            aria-label="最高价格"
           />
         </div>
       </div>
