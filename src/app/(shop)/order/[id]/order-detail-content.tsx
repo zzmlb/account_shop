@@ -1,28 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   ArrowLeft,
   Package,
   CheckCircle2,
   Clock,
   Truck,
-  Eye,
-  EyeOff,
-  Mail,
   CreditCard,
   Loader2,
   AlertCircle,
-  Copy,
   XCircle,
-  Download,
   RotateCcw,
   Printer,
   ShoppingCart,
   ChevronRight,
+  Eye,
+  EyeOff,
+  Download,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -41,6 +39,10 @@ import { cn, formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 import { useCartStore } from "@/stores/cart-store";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
+import { OrderCardKeys } from "./order-card-keys";
+import { OrderRefundSection } from "./order-refund-section";
+import Image from "next/image";
+import { Mail } from "lucide-react";
 
 interface OrderItem {
   name: string;
@@ -63,18 +65,6 @@ interface OrderData {
   paidAt?: string | null;
   items: OrderItem[];
   cardKeys: string[];
-}
-
-function maskCardKey(key: string): string {
-  const parts = key.split("-");
-  if (parts.length <= 1) {
-    // No dashes — mask all but first 4 chars
-    if (key.length <= 4) return "****";
-    return key.substring(0, 4) + "*".repeat(key.length - 4);
-  }
-  return (
-    parts[0] + "-" + parts.slice(1).map(() => "****").join("-")
-  );
 }
 
 const STATUS_CONFIG = {
@@ -123,6 +113,15 @@ const TIMELINE_STEPS = [
   { key: "delivered", label: "发货完成", icon: Truck },
 ];
 
+function maskCardKey(key: string): string {
+  const parts = key.split("-");
+  if (parts.length <= 1) {
+    if (key.length <= 4) return "****";
+    return key.substring(0, 4) + "*".repeat(key.length - 4);
+  }
+  return parts[0] + "-" + parts.slice(1).map(() => "****").join("-");
+}
+
 function useCountdown(expireAt: string | undefined, status: string | undefined) {
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -156,30 +155,23 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [order, setOrder] = useState<OrderData | null>(null);
-  const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundStatus, setRefundStatus] = useState<string | null>(null);
-  const [paying, setPaying] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
-  const [recommendedProducts, setRecommendedProducts] = useState<
-    Array<{
-      id: string;
-      name: string;
-      slug: string;
-      price: number;
-      originalPrice?: number;
-      image?: string;
-      soldCount: number;
-      stockCount: number;
-    }>
-  >([]);
+  const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
+  const [recommendedProducts, setRecommendedProducts] = useState<Array<{ id: string; name: string; slug: string; price: number; originalPrice?: number; image?: string; soldCount: number; stockCount: number }>>([]);
   const countdown = useCountdown(order?.expireAt, order?.status);
+  const orderSlugs = useMemo(
+    () => (order ? order.items.map((i) => i.slug) : []),
+    [order]
+  );
 
   useEffect(() => {
     async function fetchOrder() {
