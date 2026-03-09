@@ -164,6 +164,7 @@ export function CouponCreateDialog({
                 size="icon"
                 onClick={generateCode}
                 title="自动生成优惠码"
+                aria-label="自动生成优惠码"
               >
                 <Shuffle className="h-4 w-4" />
               </Button>

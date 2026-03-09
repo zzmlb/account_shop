@@ -348,6 +348,7 @@ export default function AdminCouponsContent() {
                   className="h-10 w-10 sm:h-8 sm:w-8"
                   onClick={() => toggleActive(coupon)}
                   title={coupon.isActive ? "点击停用" : "点击启用"}
+                  aria-label={coupon.isActive ? "停用优惠券" : "启用优惠券"}
                 >
                   {coupon.isActive && !isExpired(coupon.expireAt) ? (
                     <Eye className="h-4 w-4 text-[var(--success)]" />
@@ -368,6 +369,7 @@ export default function AdminCouponsContent() {
                     setDeleteDialogOpen(true);
                   }}
                   title="删除"
+                  aria-label="删除优惠券"
                   disabled={coupon.usedCount > 0}
                 >
                   <Trash2 className="h-4 w-4" />

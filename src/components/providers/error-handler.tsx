@@ -10,9 +10,9 @@ import { useEffect } from "react";
 export default function ErrorHandler() {
   useEffect(() => {
     const handleRejection = (event: PromiseRejectionEvent) => {
-      console.error("[Unhandled Rejection]", event.reason);
-      // Prevent the default browser behavior (console error) in production
-      // to avoid noisy console output from third-party scripts
+      if (process.env.NODE_ENV === "development") {
+        console.error("[Unhandled Rejection]", event.reason);
+      }
     };
 
     const handleError = (event: ErrorEvent) => {
@@ -20,7 +20,9 @@ export default function ErrorHandler() {
       if (event.filename && !event.filename.includes(window.location.origin)) {
         return;
       }
-      console.error("[Runtime Error]", event.error || event.message);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[Runtime Error]", event.error || event.message);
+      }
     };
 
     window.addEventListener("unhandledrejection", handleRejection);

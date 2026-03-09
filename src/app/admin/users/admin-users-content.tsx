@@ -616,6 +616,7 @@ export default function AdminUsersPageContent() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-10 w-10 sm:h-8 sm:w-8"
+                                aria-label="用户操作"
                                 disabled={isActionLoading}
                               >
                                 {isActionLoading ? (
