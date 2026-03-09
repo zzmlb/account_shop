@@ -354,6 +354,7 @@ export default function DashboardSettingsPageContent() {
                         className="h-9 px-3"
                         onClick={handleEmailUpdate}
                         disabled={emailSaving}
+                        aria-label="保存邮箱"
                       >
                         {emailSaving ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -366,6 +367,7 @@ export default function DashboardSettingsPageContent() {
                         variant="ghost"
                         className="h-9 px-2"
                         onClick={() => setEditingEmail(false)}
+                        aria-label="取消编辑"
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
@@ -494,6 +496,7 @@ export default function DashboardSettingsPageContent() {
                       placeholder="再次输入新密码"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      aria-describedby={confirmPassword.length > 0 && confirmPassword !== newPassword ? "confirm-pw-error" : undefined}
                       className={cn(
                         "pl-10 pr-10",
                         confirmPassword.length > 0 &&
@@ -516,7 +519,7 @@ export default function DashboardSettingsPageContent() {
                   </div>
                   {confirmPassword.length > 0 &&
                     confirmPassword !== newPassword && (
-                      <p className="text-xs text-[var(--destructive)]">
+                      <p id="confirm-pw-error" role="alert" className="text-xs text-[var(--destructive)]">
                         两次输入的密码不一致
                       </p>
                     )}

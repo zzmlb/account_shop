@@ -104,6 +104,7 @@ export default function ContactForm() {
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="您的姓名"
             required
+            aria-required="true"
             minLength={2}
             maxLength={50}
           />
@@ -119,20 +120,21 @@ export default function ContactForm() {
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             placeholder="your@email.com"
             required
+            aria-required="true"
             maxLength={100}
           />
         </div>
       </div>
 
       <div className="mt-4">
-        <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+        <label htmlFor="contact-category" className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
           问题类型
         </label>
         <Select
           value={form.category}
           onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
         >
-          <SelectTrigger aria-label="选择问题类型">
+          <SelectTrigger id="contact-category" aria-label="选择问题类型">
             <SelectValue placeholder="选择问题类型（可选）" />
           </SelectTrigger>
           <SelectContent>
@@ -155,6 +157,7 @@ export default function ContactForm() {
           onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
           placeholder="留言主题"
           required
+          aria-required="true"
           minLength={2}
           maxLength={100}
         />
@@ -170,6 +173,7 @@ export default function ContactForm() {
           onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           placeholder="请详细描述您的问题或建议（至少10字）"
           required
+          aria-required="true"
           minLength={10}
           maxLength={2000}
           rows={5}
