@@ -109,4 +109,43 @@ describe("GET /api/settings", () => {
     expect(res.status).toBe(500);
     expect(data.success).toBe(false);
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 500 error message as '获取站点设置失败'", async () => {
+    mockSiteSettingFindMany.mockRejectedValue(new Error("timeout"));
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(data.message).toBe("获取站点设置失败");
+  });
+
+  it("returns all four public keys when present", async () => {
+    mockSiteSettingFindMany.mockResolvedValue([
+      { key: "site_name", value: "Test Shop" },
+      { key: "site_description", value: "A test shop" },
+      { key: "logo_url", value: "https://example.com/logo.png" },
+      { key: "announcement", value: "Sale!" },
+    ]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(Object.keys(data.settings)).toHaveLength(4);
+    expect(data.settings.site_name).toBe("Test Shop");
+    expect(data.settings.site_description).toBe("A test shop");
+    expect(data.settings.logo_url).toBe("https://example.com/logo.png");
+    expect(data.settings.announcement).toBe("Sale!");
+  });
+
+  it("sets stale-while-revalidate in cache header", async () => {
+    mockSiteSettingFindMany.mockResolvedValue([]);
+
+    const res = await GET(makeReq());
+
+    expect(res.headers.get("cache-control")).toContain("stale-while-revalidate=600");
+  });
 });

@@ -155,4 +155,41 @@ describe("GET /api/stats", () => {
       "public, s-maxage=300, stale-while-revalidate=600"
     );
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 500 on database error", async () => {
+    mockProductCount.mockRejectedValueOnce(new Error("DB down"));
+
+    const res = await GET(makeRequest());
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
+
+  it("formats count >=10000 correctly", async () => {
+    setupMocks(15000, 10000, 50000);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.stats.products).toBe("15,000+");
+    expect(body.stats.users).toBe("10,000+");
+    expect(body.stats.orders).toBe("50,000+");
+  });
+
+  it("queries only active products with soldCount > 0 for trending", async () => {
+    setupMocks(10, 10, 10, []);
+
+    await GET(makeRequest());
+
+    const args = mockProductFindMany.mock.calls[0][0];
+    expect(args.where).toEqual({ isActive: true, soldCount: { gt: 0 } });
+    expect(args.orderBy).toEqual({ soldCount: "desc" });
+    expect(args.take).toBe(6);
+  });
 });

@@ -140,4 +140,43 @@ describe("GET /api/activity", () => {
     expect(body.success).toBe(false);
     expect(body.activity).toEqual([]);
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("anonymizes long usernames with first+last char", async () => {
+    mockOrderFindMany.mockResolvedValueOnce([
+      mockOrder({ user: { username: "LongName" } }),
+    ]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    // "LongName" (8 chars > 3) → "L***e"
+    expect(body.activity[0].user).toBe("L***e");
+  });
+
+  it("queries only PAID and DELIVERED orders ordered by newest", async () => {
+    mockOrderFindMany.mockResolvedValueOnce([]);
+
+    await GET(makeRequest());
+
+    const args = mockOrderFindMany.mock.calls[0][0];
+    expect(args.where.status).toEqual({ in: ["PAID", "DELIVERED"] });
+    expect(args.orderBy).toEqual({ createdAt: "desc" });
+    expect(args.take).toBe(10);
+  });
+
+  it("serializes time as ISO string", async () => {
+    const date = new Date("2026-03-08T15:30:00Z");
+    mockOrderFindMany.mockResolvedValueOnce([
+      mockOrder({ createdAt: date }),
+    ]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.activity[0].time).toBe("2026-03-08T15:30:00.000Z");
+  });
 });
