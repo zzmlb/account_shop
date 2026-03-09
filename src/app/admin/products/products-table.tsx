@@ -14,26 +14,7 @@ import {
   EyeOff,
   Copy,
 } from "lucide-react";
-
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  category: string;
-  categoryId: string;
-  price: number;
-  originalPrice: number;
-  image: string | null;
-  images: string[];
-  stock: number;
-  status: "上架" | "下架";
-  sales: number;
-  views: number;
-  description: string;
-  tags: string[];
-  afterSaleHours: number | null;
-  sortOrder: number;
-}
+import { type Product } from "./product-types";
 
 interface ProductsTableProps {
   products: Product[];

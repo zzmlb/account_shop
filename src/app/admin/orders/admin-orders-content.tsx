@@ -15,58 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateTime } from "@/lib/utils";
 
+import { type Order, type OrderStatus, statusConfig, formatPaymentMethod } from "./order-types";
 import { AdminOrderStats } from "./admin-order-stats";
 import { AdminOrdersSearchFilters } from "./admin-orders-search-filters";
 import { OrderDetailDialog } from "./order-detail-dialog";
 import { OrdersDesktopTable, OrdersMobileCards } from "./orders-table";
 
-type OrderStatus =
-  | "PENDING"
-  | "PAID"
-  | "DELIVERED"
-  | "CANCELLED"
-  | "REFUNDED"
-  | "EXPIRED";
-
-interface OrderItem {
-  id: string;
-  productId: string;
-  productName: string;
-  productSlug: string;
-  quantity: number;
-  unitPrice: number;
-  cardKeys?: Array<{
-    id: string;
-    content: string;
-    status: string;
-    soldAt: string | null;
-  }>;
-}
-
-interface Order {
-  id: string;
-  orderNo: string;
-  userId: string | null;
-  user: {
-    id: string;
-    username: string;
-    email: string | null;
-  } | null;
-  email: string | null;
-  totalAmount: number;
-  payAmount: number;
-  status: OrderStatus;
-  paymentMethod: string | null;
-  paymentId: string | null;
-  paidAt: string | null;
-  expireAt: string;
-  couponId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  items: OrderItem[];
-}
-
-interface Pagination {
+interface PaginationData {
   page: number;
   pageSize: number;
   total: number;
@@ -80,26 +35,6 @@ interface OrderStats {
   paidCount: number;
 }
 
-const statusConfig: Record<
-  OrderStatus,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline" | "success";
-    className?: string;
-  }
-> = {
-  PENDING: {
-    label: "待支付",
-    variant: "outline",
-    className: "border-[var(--warning)] text-[var(--warning)]",
-  },
-  PAID: { label: "已支付", variant: "default" },
-  DELIVERED: { label: "已完成", variant: "success" },
-  CANCELLED: { label: "已取消", variant: "secondary" },
-  REFUNDED: { label: "已退款", variant: "destructive" },
-  EXPIRED: { label: "已过期", variant: "secondary" },
-};
-
 const statusTabs = [
   { value: "ALL", label: "全部" },
   { value: "PENDING", label: "待支付" },
@@ -110,18 +45,6 @@ const statusTabs = [
   { value: "EXPIRED", label: "已过期" },
 ];
 
-const paymentMethodMap: Record<string, string> = {
-  balance: "余额",
-  alipay: "支付宝",
-  wechat: "微信",
-  usdt: "USDT",
-};
-
-function formatPaymentMethod(method: string | null): string {
-  if (!method) return "-";
-  return paymentMethodMap[method] || method;
-}
-
 export default function AdminOrdersPageContent() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -130,7 +53,7 @@ export default function AdminOrdersPageContent() {
   const [dateTo, setDateTo] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
     pageSize: 20,
     total: 0,

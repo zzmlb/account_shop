@@ -19,13 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Loader2 } from "lucide-react";
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  productCount: number;
-}
+import { type Category } from "./product-types";
 
 export interface ProductFormState {
   name: string;
