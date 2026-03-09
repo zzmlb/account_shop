@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ProductDeleteDialog } from "./product-delete-dialog";
 import {
   Select,
   SelectTrigger,
@@ -28,7 +22,6 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  Loader2,
   Download,
   RefreshCw,
 } from "lucide-react";
@@ -416,43 +409,6 @@ export default function AdminProductsPageContent() {
     }
   }
 
-  async function confirmDelete() {
-    if (!deleteTarget) return;
-    const idsToDelete = Array.isArray(deleteTarget) ? deleteTarget : [deleteTarget];
-
-    setMutating(true);
-    try {
-      const results = await Promise.allSettled(
-        idsToDelete.map((id) =>
-          apiMutate(`/api/admin/products?id=${id}`, "DELETE")
-        )
-      );
-      const failures = results.filter((r) => r.status === "rejected");
-      if (failures.length > 0) {
-        toast.warning(`部分删除失败: ${failures.length}/${idsToDelete.length} 件商品未能删除`);
-      } else {
-        toast.success(
-          idsToDelete.length === 1
-            ? "商品已删除(下架)"
-            : `已删除(下架) ${idsToDelete.length} 件商品`
-        );
-      }
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        idsToDelete.forEach((id) => next.delete(id));
-        return next;
-      });
-      setDeleteTarget(null);
-      setDeleteDialogOpen(false);
-      await fetchProducts();
-    } catch (err) {
-      toast.error("删除失败", {
-        description: err instanceof Error ? err.message : "未知错误",
-      });
-    } finally {
-      setMutating(false);
-    }
-  }
 
   // ---------------------------------------------------------------------------
   // Form handlers
@@ -831,30 +787,19 @@ export default function AdminProductsPageContent() {
       </div>
 
       {/* ---- Delete confirmation dialog ---- */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-[var(--destructive)]" />
-              确认删除
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            {Array.isArray(deleteTarget)
-              ? `确定要删除选中的 ${deleteTarget.length} 件商品吗？商品将被下架处理。`
-              : "确定要删除该商品吗？商品将被下架处理。"}
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteDialogOpen(false); }}>
-              取消
-            </Button>
-            <Button variant="destructive" disabled={mutating} onClick={confirmDelete}>
-              {mutating && <Loader2 className="h-4 w-4 animate-spin" />}
-              确认删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProductDeleteDialog
+        target={deleteTarget}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onSuccess={fetchProducts}
+        onClearSelection={(ids) => {
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.delete(id));
+            return next;
+          });
+        }}
+      />
     </div>
   );
 }
