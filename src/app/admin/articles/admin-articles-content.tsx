@@ -16,17 +16,7 @@ import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -37,12 +27,9 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
-import dynamic from "next/dynamic";
-
-const RichTextEditor = dynamic(
-  () => import("@/components/shared/rich-text-editor"),
-  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]" /> }
-);
+import { ArticleCreateDialog } from "./article-create-dialog";
+import { ArticleEditDialog } from "./article-edit-dialog";
+import { ArticleDeleteDialog } from "./article-delete-dialog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,30 +78,15 @@ export default function AdminArticlesPageContent() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Create dialog state
+  // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [createTitle, setCreateTitle] = useState("");
-  const [createCategory, setCreateCategory] = useState<string>("");
-  const [createContent, setCreateContent] = useState("");
-  const [createStatus, setCreateStatus] = useState<string>("草稿");
-  const [creating, setCreating] = useState(false);
-
-  // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editArticle, setEditArticle] = useState<ApiArticle | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editCategory, setEditCategory] = useState<string>("");
-  const [editContent, setEditContent] = useState("");
-  const [editStatus, setEditStatus] = useState<string>("草稿");
-  const [saving, setSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetArticle, setDeleteTargetArticle] = useState<ApiArticle | null>(null);
 
   // Action loading states (per-article)
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  // Delete confirmation dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTargetArticle, setDeleteTargetArticle] = useState<ApiArticle | null>(null);
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -170,67 +142,6 @@ export default function AdminArticlesPageContent() {
     setCurrentPage(1);
   };
 
-  // Create
-  const handleCreate = async () => {
-    if (!createTitle.trim() || !createCategory) return;
-    setCreating(true);
-    try {
-      await apiMutate<{ success: boolean }>("/api/admin/articles", "POST", {
-        title: createTitle.trim(),
-        content: createContent.trim(),
-        category: createCategory,
-        excerpt: "",
-        isPublished: createStatus === "已发布",
-      });
-
-      toast.success("文章创建成功");
-      setCreateTitle("");
-      setCreateCategory("");
-      setCreateContent("");
-      setCreateStatus("草稿");
-      setCreateDialogOpen(false);
-      // Refresh list
-      fetchArticles();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "创建文章失败");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  // Open edit dialog
-  const openEditDialog = (article: ApiArticle) => {
-    setEditArticle(article);
-    setEditTitle(article.title);
-    setEditCategory(article.category);
-    setEditContent(article.content);
-    setEditStatus(article.isPublished ? "已发布" : "草稿");
-    setEditDialogOpen(true);
-  };
-
-  // Save edit
-  const handleSaveEdit = async () => {
-    if (!editArticle || !editTitle.trim() || !editCategory) return;
-    setSaving(true);
-    try {
-      await apiMutate<{ success: boolean }>(`/api/admin/articles?id=${editArticle.id}`, "PUT", {
-        title: editTitle.trim(),
-        content: editContent.trim(),
-        category: editCategory,
-        isPublished: editStatus === "已发布",
-      });
-
-      toast.success("文章更新成功");
-      setEditDialogOpen(false);
-      setEditArticle(null);
-      fetchArticles();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "更新文章失败");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // Toggle publish
   const togglePublish = async (article: ApiArticle) => {
     setTogglingId(article.id);
@@ -245,31 +156,6 @@ export default function AdminArticlesPageContent() {
       toast.error(err instanceof Error ? err.message : "更新状态失败");
     } finally {
       setTogglingId(null);
-    }
-  };
-
-  // Open delete confirmation
-  const openDeleteDialog = (article: ApiArticle) => {
-    setDeleteTargetArticle(article);
-    setDeleteDialogOpen(true);
-  };
-
-  // Confirm delete
-  const confirmDeleteArticle = async () => {
-    if (!deleteTargetArticle) return;
-    const id = deleteTargetArticle.id;
-    setDeletingId(id);
-    try {
-      await apiMutate<{ success: boolean }>(`/api/admin/articles?id=${id}`, "DELETE");
-
-      toast.success("文章已删除");
-      setDeleteDialogOpen(false);
-      setDeleteTargetArticle(null);
-      fetchArticles();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "删除文章失败");
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -348,182 +234,11 @@ export default function AdminArticlesPageContent() {
             管理站点公告、教程和帮助文章
           </p>
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              新建文章
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>新建文章</DialogTitle>
-              <DialogDescription>
-                填写文章信息，保存后可在文章列表中查看
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="articleTitle">标题</Label>
-                <Input
-                  id="articleTitle"
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
-                  placeholder="请输入文章标题"
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>分类</Label>
-                  <Select value={createCategory} onValueChange={setCreateCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择分类" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>状态</Label>
-                  <Select value={createStatus} onValueChange={setCreateStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="草稿">草稿</SelectItem>
-                      <SelectItem value="已发布">已发布</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>内容</Label>
-                <RichTextEditor
-                  content={createContent}
-                  onChange={setCreateContent}
-                  placeholder="开始编辑文章内容..."
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                取消
-              </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={!createTitle.trim() || !createCategory || creating}
-              >
-                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                保存文章
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          新建文章
+        </Button>
       </div>
-
-      {/* Edit dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>编辑文章</DialogTitle>
-            <DialogDescription>
-              修改文章信息，保存后立即生效
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="editArticleTitle">标题</Label>
-              <Input
-                id="editArticleTitle"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="请输入文章标题"
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>分类</Label>
-                <Select value={editCategory} onValueChange={setEditCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择分类" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>状态</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="草稿">草稿</SelectItem>
-                    <SelectItem value="已发布">已发布</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>内容</Label>
-              <RichTextEditor
-                content={editContent}
-                onChange={setEditContent}
-                placeholder="开始编辑文章内容..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              取消
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={!editTitle.trim() || !editCategory || saving}
-            >
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              保存修改
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete confirmation dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>
-              确定要删除文章「{deleteTargetArticle?.title}」吗？此操作无法撤销。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              取消
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeleteArticle}
-              disabled={deletingId === deleteTargetArticle?.id}
-            >
-              {deletingId === deleteTargetArticle?.id && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              确认删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -698,7 +413,10 @@ export default function AdminArticlesPageContent() {
                         variant="ghost"
                         size="sm"
                         title="编辑"
-                        onClick={() => openEditDialog(article)}
+                        onClick={() => {
+                          setEditArticle(article);
+                          setEditDialogOpen(true);
+                        }}
                       >
                         <Edit3 className="h-4 w-4" />
                         <span className="ml-1 hidden lg:inline">编辑</span>
@@ -729,16 +447,14 @@ export default function AdminArticlesPageContent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openDeleteDialog(article)}
-                        disabled={deletingId === article.id}
+                        onClick={() => {
+                          setDeleteTargetArticle(article);
+                          setDeleteDialogOpen(true);
+                        }}
                         className="text-[var(--destructive)] hover:text-[var(--destructive)]"
                         title="删除"
                       >
-                        {deletingId === article.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
+                        <Trash2 className="h-4 w-4" />
                         <span className="ml-1 hidden lg:inline">删除</span>
                       </Button>
                     </div>
@@ -756,6 +472,33 @@ export default function AdminArticlesPageContent() {
         totalPages={totalPages}
         total={total}
         onPageChange={setCurrentPage}
+      />
+
+      {/* Dialogs */}
+      <ArticleCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchArticles}
+      />
+
+      <ArticleEditDialog
+        article={editArticle}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={() => {
+          setEditArticle(null);
+          fetchArticles();
+        }}
+      />
+
+      <ArticleDeleteDialog
+        article={deleteTargetArticle}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onSuccess={() => {
+          setDeleteTargetArticle(null);
+          fetchArticles();
+        }}
       />
     </div>
   );
