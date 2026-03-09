@@ -249,6 +249,7 @@ export default function PromotionsContent() {
                     <button
                       onClick={() => copyCode(coupon.code)}
                       className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors"
+                      aria-label={`复制优惠码 ${coupon.code}`}
                     >
                       {copiedCode === coupon.code ? (
                         <Check className="h-3.5 w-3.5 text-green-500" />

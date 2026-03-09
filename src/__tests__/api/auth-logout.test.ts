@@ -141,4 +141,26 @@ describe("POST /api/auth/logout", () => {
     // Cookie value should be empty (session=; or session=)
     expect(setCookie).toMatch(/session=\s*;/);
   });
+
+  it("returns 429 with Retry-After header on rate limit", async () => {
+    const futureReset = Date.now() + 30000;
+    mockApiLimiter.mockReturnValue({ success: false, remaining: 0, reset: futureReset });
+
+    const res = await POST(makeReq());
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBeTruthy();
+  });
+
+  it("response has JSON content type", async () => {
+    const res = await POST(makeReq());
+
+    expect(res.headers.get("content-type")).toContain("application/json");
+  });
+
+  it("calls apiLimiter exactly once per request", async () => {
+    await POST(makeReq());
+
+    expect(mockApiLimiter).toHaveBeenCalledTimes(1);
+  });
 });

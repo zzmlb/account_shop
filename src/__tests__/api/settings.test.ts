@@ -148,4 +148,31 @@ describe("GET /api/settings", () => {
 
     expect(res.headers.get("cache-control")).toContain("stale-while-revalidate=600");
   });
+
+  it("handles duplicate keys by using last DB row value", async () => {
+    mockSiteSettingFindMany.mockResolvedValue([
+      { key: "site_name", value: "First" },
+      { key: "site_name", value: "Second" },
+    ]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    // The route iterates rows sequentially, so last value wins
+    expect(data.settings.site_name).toBe("Second");
+  });
+
+  it("returns 200 with success true even with partial settings", async () => {
+    mockSiteSettingFindMany.mockResolvedValue([
+      { key: "site_name", value: "OnlyName" },
+    ]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(Object.keys(data.settings)).toHaveLength(1);
+    expect(data.settings.site_description).toBeUndefined();
+  });
 });

@@ -182,4 +182,26 @@ describe("GET /api/notifications/unread-count", () => {
     expect(cacheControl).toContain("private");
     expect(cacheControl).not.toContain("public");
   });
+
+  it("handles large unread count correctly", async () => {
+    mockNotificationCount.mockResolvedValue(9999);
+
+    const req = new NextRequest("http://localhost:3001/api/notifications/unread-count", {
+      headers: { cookie: "session=valid-token" },
+    });
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.count).toBe(9999);
+  });
+
+  it("does not set Cache-Control header for unauthenticated users", async () => {
+    mockDecodeSession.mockReturnValue(null);
+
+    const req = new NextRequest("http://localhost:3001/api/notifications/unread-count");
+    const response = await GET(req);
+
+    // Unauthenticated returns early before setting cache header
+    expect(response.headers.get("Cache-Control")).toBeNull();
+  });
 });

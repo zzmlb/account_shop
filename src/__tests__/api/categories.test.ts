@@ -175,4 +175,33 @@ describe("GET /api/categories", () => {
     expect(data.categories[0].icon).toBeNull();
     expect(data.categories[0].productCount).toBe(0);
   });
+
+  it("returns multiple categories preserving order", async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: "cat-1", name: "A", slug: "a", description: null, icon: null, _count: { products: 3 } },
+      { id: "cat-2", name: "B", slug: "b", description: null, icon: null, _count: { products: 7 } },
+    ]);
+
+    const response = await GET(createRequest());
+    const data = await response.json();
+
+    expect(data.categories).toHaveLength(2);
+    expect(data.categories[0].name).toBe("A");
+    expect(data.categories[1].name).toBe("B");
+    expect(data.categories[0].productCount).toBe(3);
+    expect(data.categories[1].productCount).toBe(7);
+  });
+
+  it("selects id, name, slug, description, icon and _count fields", async () => {
+    mockCategoryFindMany.mockResolvedValue([]);
+
+    await GET(createRequest());
+
+    const args = mockCategoryFindMany.mock.calls[0][0];
+    expect(args.select.id).toBe(true);
+    expect(args.select.name).toBe(true);
+    expect(args.select.slug).toBe(true);
+    expect(args.select.description).toBe(true);
+    expect(args.select.icon).toBe(true);
+  });
 });

@@ -164,4 +164,25 @@ describe("GET /api/articles/[slug]", () => {
     expect(data.article.content).toBe("<p>文章内容</p>");
     expect(data.article.updatedAt).toBe(now.toISOString());
   });
+
+  it("sets stale-while-revalidate=600 in cache header", async () => {
+    mockArticleFindUnique.mockResolvedValue(mockArticle);
+
+    const res = await GET(makeReq("test-article"), makeParams("test-article"));
+
+    expect(res.headers.get("cache-control")).toContain("stale-while-revalidate=600");
+  });
+
+  it("handles view count increment failure silently", async () => {
+    mockArticleFindUnique.mockResolvedValue(mockArticle);
+    mockArticleUpdate.mockRejectedValue(new Error("update failed"));
+
+    const res = await GET(makeReq("test-article"), makeParams("test-article"));
+    const data = await res.json();
+
+    // Route still returns 200 because update is fire-and-forget
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.article.id).toBe("art-1");
+  });
 });

@@ -252,4 +252,41 @@ describe("GET /api/reviews/featured", () => {
     expect(data.success).toBe(true);
     expect(data.reviews).toEqual([]);
   });
+
+  it("masks 2-char username with first char + '**'", async () => {
+    mockReviewFindMany.mockResolvedValue([{
+      id: "review-2char",
+      rating: 5,
+      content: "Good",
+      isVisible: true,
+      user: { username: "ab" },
+      product: { name: "Product E" },
+    }]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.reviews[0].username).toBe("a**");
+  });
+
+  it("truncates content at 81 chars (just over boundary)", async () => {
+    const content81 = "C".repeat(81);
+
+    mockReviewFindMany.mockResolvedValue([{
+      id: "review-81",
+      rating: 5,
+      content: content81,
+      isVisible: true,
+      user: { username: "dave" },
+      product: { name: "Product F" },
+    }]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.reviews[0].content).toBe("C".repeat(80) + "...");
+    expect(data.reviews[0].content.length).toBe(83);
+  });
 });

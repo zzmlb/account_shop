@@ -245,4 +245,43 @@ describe("GET /api/reviews/my", () => {
 
     expect(data.reviews[0].isVisible).toBe(false);
   });
+
+  it("handles multiple reviews in response", async () => {
+    mockReviewFindMany.mockResolvedValue([
+      mockReview,
+      {
+        ...mockReview,
+        id: "rev-2",
+        rating: 3,
+        content: "还行",
+        adminReply: null,
+        repliedAt: null,
+        product: { ...mockReview.product, id: "prod-2", name: "Another Product" },
+      },
+    ]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.reviews).toHaveLength(2);
+    expect(data.reviews[0].id).toBe("rev-1");
+    expect(data.reviews[1].id).toBe("rev-2");
+    expect(data.reviews[1].rating).toBe(3);
+    expect(data.reviews[1].adminReply).toBeNull();
+  });
+
+  it("converts product price from string to number", async () => {
+    mockReviewFindMany.mockResolvedValue([{
+      ...mockReview,
+      product: { ...mockReview.product, price: "99.50" },
+    }]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(typeof data.reviews[0].product.price).toBe("number");
+    expect(data.reviews[0].product.price).toBe(99.5);
+  });
 });

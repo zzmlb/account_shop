@@ -251,4 +251,57 @@ describe("GET /api/coupons", () => {
     expect(args.orderBy).toEqual({ coupon: { expireAt: "desc" } });
     expect(args.take).toBe(100);
   });
+
+  it("handles FIXED_AMOUNT type coupon correctly", async () => {
+    mockUserCouponFindMany.mockResolvedValue([{
+      id: "uc-2",
+      couponId: "coupon-2",
+      userId: "user-1",
+      usedAt: null,
+      coupon: {
+        code: "FLAT20",
+        type: "FIXED_AMOUNT",
+        value: 20,
+        minAmount: 100,
+        startAt: now,
+        expireAt: new Date("2026-04-08T10:00:00Z"),
+      },
+    }]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(data.coupons[0].type).toBe("FIXED_AMOUNT");
+    expect(data.coupons[0].value).toBe(20);
+    expect(data.coupons[0].code).toBe("FLAT20");
+    expect(data.coupons[0].name).toBe("FLAT20");
+  });
+
+  it("returns multiple coupons with correct formatting", async () => {
+    mockUserCouponFindMany.mockResolvedValue([
+      { ...mockUserCoupon },
+      {
+        id: "uc-3",
+        couponId: "coupon-3",
+        userId: "user-1",
+        usedAt: new Date("2026-03-05T08:00:00Z"),
+        coupon: {
+          code: "SAVE5",
+          type: "PERCENTAGE",
+          value: 5,
+          minAmount: null,
+          startAt: now,
+          expireAt: new Date("2026-05-01T10:00:00Z"),
+        },
+      },
+    ]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(data.coupons).toHaveLength(2);
+    expect(data.coupons[0].isUsed).toBe(false);
+    expect(data.coupons[1].isUsed).toBe(true);
+    expect(data.coupons[1].minAmount).toBeNull();
+  });
 });
