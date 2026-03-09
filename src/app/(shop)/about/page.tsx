@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Shield, Zap, Headphones, Award, Users, Globe } from "lucide-react";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -70,6 +71,7 @@ export default function AboutPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Breadcrumb items={[{ label: "关于我们" }]} className="mb-6" />
       {/* Hero */}
       <div className="mb-16 text-center">
         <h1 className="mb-4 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">

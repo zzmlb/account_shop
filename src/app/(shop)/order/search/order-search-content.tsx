@@ -10,8 +10,6 @@ import {
   KeyRound,
   Loader2,
   Copy,
-  ChevronRight,
-  Home,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +20,7 @@ import { formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiFetch } from "@/lib/api-fetch";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 interface SearchResult {
   orderId: string;
@@ -119,25 +118,7 @@ export default function OrderSearchPageContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Breadcrumb */}
-      <nav aria-label="面包屑导航" className="mb-6">
-        <ol className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
-          <li>
-            <Link href="/" className="flex items-center gap-1 hover:text-[var(--foreground)] transition-colors">
-              <Home className="h-3.5 w-3.5" />
-              首页
-            </Link>
-          </li>
-          <li><ChevronRight className="h-3.5 w-3.5" /></li>
-          <li>
-            <Link href="/products" className="hover:text-[var(--foreground)] transition-colors">
-              商品
-            </Link>
-          </li>
-          <li><ChevronRight className="h-3.5 w-3.5" /></li>
-          <li className="text-[var(--foreground)] font-medium">卡密查询</li>
-        </ol>
-      </nav>
+      <Breadcrumb items={[{ label: "卡密查询" }]} className="mb-6" />
 
       {/* Page header */}
       <div className="mb-8 text-center">

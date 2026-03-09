@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCartStore, type CartItem } from "@/stores/cart-store";
 import { formatPrice } from "@/lib/utils";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 export default function CartPageContent() {
   const { items, removeItem, updateQuantity, clearCart, getTotal, getItemCount } =
@@ -78,6 +79,7 @@ export default function CartPageContent() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
+      <Breadcrumb items={[{ label: "购物车" }]} className="mb-6" />
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>

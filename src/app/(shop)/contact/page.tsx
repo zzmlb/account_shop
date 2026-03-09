@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Mail, MessageSquare, Clock, Shield } from "lucide-react";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import ContactForm from "./contact-form";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 export const metadata: Metadata = {
   title: "联系我们",
@@ -86,6 +87,7 @@ export default function ContactPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
+      <Breadcrumb items={[{ label: "联系我们" }]} className="mb-6" />
       {/* Header */}
       <div className="mb-12 text-center">
         <h1 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">

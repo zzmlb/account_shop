@@ -89,18 +89,21 @@ export default function Footer() {
             {/* Social links */}
             <div className="flex items-center gap-2">
               {[
-                { icon: Twitter, label: "Twitter" },
-                { icon: Github, label: "GitHub" },
-                { icon: MessageCircle, label: "微信公众号" },
+                { icon: Twitter, label: "Twitter", href: "https://twitter.com" },
+                { icon: Github, label: "GitHub", href: "https://github.com" },
+                { icon: MessageCircle, label: "微信公众号", href: "/contact" },
               ].map((social) => (
-                <span
+                <Link
                   key={social.label}
+                  href={social.href}
                   aria-label={social.label}
                   title={social.label}
-                  className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--muted-foreground)] cursor-default"
+                  target={social.href.startsWith("http") ? "_blank" : undefined}
+                  rel={social.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
                 >
                   <social.icon className="h-4 w-4" />
-                </span>
+                </Link>
               ))}
             </div>
 

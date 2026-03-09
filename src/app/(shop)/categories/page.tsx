@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { db } from "@/server/db";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import AnimatedSection from "@/components/shared/animated-section";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 export const revalidate = 120; // ISR: revalidate every 2 minutes
 
@@ -72,6 +73,7 @@ export default async function CategoriesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Breadcrumb items={[{ label: "商品分类" }]} className="mb-6" />
       {/* Header */}
       <AnimatedSection className="mb-10 text-center">
         <h1 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
