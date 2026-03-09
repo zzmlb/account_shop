@@ -269,4 +269,60 @@ describe("Admin Stats API — /api/admin/stats", () => {
     expect(json.success).toBe(false);
     expect(json.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("accepts period=30 for sales chart", async () => {
+    setupAllMocks();
+
+    const req = new NextRequest("http://localhost/api/admin/stats?period=30");
+    const res = await GET(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.chartPeriod).toBe(30);
+    expect(json.salesChart.length).toBe(30);
+    expect(json.userGrowthChart.length).toBe(30);
+  });
+
+  it("defaults to period=7 for invalid period param", async () => {
+    setupAllMocks();
+
+    const req = new NextRequest("http://localhost/api/admin/stats?period=99");
+    const res = await GET(req);
+    const json = await res.json();
+
+    expect(json.chartPeriod).toBe(7);
+  });
+
+  it("calculates conversion rate correctly", async () => {
+    mockOrderAggregate.mockResolvedValue({ _sum: { payAmount: 500 } });
+    // Setup counts: todayOrders=10, yesterdayOrders=0, todayPaidOrders=4, yesterdayPaidOrders=0, ...
+    mockOrderCount
+      .mockResolvedValueOnce(10)  // todayOrders
+      .mockResolvedValueOnce(0)   // yesterdayOrders
+      .mockResolvedValueOnce(4)   // todayPaidOrders
+      .mockResolvedValueOnce(0)   // yesterdayPaidOrders
+      .mockResolvedValue(5);      // remaining counts (thisMonthOrders, lastMonthOrders)
+    mockUserCount.mockResolvedValue(5);
+    mockProductCount.mockResolvedValue(5);
+    mockRefundRequestCount.mockResolvedValue(0);
+    mockContactMessageCount.mockResolvedValue(0);
+    mockOrderFindMany.mockResolvedValue([]);
+    mockProductFindMany.mockResolvedValue([]);
+    mockOrderGroupBy.mockResolvedValue([]);
+    mockLoginLogFindMany.mockResolvedValue([]);
+    mockQueryRaw.mockResolvedValue([]);
+
+    const req = new NextRequest("http://localhost/api/admin/stats");
+    const res = await GET(req);
+    const json = await res.json();
+
+    // 4/10 = 0.4 → 40%
+    expect(json.stats.todayConversion).toBe(40);
+    // 0 orders yesterday → conversion is 0
+    expect(json.stats.yesterdayConversion).toBe(0);
+  });
 });

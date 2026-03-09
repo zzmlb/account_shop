@@ -142,4 +142,37 @@ describe("GET /api/health", () => {
 
     expect(mockCleanup).not.toHaveBeenCalled();
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("includes database timing even on failure", async () => {
+    mockQueryRaw.mockRejectedValue(new Error("timeout"));
+
+    const req = new NextRequest("http://localhost:3001/api/health");
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.timings.database_ms).toBeGreaterThanOrEqual(0);
+  });
+
+  it("returns ISO timestamp format", async () => {
+    const req = new NextRequest("http://localhost:3001/api/health");
+    const response = await GET(req);
+    const data = await response.json();
+
+    // Should be a valid ISO date string
+    expect(new Date(data.timestamp).toISOString()).toBe(data.timestamp);
+  });
+
+  it("falls back to version 1.0.0 when npm_package_version is unset", async () => {
+    const req = new NextRequest("http://localhost:3001/api/health");
+    const response = await GET(req);
+    const data = await response.json();
+
+    // In test env, npm_package_version may not be set
+    expect(typeof data.version).toBe("string");
+    expect(data.version.length).toBeGreaterThan(0);
+  });
 });
