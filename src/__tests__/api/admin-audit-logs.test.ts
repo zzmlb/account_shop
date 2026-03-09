@@ -229,4 +229,30 @@ describe("Admin Audit Logs API — /api/admin/audit-logs", () => {
     // Should NOT have a nested pagination object
     expect(json.pagination).toBeUndefined();
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("does not set action filter when action param is missing", async () => {
+    mockAuditLogFindMany.mockResolvedValue([]);
+    mockAuditLogCount.mockResolvedValue(0);
+
+    const req = new NextRequest("http://localhost/api/admin/audit-logs");
+    await GET(req);
+
+    const findManyCall = mockAuditLogFindMany.mock.calls[0][0];
+    expect(findManyCall.where).toEqual({});
+  });
+
+  it("includes admin relation with id and username select", async () => {
+    mockAuditLogFindMany.mockResolvedValue([]);
+    mockAuditLogCount.mockResolvedValue(0);
+
+    const req = new NextRequest("http://localhost/api/admin/audit-logs");
+    await GET(req);
+
+    const findManyCall = mockAuditLogFindMany.mock.calls[0][0];
+    expect(findManyCall.include.admin.select).toEqual({ id: true, username: true });
+  });
 });

@@ -201,4 +201,35 @@ describe("POST /api/auth/forgot-password", () => {
     expect(data1.success).toBe(data2.success);
     expect(data1.message).toBe(data2.message);
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("passes correct args to sendPasswordReset", async () => {
+    mockUserFindFirst.mockResolvedValue({
+      id: "user-1",
+      username: "alice",
+      email: "alice@example.com",
+    });
+
+    await POST(makeReq({ email: "alice@example.com" }));
+
+    expect(mockSendPasswordReset).toHaveBeenCalledTimes(1);
+    const arg = mockSendPasswordReset.mock.calls[0][0];
+    expect(arg.to).toBe("alice@example.com");
+    expect(arg.username).toBe("alice");
+    expect(typeof arg.resetToken).toBe("string");
+    expect(arg.resetToken.length).toBe(64);
+  });
+
+  it("returns 400 with errors object for invalid email", async () => {
+    const res = await POST(makeReq({ email: "bad" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.message).toContain("邮箱");
+    expect(data.errors).toBeDefined();
+  });
 });

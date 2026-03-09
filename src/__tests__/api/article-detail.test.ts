@@ -159,4 +159,45 @@ describe("GET /api/articles/[slug]", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("获取文章详情失败");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("queries with isPublished: true in where clause", async () => {
+    mockArticleFindUnique.mockResolvedValue(null);
+
+    await GET(createRequest("draft-article"), {
+      params: Promise.resolve({ slug: "draft-article" }),
+    });
+
+    expect(mockArticleFindUnique).toHaveBeenCalledWith({
+      where: { slug: "draft-article", isPublished: true },
+    });
+  });
+
+  it("handles article with empty tags array", async () => {
+    mockArticleFindUnique.mockResolvedValue({ ...mockArticle, tags: [] });
+
+    const res = await GET(createRequest("test-article"), {
+      params: Promise.resolve({ slug: "test-article" }),
+    });
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.article.tags).toEqual([]);
+  });
+
+  it("does not fail when view count update rejects", async () => {
+    mockArticleUpdate.mockRejectedValue(new Error("update failed"));
+
+    const res = await GET(createRequest("test-article"), {
+      params: Promise.resolve({ slug: "test-article" }),
+    });
+
+    // Should still return 200 (view count is fire-and-forget)
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
 });

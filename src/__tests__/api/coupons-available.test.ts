@@ -154,4 +154,32 @@ describe("GET /api/coupons/available", () => {
     expect(typeof coupon.startAt).toBe("string");
     expect(typeof coupon.expireAt).toBe("string");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("includes coupons with null maxUses (unlimited)", async () => {
+    mockCouponFindMany.mockResolvedValue([
+      { ...mockCoupon, maxUses: null, _count: { users: 999 } },
+    ]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    // null maxUses means unlimited, should not be filtered out
+    expect(data.coupons).toHaveLength(1);
+    expect(data.coupons[0].maxUses).toBeNull();
+  });
+
+  it("returns 500 on database error", async () => {
+    mockCouponFindMany.mockRejectedValue(new Error("DB connection failed"));
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
 });

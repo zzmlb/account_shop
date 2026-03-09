@@ -168,4 +168,29 @@ describe("POST /api/auth/delete-account", () => {
     const setCookie = res.headers.get("set-cookie");
     expect(setCookie).toContain("session=");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 403 for SUPER_ADMIN role as well", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+    mockUserFindUnique.mockResolvedValue({ ...mockDbUser, role: "SUPER_ADMIN" });
+
+    const res = await POST(makeReq({ password: "test123" }));
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.message).toContain("管理员");
+  });
+
+  it("returns 500 on unexpected server error", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+    mockUserFindUnique.mockRejectedValue(new Error("DB down"));
+
+    const res = await POST(makeReq({ password: "test123" }));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
 });

@@ -298,5 +298,38 @@ describe("Admin User Detail API — /api/admin/users/[id]", () => {
       expect(res.status).toBe(200);
       expect(json.user.totalSpent).toBe(0);
     });
+
+    // -------------------------------------------------------------------
+    // Edge cases
+    // -------------------------------------------------------------------
+
+    it("returns 403 for non-admin users", async () => {
+      mockAdminSession = { id: "user-1", role: "USER" };
+
+      const req = new NextRequest("http://localhost/api/admin/users/user-1");
+      const res = await GET(req, { params: Promise.resolve({ id: "user-1" }) });
+
+      expect(res.status).toBe(403);
+      expect(mockUserFindUnique).not.toHaveBeenCalled();
+    });
+
+    it("selects correct user fields including _count", async () => {
+      mockUserFindUnique.mockResolvedValue({ ...mockUser });
+      mockOrderFindMany.mockResolvedValue([]);
+      mockBalanceLogFindMany.mockResolvedValue([]);
+      mockLoginLogFindMany.mockResolvedValue([]);
+      mockOrderAggregate.mockResolvedValue({ _sum: { payAmount: null } });
+
+      const req = new NextRequest("http://localhost/api/admin/users/user-1");
+      await GET(req, { params: Promise.resolve({ id: "user-1" }) });
+
+      const selectArg = mockUserFindUnique.mock.calls[0][0].select;
+      expect(selectArg._count.select).toEqual({
+        orders: true,
+        reviews: true,
+        favorites: true,
+        notifications: true,
+      });
+    });
   });
 });
