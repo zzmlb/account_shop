@@ -5,6 +5,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "我的优惠券 - 个人中心",
+  description: "查看和使用您的优惠券",
+  robots: { index: false },
 };
 
 export default function CouponsPage() {
