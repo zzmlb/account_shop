@@ -2,19 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Key,
   Download,
   Search,
   Ban,
   CheckCircle,
-  Package,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/shared/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -22,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
+import { AdminCardKeysStats } from "./admin-card-keys-stats";
+import { AdminCardKeysSkeleton } from "./admin-card-keys-skeleton";
 import { CardKeysTable } from "./card-keys-table";
 import { ImportCardKeysDialog } from "./import-card-keys-dialog";
 import { DeleteCardKeyDialog, BatchActionDialog } from "./card-keys-dialogs";
@@ -445,37 +443,7 @@ export default function AdminCardKeysPageContent() {
   // ---------------------------------------------------------------------------
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Skeleton className="h-10 w-28" />
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-[var(--radius-lg)]" />
-          ))}
-        </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-10 flex-1" />
-        </div>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border)]">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-3">
-              <Skeleton className="h-5 flex-1" />
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-8 w-32" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <AdminCardKeysSkeleton />;
   }
 
   // ---------------------------------------------------------------------------
@@ -508,60 +476,7 @@ export default function AdminCardKeysPageContent() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          {
-            label: "总卡密数",
-            value: stats.total.toLocaleString(),
-            icon: Key,
-            color: "text-[var(--foreground)]",
-            bg: "bg-[var(--muted)]",
-          },
-          {
-            label: "可用",
-            value: stats.available.toLocaleString(),
-            icon: CheckCircle,
-            color: "text-[var(--success)]",
-            bg: "bg-[var(--success)]/10",
-          },
-          {
-            label: "已售",
-            value: stats.sold.toLocaleString(),
-            icon: Package,
-            color: "text-[var(--primary)]",
-            bg: "bg-[var(--primary)]/10",
-          },
-          {
-            label: "已禁用",
-            value: stats.disabled.toLocaleString(),
-            icon: Ban,
-            color: "text-[var(--destructive)]",
-            bg: "bg-[var(--destructive)]/10",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)]",
-                  stat.bg
-                )}
-              >
-                <stat.icon className={cn("h-5 w-5", stat.color)} />
-              </div>
-              <div>
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  {stat.label}
-                </p>
-                <p className="text-xl font-bold">{stat.value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <AdminCardKeysStats stats={stats} />
 
       {/* Filter row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
