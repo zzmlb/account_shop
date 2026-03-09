@@ -15,12 +15,7 @@ import {
   XCircle,
   RotateCcw,
   Printer,
-  ShoppingCart,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Download,
-  Copy,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,15 +29,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { cn, formatPrice } from "@/lib/utils";
 import CopyButton from "@/components/shared/copy-button";
 import { useCartStore } from "@/stores/cart-store";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { OrderCardKeys } from "./order-card-keys";
 import { OrderRefundSection } from "./order-refund-section";
-import Image from "next/image";
-import { Mail } from "lucide-react";
+import { OrderRecommended } from "./order-recommended";
 
 interface OrderItem {
   name: string;
@@ -113,15 +106,6 @@ const TIMELINE_STEPS = [
   { key: "delivered", label: "发货完成", icon: Truck },
 ];
 
-function maskCardKey(key: string): string {
-  const parts = key.split("-");
-  if (parts.length <= 1) {
-    if (key.length <= 4) return "****";
-    return key.substring(0, 4) + "*".repeat(key.length - 4);
-  }
-  return parts[0] + "-" + parts.slice(1).map(() => "****").join("-");
-}
-
 function useCountdown(expireAt: string | undefined, status: string | undefined) {
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -160,13 +144,6 @@ export default function OrderDetailContent({ id }: { id: string }) {
   const [cancelling, setCancelling] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [refundReason, setRefundReason] = useState("");
-  const [refundSubmitting, setRefundSubmitting] = useState(false);
-  const [refundStatus, setRefundStatus] = useState<string | null>(null);
-  const [resendingEmail, setResendingEmail] = useState(false);
-  const [revealedKeys, setRevealedKeys] = useState<Set<number>>(new Set());
-  const [recommendedProducts, setRecommendedProducts] = useState<Array<{ id: string; name: string; slug: string; price: number; originalPrice?: number; image?: string; soldCount: number; stockCount: number }>>([]);
   const countdown = useCountdown(order?.expireAt, order?.status);
   const orderSlugs = useMemo(
     () => (order ? order.items.map((i) => i.slug) : []),
@@ -187,24 +164,6 @@ export default function OrderDetailContent({ id }: { id: string }) {
     fetchOrder();
   }, [id]);
 
-  // Fetch recommended products after order loads
-  useEffect(() => {
-    if (!order) return;
-    const controller = new AbortController();
-    const slugsInOrder = new Set(order.items.map((i) => i.slug));
-    apiFetch<{ products: Array<{ id: string; name: string; slug: string; price: number; originalPrice?: number; image?: string; soldCount: number; stockCount: number }> }>("/api/products?sort=popular&limit=8", { signal: controller.signal })
-      .then((data) => {
-        const filtered = data.products
-          .filter((p) => !slugsInOrder.has(p.slug))
-          .slice(0, 4);
-        setRecommendedProducts(filtered);
-      })
-      .catch((err) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-      });
-    return () => controller.abort();
-  }, [order]);
-
   // Poll for status updates when order is PENDING or PAID
   const isPolling = !!(order && (order.status === "PENDING" || order.status === "PAID"));
   useEffect(() => {
@@ -224,18 +183,6 @@ export default function OrderDetailContent({ id }: { id: string }) {
     return () => clearInterval(interval);
   }, [id, order?.status, order]);
 
-  const toggleKeyReveal = (index: number) => {
-    setRevealedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
-
   const handleCancelOrder = async () => {
     if (!order || order.status !== "PENDING") return;
     setCancelDialogOpen(false);
@@ -251,51 +198,12 @@ export default function OrderDetailContent({ id }: { id: string }) {
     }
   };
 
-  // Check if there's already a refund request for this order
-  useEffect(() => {
-    if (!order || order.status !== "DELIVERED") return;
-    const controller = new AbortController();
-    async function checkRefund() {
-      try {
-        const data = await apiFetch<{ refunds: Array<{ orderNo: string; status: string }> }>("/api/refunds", { signal: controller.signal });
-        const match = data.refunds.find(
-          (r) => r.orderNo === order!.orderNo
-        );
-        if (match) setRefundStatus(match.status);
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-      }
-    }
-    checkRefund();
-    return () => controller.abort();
-  }, [order]);
-
-  const handleRefundRequest = async () => {
-    if (!order || refundReason.trim().length < 5) return;
-    setRefundSubmitting(true);
-    try {
-      await apiMutate("/api/refunds", "POST", {
-        orderId: order.id,
-        reason: refundReason.trim(),
-      });
-      toast.success("退款申请已提交");
-      setRefundDialogOpen(false);
-      setRefundReason("");
-      setRefundStatus("PENDING");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
-    } finally {
-      setRefundSubmitting(false);
-    }
-  };
-
   const handlePayNow = async () => {
     if (!order || order.status !== "PENDING") return;
     setPaying(true);
     try {
       await apiMutate(`/api/orders/${order.id}/pay`, "POST", { paymentMethod: "balance" });
       toast.success("支付成功！卡密即将发送至您的邮箱");
-      // Refresh order data
       const refreshData = await apiFetch<{ order: OrderData }>(`/api/orders/${id}`);
       setOrder(refreshData.order);
     } catch (err) {
@@ -309,14 +217,11 @@ export default function OrderDetailContent({ id }: { id: string }) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="animate-pulse space-y-6">
-          {/* Back link skeleton */}
           <div className="h-4 w-24 rounded bg-[var(--muted)]" />
-          {/* Status badge skeleton */}
           <div className="flex items-center justify-between">
             <div className="h-7 w-48 rounded bg-[var(--muted)]" />
             <div className="h-6 w-20 rounded-full bg-[var(--muted)]" />
           </div>
-          {/* Order items skeleton */}
           <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5 space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4">
@@ -329,7 +234,6 @@ export default function OrderDetailContent({ id }: { id: string }) {
               </div>
             ))}
           </div>
-          {/* Summary skeleton */}
           <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
             <div className="h-4 w-1/2 rounded bg-[var(--muted)]" />
             <div className="h-4 w-1/3 rounded bg-[var(--muted)]" />
@@ -496,14 +400,13 @@ export default function OrderDetailContent({ id }: { id: string }) {
             {TIMELINE_STEPS.map((step, index) => {
               const isCompleted = index <= activeStepIndex;
               const isCurrent = index === activeStepIndex;
-              // Resolve timestamp for each step
               const stepTime =
                 index === 0
                   ? order.createdAt
                   : index === 1
                     ? order.paidAt
                     : index === 2 && order.status === "DELIVERED"
-                      ? order.paidAt // delivered usually immediately after payment
+                      ? order.paidAt
                       : null;
               return (
                 <div key={step.key} className="flex flex-1 items-center">
@@ -667,251 +570,23 @@ export default function OrderDetailContent({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Card key processing indicator - shown when paid but keys not yet delivered */}
-      {order.status === "PAID" && order.cardKeys.length === 0 && (
-        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-6 text-center">
-          <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-[var(--primary)]" />
-          <h3 className="mb-1 text-sm font-semibold text-[var(--foreground)]">
-            卡密正在分配中
-          </h3>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            支付已确认，系统正在自动分配卡密，请稍候片刻...
-          </p>
-        </div>
-      )}
+      {/* Card keys (processing, edge case, normal display) */}
+      <OrderCardKeys
+        orderId={order.id}
+        orderNo={order.orderNo}
+        email={order.email}
+        createdAt={order.createdAt}
+        status={order.status}
+        cardKeys={order.cardKeys}
+      />
 
-      {/* Edge case: delivered but somehow no keys */}
-      {order.status === "DELIVERED" && order.cardKeys.length === 0 && (
-        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-6 text-center">
-          <AlertCircle className="mx-auto mb-2 h-6 w-6 text-[var(--warning)]" />
-          <h3 className="mb-1 text-sm font-semibold text-[var(--foreground)]">
-            卡密信息暂不可用
-          </h3>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            如长时间未收到卡密，请联系客服处理
-          </p>
-        </div>
-      )}
-
-      {/* Card keys section - only show when we have card keys */}
-      {order.cardKeys.length > 0 && (
-        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--foreground)]">
-              <Package className="h-5 w-5 text-[var(--primary)]" />
-              卡密信息 ({order.cardKeys.length} 个)
-            </h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (revealedKeys.size === order.cardKeys.length) {
-                  setRevealedKeys(new Set());
-                } else {
-                  setRevealedKeys(
-                    new Set(order.cardKeys.map((_, i) => i))
-                  );
-                }
-              }}
-              className="gap-1.5"
-            >
-              {revealedKeys.size === order.cardKeys.length ? (
-                <>
-                  <EyeOff className="h-3.5 w-3.5" />
-                  全部隐藏
-                </>
-              ) : (
-                <>
-                  <Eye className="h-3.5 w-3.5" />
-                  全部显示
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            {order.cardKeys.map((key, index) => {
-              const isRevealed = revealedKeys.has(index);
-              return (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] px-4 py-3"
-                >
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-xs font-bold text-[var(--primary)]">
-                    {index + 1}
-                  </span>
-                  <code className="flex-1 font-mono text-sm tracking-wider text-[var(--foreground)]">
-                    {isRevealed ? key : maskCardKey(key)}
-                  </code>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleKeyReveal(index)}
-                      className="h-8 w-8 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                      aria-label={isRevealed ? "隐藏" : "显示"}
-                    >
-                      {isRevealed ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <CopyButton text={key} variant="ghost" size="sm" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-[var(--muted-foreground)]">
-              卡密信息已同步发送至您的邮箱。请妥善保管卡密，避免泄露。
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const content = order.cardKeys.map((k, i) => `${i + 1}. ${k}`).join("\n");
-                  const blob = new Blob([`订单号: ${order.orderNo}\n日期: ${order.createdAt}\n\n卡密列表:\n${content}\n`], { type: "text/plain;charset=utf-8" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `卡密_${order.orderNo}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                  toast.success("卡密文件已下载");
-                }}
-                className="gap-1.5"
-              >
-                <Download className="h-3.5 w-3.5" />
-                下载
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(order.cardKeys.join("\n"));
-                  toast.success("已复制全部卡密");
-                }}
-                className="gap-1.5"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                复制全部
-              </Button>
-              {order.email && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={resendingEmail}
-                  onClick={async () => {
-                    setResendingEmail(true);
-                    try {
-                      await apiMutate(`/api/orders/${order.id}/resend-email`, "POST");
-                      toast.success("卡密已重新发送至邮箱");
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "网络错误，请稍后重试");
-                    } finally {
-                      setResendingEmail(false);
-                    }
-                  }}
-                  className="gap-1.5"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  {resendingEmail ? "发送中..." : "重发邮件"}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Refund request section */}
-      {order.status === "DELIVERED" && (
-        <div className="mt-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--foreground)]">
-                售后服务
-              </h3>
-              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                如卡密存在问题，可在售后时限内申请退款
-              </p>
-            </div>
-            {refundStatus === "PENDING" ? (
-              <Badge variant="outline" className="gap-1.5">
-                <Clock className="h-3 w-3" />
-                退款审核中
-              </Badge>
-            ) : refundStatus === "APPROVED" ? (
-              <Badge variant="success" className="gap-1.5">
-                <CheckCircle2 className="h-3 w-3" />
-                退款已通过
-              </Badge>
-            ) : refundStatus === "REJECTED" ? (
-              <Badge variant="destructive" className="gap-1.5">
-                <XCircle className="h-3 w-3" />
-                退款被拒绝
-              </Badge>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setRefundDialogOpen(true)}
-                className="gap-1.5"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                申请退款
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Refund request dialog */}
-      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-[var(--primary)]" />
-              申请退款
-            </DialogTitle>
-            <DialogDescription>
-              请详细描述退款原因，我们将在24小时内审核处理。
-              退款金额：¥{order.payAmount?.toFixed(2) ?? order.totalAmount.toFixed(2)}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="请描述退款原因，至少5个字符..."
-              value={refundReason}
-              onChange={(e) => setRefundReason(e.target.value)}
-              rows={4}
-              maxLength={500}
-            />
-            <p className="text-xs text-[var(--muted-foreground)]">
-              {refundReason.length}/500
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>
-              取消
-            </Button>
-            <Button
-              onClick={handleRefundRequest}
-              disabled={refundSubmitting || refundReason.trim().length < 5}
-            >
-              {refundSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RotateCcw className="mr-2 h-4 w-4" />
-              )}
-              提交申请
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Refund section */}
+      <OrderRefundSection
+        orderId={order.id}
+        orderNo={order.orderNo}
+        status={order.status}
+        payAmount={order.payAmount ?? order.totalAmount}
+      />
 
       {/* Pending payment notice */}
       {order.status === "PENDING" && (
@@ -990,7 +665,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
               for (const item of order.items) {
                 addItem({
                   id: item.slug,
-                  productId: item.slug, // will be re-validated at checkout
+                  productId: item.slug,
                   name: item.name,
                   slug: item.slug,
                   price: item.price,
@@ -1025,70 +700,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
       </div>
 
       {/* Recommended Products */}
-      {recommendedProducts.length > 0 && (
-        <div className="no-print mt-10">
-          <Separator className="mb-8" />
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-[var(--primary)]" />
-              猜你喜欢
-            </h2>
-            <Link
-              href="/products"
-              className="text-sm text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center gap-1 transition-colors"
-            >
-              查看更多
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {recommendedProducts.map((product) => (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="group rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 transition-all hover:border-[var(--primary)]/40 hover:shadow-md"
-              >
-                <div className="relative mb-3 aspect-square overflow-hidden rounded-md bg-[var(--muted)]">
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                      sizes="(max-width: 640px) 45vw, 20vw"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Package className="h-8 w-8 text-[var(--muted-foreground)]" />
-                    </div>
-                  )}
-                  {product.stockCount === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <span className="text-xs font-medium text-white">已售罄</span>
-                    </div>
-                  )}
-                </div>
-                <h3 className="mb-1.5 line-clamp-2 text-sm font-medium leading-snug group-hover:text-[var(--primary)] transition-colors">
-                  {product.name}
-                </h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-sm font-bold text-[var(--primary)]">
-                    {formatPrice(product.price)}
-                  </span>
-                  {product.originalPrice && product.originalPrice > product.price && (
-                    <span className="text-xs text-[var(--muted-foreground)] line-through">
-                      {formatPrice(product.originalPrice)}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                  已售 {product.soldCount}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      <OrderRecommended orderSlugs={orderSlugs} />
     </div>
   );
 }
