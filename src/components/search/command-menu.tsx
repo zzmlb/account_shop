@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-fetch";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 
 interface SearchResult {
   id: string;
@@ -224,7 +225,7 @@ export default function CommandMenu() {
       skipNextDebounceRef.current = false;
       return;
     }
-    const timer = setTimeout(() => search(query), 300);
+    const timer = setTimeout(() => search(query), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query, search]);
 

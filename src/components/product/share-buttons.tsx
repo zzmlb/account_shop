@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { COPY_FEEDBACK_MS, SHARE_POPUP_WIDTH, SHARE_POPUP_HEIGHT } from "@/lib/constants";
 
 interface ShareButtonsProps {
   title: string;
@@ -35,7 +36,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
       setCopied(true);
       toast.success("链接已复制");
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 2000);
+      timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
     } catch {
       toast.error("复制失败");
     }
@@ -43,12 +44,12 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
 
   const shareToWeibo = () => {
     const shareUrl = `https://service.weibo.com/share/share.php?title=${encodeURIComponent(title)}&url=${encodeURIComponent(getUrl())}`;
-    window.open(shareUrl, "_blank", "width=600,height=400");
+    window.open(shareUrl, "_blank", `width=${SHARE_POPUP_WIDTH},height=${SHARE_POPUP_HEIGHT}`);
   };
 
   const shareToTelegram = () => {
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(getUrl())}&text=${encodeURIComponent(title)}`;
-    window.open(shareUrl, "_blank", "width=600,height=400");
+    window.open(shareUrl, "_blank", `width=${SHARE_POPUP_WIDTH},height=${SHARE_POPUP_HEIGHT}`);
   };
 
   return (

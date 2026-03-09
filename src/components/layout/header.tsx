@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingCart, User, Menu, Sun, Moon, X, Shield, Bell, LogOut, Wallet, Heart } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
-import { NAV_LINKS } from "@/lib/constants";
+import { NAV_LINKS, NOTIFICATION_POLL_INTERVAL_MS } from "@/lib/constants";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCartStore } from "@/stores/cart-store";
@@ -34,7 +34,7 @@ export default function Header() {
     if (!user) return;
     fetchNotifCount();
     loadFavorites();
-    const interval = setInterval(fetchNotifCount, 60_000);
+    const interval = setInterval(fetchNotifCount, NOTIFICATION_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [user, fetchNotifCount, loadFavorites]);
 

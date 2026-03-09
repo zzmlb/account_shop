@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { COPY_FEEDBACK_MS } from "@/lib/constants";
 
 interface CopyButtonProps {
   text: string;
@@ -42,7 +43,7 @@ export default function CopyButton({
     }
     setCopied(true);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setCopied(false), 2000);
+    timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
   }, [text]);
 
   return (

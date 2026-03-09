@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ShoppingBag, Clock } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-fetch";
+import { ACTIVITY_ROTATION_MS } from "@/lib/constants";
 
 interface ActivityItem {
   id: string;
@@ -37,7 +38,7 @@ export default function LiveActivity() {
     if (items.length <= 1) return;
     const interval = setInterval(() => {
       setVisible((prev) => (prev + 1) % items.length);
-    }, 4000);
+    }, ACTIVITY_ROTATION_MS);
     return () => clearInterval(interval);
   }, [items.length]);
 

@@ -360,126 +360,13 @@ export default function CheckoutContent() {
           </div>
 
           {/* Payment method selection */}
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--foreground)]">
-              <CreditCard className="h-5 w-5 text-[var(--primary)]" />
-              支付方式
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="支付方式">
-              {PAYMENT_METHODS.map((method, idx) => {
-                const isDisabled = "disabled" in method && method.disabled;
-                const isSelected = paymentMethod === method.id;
-                return (
-                  <button
-                    key={method.id}
-                    onClick={() => !isDisabled && setPaymentMethod(method.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-                        e.preventDefault();
-                        const next = PAYMENT_METHODS[(idx + 1) % PAYMENT_METHODS.length];
-                        if (!("disabled" in next && next.disabled)) setPaymentMethod(next.id);
-                        (e.currentTarget.parentElement?.children[(idx + 1) % PAYMENT_METHODS.length] as HTMLElement)?.focus();
-                      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-                        e.preventDefault();
-                        const prev = PAYMENT_METHODS[(idx - 1 + PAYMENT_METHODS.length) % PAYMENT_METHODS.length];
-                        if (!("disabled" in prev && prev.disabled)) setPaymentMethod(prev.id);
-                        (e.currentTarget.parentElement?.children[(idx - 1 + PAYMENT_METHODS.length) % PAYMENT_METHODS.length] as HTMLElement)?.focus();
-                      }
-                    }}
-                    disabled={isSubmitting || isDisabled}
-                    tabIndex={isSelected ? 0 : -1}
-                    role="radio"
-                    aria-checked={isSelected}
-                    aria-label={method.label}
-                    className={cn(
-                      "relative flex items-center gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-all",
-                      isDisabled
-                        ? "cursor-not-allowed border-[var(--border)] opacity-50"
-                        : isSelected
-                          ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                          : "border-[var(--border)] bg-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--card-hover)]"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)]",
-                        method.bgColor
-                      )}
-                    >
-                      <method.icon className={cn("h-5 w-5", method.color)} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-[var(--foreground)]">
-                        {method.label}
-                      </div>
-                      <div className="text-xs text-[var(--muted-foreground)]">
-                        {method.description}
-                      </div>
-                    </div>
-                    {/* Radio indicator */}
-                    <div className="ml-auto flex-shrink-0">
-                      <div
-                        className={cn(
-                          "h-5 w-5 rounded-full border-2 transition-all",
-                          isSelected
-                            ? "border-[var(--primary)] bg-[var(--primary)]"
-                            : "border-[var(--muted-foreground)]/30"
-                        )}
-                      >
-                        {isSelected && (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <div className="h-2 w-2 rounded-full bg-white" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Balance indicator */}
-            {paymentMethod === "balance" && user && (
-              <div className={cn(
-                "mt-3 rounded-[var(--radius-md)] border px-4 py-2.5",
-                user.balance >= getTotal()
-                  ? "border-[var(--border)] bg-[var(--muted)]/50"
-                  : "border-[var(--destructive)]/30 bg-[var(--destructive)]/5"
-              )}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--muted-foreground)]">
-                    当前余额
-                  </span>
-                  <span className={cn(
-                    "flex items-center gap-1 text-sm font-semibold",
-                    user.balance >= getTotal()
-                      ? "text-[var(--success)]"
-                      : "text-[var(--destructive)]"
-                  )}>
-                    {user.balance >= getTotal() ? (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                    )}
-                    {formatPrice(user.balance)}
-                  </span>
-                </div>
-                {user.balance < getTotal() && (
-                  <div className="mt-1.5 flex items-center justify-between text-xs">
-                    <span className="text-[var(--destructive)]">
-                      余额不足，还需 {formatPrice(getTotal() - user.balance)}
-                    </span>
-                    <Link
-                      href="/dashboard/balance"
-                      className="font-medium text-[var(--primary)] hover:underline"
-                    >
-                      去充值
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <CheckoutPaymentMethods
+            selected={paymentMethod}
+            onSelect={setPaymentMethod}
+            disabled={isSubmitting}
+            userBalance={user?.balance}
+            cartTotal={getTotal()}
+          />
 
           {/* Delivery info badges */}
           <div className="grid grid-cols-3 gap-3">
@@ -552,82 +439,17 @@ export default function CheckoutContent() {
       </div>
 
       {/* Order Confirmation Dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck className="h-5 w-5 text-[var(--primary)]" />
-              确认订单信息
-            </DialogTitle>
-            <DialogDescription>
-              请核对以下信息，确认无误后提交订单
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* Items summary */}
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div key={item.productId} className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--foreground)] truncate max-w-[200px]">
-                    {item.name} <span className="text-[var(--muted-foreground)]">x{item.quantity}</span>
-                  </span>
-                  <span className="font-medium text-[var(--foreground)] shrink-0 ml-2">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* Order details */}
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[var(--muted-foreground)]">邮箱</span>
-                <span className="text-[var(--foreground)]">{email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--muted-foreground)]">支付方式</span>
-                <span className="text-[var(--foreground)]">
-                  {PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label || paymentMethod}
-                </span>
-              </div>
-              {appliedCoupon && (
-                <div className="flex justify-between">
-                  <span className="text-[var(--success)]">优惠折扣</span>
-                  <span className="text-[var(--success)]">-{formatPrice(appliedCoupon.discount)}</span>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <span className="text-base font-semibold text-[var(--foreground)]">应付总额</span>
-              <span className="text-xl font-bold text-[var(--primary)]">
-                {formatPrice(getTotal() - (appliedCoupon?.discount ?? 0))}
-              </span>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              返回修改
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  处理中...
-                </>
-              ) : (
-                "确认支付"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CheckoutConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        items={items}
+        email={email}
+        paymentMethodLabel={PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label || paymentMethod}
+        appliedCoupon={appliedCoupon}
+        total={getTotal()}
+        isSubmitting={isSubmitting}
+        onConfirm={handleSubmit}
+      />
     </div>
   );
 }

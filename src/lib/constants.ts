@@ -7,6 +7,24 @@ export const AFTER_SALE_HOURS = 48;
 
 export const ITEMS_PER_PAGE = 12;
 
+/* ---------- Timing constants ---------- */
+
+/** Debounce delay for search inputs (ms) */
+export const SEARCH_DEBOUNCE_MS = 300;
+
+/** Duration to show "copied" feedback after clipboard write (ms) */
+export const COPY_FEEDBACK_MS = 2000;
+
+/** Interval for polling notification count (ms) */
+export const NOTIFICATION_POLL_INTERVAL_MS = 60_000;
+
+/** Rotation interval for live activity feed (ms) */
+export const ACTIVITY_ROTATION_MS = 4000;
+
+/** Share popup window dimensions */
+export const SHARE_POPUP_WIDTH = 600;
+export const SHARE_POPUP_HEIGHT = 400;
+
 /** Tiny shimmer SVG for Next.js Image placeholder="blur" */
 export const BLUR_DATA_URL =
   "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSIzMCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjZTJlMmUyIi8+PC9zdmc+";
