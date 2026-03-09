@@ -155,13 +155,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if there's already a pending refund request for this order
-    const existing = await db.refundRequest.findFirst({
-      where: {
-        orderId,
-        status: "PENDING",
-      },
-    });
+    // Check pending refund and recent rejection in parallel
+    const [existing, recentRejection] = await Promise.all([
+      db.refundRequest.findFirst({
+        where: { orderId, status: "PENDING" },
+      }),
+      db.refundRequest.findFirst({
+        where: {
+          orderId,
+          status: "REJECTED",
+          updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+      }),
+    ]);
 
     if (existing) {
       return NextResponse.json(
@@ -169,15 +175,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Prevent spam: require 24h cooldown after rejection before resubmitting
-    const recentRejection = await db.refundRequest.findFirst({
-      where: {
-        orderId,
-        status: "REJECTED",
-        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      },
-    });
 
     if (recentRejection) {
       return NextResponse.json(

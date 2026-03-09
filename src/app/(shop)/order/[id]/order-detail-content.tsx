@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Package,
-  CheckCircle2,
   Clock,
-  Truck,
   CreditCard,
   Loader2,
   AlertCircle,
@@ -36,6 +33,9 @@ import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { OrderCardKeys } from "./order-card-keys";
 import { OrderRefundSection } from "./order-refund-section";
 import { OrderRecommended } from "./order-recommended";
+import { OrderStatusBanner } from "./order-status-banner";
+import { OrderTimeline } from "./order-timeline";
+import { OrderDetailSkeleton } from "./order-detail-skeleton";
 
 interface OrderItem {
   name: string;
@@ -99,12 +99,6 @@ const PAYMENT_LABELS: Record<string, string> = {
   wechat: "微信支付",
   usdt: "USDT",
 };
-
-const TIMELINE_STEPS = [
-  { key: "created", label: "创建订单", icon: Package },
-  { key: "paid", label: "支付完成", icon: CreditCard },
-  { key: "delivered", label: "发货完成", icon: Truck },
-];
 
 function useCountdown(expireAt: string | undefined, status: string | undefined) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -214,34 +208,7 @@ export default function OrderDetailContent({ id }: { id: string }) {
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-4 w-24 rounded bg-[var(--muted)]" />
-          <div className="flex items-center justify-between">
-            <div className="h-7 w-48 rounded bg-[var(--muted)]" />
-            <div className="h-6 w-20 rounded-full bg-[var(--muted)]" />
-          </div>
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5 space-y-4">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4">
-                <div className="h-16 w-16 shrink-0 rounded-[var(--radius-md)] bg-[var(--muted)]" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-2/3 rounded bg-[var(--muted)]" />
-                  <div className="h-3 w-1/3 rounded bg-[var(--muted)]" />
-                </div>
-                <div className="h-5 w-16 rounded bg-[var(--muted)]" />
-              </div>
-            ))}
-          </div>
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
-            <div className="h-4 w-1/2 rounded bg-[var(--muted)]" />
-            <div className="h-4 w-1/3 rounded bg-[var(--muted)]" />
-            <div className="h-5 w-1/4 rounded bg-[var(--muted)]" />
-          </div>
-        </div>
-      </div>
-    );
+    return <OrderDetailSkeleton />;
   }
 
   if (error || !order) {
@@ -271,15 +238,6 @@ export default function OrderDetailContent({ id }: { id: string }) {
   }
 
   const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
-  const activeStepIndex =
-    order.status === "DELIVERED"
-      ? 2
-      : order.status === "PAID"
-        ? 1
-        : order.status === "CANCELLED" || order.status === "REFUNDED"
-          ? -1
-          : 0;
-
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -325,144 +283,11 @@ export default function OrderDetailContent({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Delivery success banner */}
-      {order.status === "DELIVERED" && (
-        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--success)]/30 bg-[var(--success)]/5 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--success)]/15">
-            <CheckCircle2 className="h-6 w-6 text-[var(--success)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              订单已完成，卡密已交付
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-              请在下方查看您的卡密信息，建议及时保存或使用
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Cancelled banner */}
-      {order.status === "CANCELLED" && (
-        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--destructive)]/15">
-            <XCircle className="h-6 w-6 text-[var(--destructive)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              订单已取消
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-              该订单已被取消，库存已释放
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Refunded banner */}
-      {order.status === "REFUNDED" && (
-        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--muted-foreground)]/30 bg-[var(--muted)]/50 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--muted-foreground)]/15">
-            <RotateCcw className="h-6 w-6 text-[var(--muted-foreground)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              订单已退款
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-              退款已处理，金额已退回您的账户余额
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Expired banner */}
-      {order.status === "EXPIRED" && (
-        <div className="mb-6 flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--warning)]/30 bg-[var(--warning)]/5 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--warning)]/15">
-            <Clock className="h-6 w-6 text-[var(--warning)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              订单已过期
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-              订单未在规定时间内完成支付，已自动取消
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Status banner (delivered/cancelled/refunded/expired) */}
+      <OrderStatusBanner status={order.status} />
 
       {/* Status timeline */}
-      {activeStepIndex >= 0 && (
-        <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
-          <div className="flex items-center justify-between">
-            {TIMELINE_STEPS.map((step, index) => {
-              const isCompleted = index <= activeStepIndex;
-              const isCurrent = index === activeStepIndex;
-              const stepTime =
-                index === 0
-                  ? order.createdAt
-                  : index === 1
-                    ? order.paidAt
-                    : index === 2 && order.status === "DELIVERED"
-                      ? order.paidAt
-                      : null;
-              return (
-                <div key={step.key} className="flex flex-1 items-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <div
-                      className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all",
-                        isCompleted
-                          ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
-                          : "border-[var(--border)] text-[var(--muted-foreground)]",
-                        isCurrent && "animate-glow"
-                      )}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        <step.icon className="h-5 w-5" />
-                      )}
-                    </div>
-                    <span
-                      className={cn(
-                        "text-xs font-medium",
-                        isCompleted
-                          ? "text-[var(--foreground)]"
-                          : "text-[var(--muted-foreground)]"
-                      )}
-                    >
-                      {step.label}
-                    </span>
-                    {isCompleted && stepTime && (
-                      <span className="text-[10px] text-[var(--muted-foreground)]">
-                        {new Date(stepTime).toLocaleString("zh-CN", {
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  {index < TIMELINE_STEPS.length - 1 && (
-                    <div
-                      className={cn(
-                        "mx-2 h-0.5 flex-1 rounded-full",
-                        index < activeStepIndex
-                          ? "bg-[var(--primary)]"
-                          : "bg-[var(--border)]"
-                      )}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <OrderTimeline status={order.status} createdAt={order.createdAt} paidAt={order.paidAt} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Order info */}

@@ -39,38 +39,31 @@ export async function POST(request: NextRequest) {
 
   try {
     const now = new Date();
-
-    // Delete login logs older than 90 days
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-    const deletedLogs = await db.loginLog.deleteMany({
-      where: { createdAt: { lt: ninetyDaysAgo } },
-    });
-
-    // Delete expired/used password reset tokens older than 7 days
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const deletedTokens = await db.passwordReset.deleteMany({
-      where: {
-        OR: [
-          { expiresAt: { lt: sevenDaysAgo } },
-          { usedAt: { not: null }, createdAt: { lt: sevenDaysAgo } },
-        ],
-      },
-    });
-
-    // Delete read notifications older than 30 days
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const deletedNotifications = await db.notification.deleteMany({
-      where: { isRead: true, createdAt: { lt: thirtyDaysAgo } },
-    });
 
-    // Auto-deactivate expired coupons
-    const deactivatedCoupons = await db.coupon.updateMany({
-      where: {
-        isActive: true,
-        expireAt: { lt: now },
-      },
-      data: { isActive: false },
-    });
+    // Run all cleanup operations in parallel (independent tables)
+    const [deletedLogs, deletedTokens, deletedNotifications, deactivatedCoupons] = await Promise.all([
+      db.loginLog.deleteMany({
+        where: { createdAt: { lt: ninetyDaysAgo } },
+      }),
+      db.passwordReset.deleteMany({
+        where: {
+          OR: [
+            { expiresAt: { lt: sevenDaysAgo } },
+            { usedAt: { not: null }, createdAt: { lt: sevenDaysAgo } },
+          ],
+        },
+      }),
+      db.notification.deleteMany({
+        where: { isRead: true, createdAt: { lt: thirtyDaysAgo } },
+      }),
+      db.coupon.updateMany({
+        where: { isActive: true, expireAt: { lt: now } },
+        data: { isActive: false },
+      }),
+    ]);
 
     log.info(
       {

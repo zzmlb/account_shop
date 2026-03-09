@@ -51,55 +51,51 @@ export async function GET(
       );
     }
 
-    // Fetch recent orders
-    const recentOrders = await db.order.findMany({
-      where: { userId: id },
-      select: {
-        id: true,
-        orderNo: true,
-        totalAmount: true,
-        payAmount: true,
-        status: true,
-        paymentMethod: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-
-    // Fetch recent balance logs
-    const recentBalanceLogs = await db.balanceLog.findMany({
-      where: { userId: id },
-      select: {
-        id: true,
-        amount: true,
-        type: true,
-        description: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-
-    // Fetch recent login logs
-    const recentLoginLogs = await db.loginLog.findMany({
-      where: { userId: id },
-      select: {
-        id: true,
-        ip: true,
-        userAgent: true,
-        success: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-
-    // Calculate total spent
-    const totalSpent = await db.order.aggregate({
-      where: { userId: id, status: { in: ["PAID", "DELIVERED"] } },
-      _sum: { payAmount: true },
-    });
+    // Fetch recent activity and total spent in parallel
+    const [recentOrders, recentBalanceLogs, recentLoginLogs, totalSpent] = await Promise.all([
+      db.order.findMany({
+        where: { userId: id },
+        select: {
+          id: true,
+          orderNo: true,
+          totalAmount: true,
+          payAmount: true,
+          status: true,
+          paymentMethod: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+      db.balanceLog.findMany({
+        where: { userId: id },
+        select: {
+          id: true,
+          amount: true,
+          type: true,
+          description: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+      db.loginLog.findMany({
+        where: { userId: id },
+        select: {
+          id: true,
+          ip: true,
+          userAgent: true,
+          success: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+      db.order.aggregate({
+        where: { userId: id, status: { in: ["PAID", "DELIVERED"] } },
+        _sum: { payAmount: true },
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
