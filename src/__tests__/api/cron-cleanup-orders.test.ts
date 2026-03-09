@@ -202,4 +202,34 @@ describe("POST /api/cron/cleanup-orders", () => {
     // cardKey.updateMany should NOT be called when no keys
     expect(mockTxCardKeyUpdateMany).not.toHaveBeenCalled();
   });
+
+  it("handles multiple expired orders", async () => {
+    mockFindMany.mockResolvedValue([
+      expiredOrder,
+      {
+        id: "o2",
+        orderNo: "ORD002",
+        status: "PENDING",
+        expireAt: new Date(Date.now() - 120000),
+        items: [{ productId: "p2", quantity: 1, cardKeys: [{ id: "ck3" }] }],
+      },
+    ]);
+    mockTxCardKeyUpdateMany.mockResolvedValue({ count: 1 });
+
+    const res = await POST(makeReq("test-secret"));
+    const body = await res.json();
+
+    expect(body.success).toBe(true);
+    expect(body.cleaned).toBe(2);
+    expect(mockTransaction).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns message with order count in response", async () => {
+    mockFindMany.mockResolvedValue([expiredOrder]);
+
+    const res = await POST(makeReq("test-secret"));
+    const body = await res.json();
+
+    expect(body.message).toBe("Cleaned 1 expired orders");
+  });
 });

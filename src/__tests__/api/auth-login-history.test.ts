@@ -197,4 +197,28 @@ describe("GET /api/auth/login-history", () => {
       createdAt: true,
     });
   });
+
+  it("limits to 20 most recent entries", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+    mockLoginLogFindMany.mockResolvedValue([]);
+
+    await GET(makeReq());
+
+    const args = mockLoginLogFindMany.mock.calls[0][0];
+    expect(args.take).toBe(20);
+    expect(args.orderBy).toEqual({ createdAt: "desc" });
+  });
+
+  it("uses the correct userId from session", async () => {
+    mockGetUserSession.mockReturnValue({
+      session: { id: "user-42", username: "alice", email: "alice@test.com", role: "USER" },
+      error: null,
+    });
+    mockLoginLogFindMany.mockResolvedValue([]);
+
+    await GET(makeReq());
+
+    const args = mockLoginLogFindMany.mock.calls[0][0];
+    expect(args.where.userId).toBe("user-42");
+  });
 });

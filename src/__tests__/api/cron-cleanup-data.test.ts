@@ -203,4 +203,28 @@ describe("POST /api/cron/cleanup-data", () => {
       })
     );
   });
+
+  it("deletes expired password reset tokens with OR condition", async () => {
+    await POST(createPostRequest("test-cron-secret"));
+
+    const args = mockPasswordResetDeleteMany.mock.calls[0][0];
+    expect(args.where.OR).toBeDefined();
+    expect(args.where.OR).toHaveLength(2);
+    // First condition: expired tokens
+    expect(args.where.OR[0].expiresAt).toHaveProperty("lt");
+    // Second condition: used tokens
+    expect(args.where.OR[1].usedAt).toEqual({ not: null });
+  });
+
+  it("returns success even when zero records cleaned", async () => {
+    const res = await POST(createPostRequest("test-cron-secret"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.cleaned.loginLogs).toBe(0);
+    expect(body.cleaned.passwordResets).toBe(0);
+    expect(body.cleaned.notifications).toBe(0);
+    expect(body.cleaned.deactivatedCoupons).toBe(0);
+  });
 });

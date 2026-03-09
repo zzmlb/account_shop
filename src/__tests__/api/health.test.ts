@@ -175,4 +175,25 @@ describe("GET /api/health", () => {
     expect(typeof data.version).toBe("string");
     expect(data.version.length).toBeGreaterThan(0);
   });
+
+  it("memory values are non-negative integers", async () => {
+    const req = new NextRequest("http://localhost:3001/api/health");
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.memory.rss_mb).toBeGreaterThanOrEqual(0);
+    expect(data.memory.heap_used_mb).toBeGreaterThanOrEqual(0);
+    expect(data.memory.heap_total_mb).toBeGreaterThanOrEqual(0);
+    // Values should be rounded (integers)
+    expect(Number.isInteger(data.memory.rss_mb)).toBe(true);
+  });
+
+  it("uptime_seconds is a non-negative integer", async () => {
+    const req = new NextRequest("http://localhost:3001/api/health");
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(Number.isInteger(data.uptime_seconds)).toBe(true);
+    expect(data.uptime_seconds).toBeGreaterThanOrEqual(0);
+  });
 });
