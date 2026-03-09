@@ -218,4 +218,38 @@ describe("GET /api/reviews/featured", () => {
     expect(data.success).toBe(true);
     expect(data.reviews).toEqual([]);
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("does not truncate content at exactly 80 chars", async () => {
+    mockReviewFindMany.mockResolvedValue([{
+      id: "review-exact",
+      rating: 5,
+      content: "B".repeat(80),
+      isVisible: true,
+      user: { username: "carol" },
+      product: { name: "Product D" },
+    }]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    // Exactly 80 chars should NOT be truncated
+    expect(data.reviews[0].content).toBe("B".repeat(80));
+    expect(data.reviews[0].content.length).toBe(80);
+  });
+
+  it("returns empty array when no reviews match criteria", async () => {
+    mockReviewFindMany.mockResolvedValue([]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.success).toBe(true);
+    expect(data.reviews).toEqual([]);
+  });
 });

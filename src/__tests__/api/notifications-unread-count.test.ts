@@ -155,4 +155,31 @@ describe("GET /api/notifications/unread-count", () => {
       where: { userId: "user-1", isRead: false },
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns count 0 when user has no unread notifications", async () => {
+    mockNotificationCount.mockResolvedValue(0);
+
+    const req = new NextRequest("http://localhost:3001/api/notifications/unread-count", {
+      headers: { cookie: "session=valid-token" },
+    });
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.count).toBe(0);
+  });
+
+  it("uses private cache header (not public)", async () => {
+    const req = new NextRequest("http://localhost:3001/api/notifications/unread-count", {
+      headers: { cookie: "session=valid-token" },
+    });
+    const response = await GET(req);
+
+    const cacheControl = response.headers.get("Cache-Control") || "";
+    expect(cacheControl).toContain("private");
+    expect(cacheControl).not.toContain("public");
+  });
 });

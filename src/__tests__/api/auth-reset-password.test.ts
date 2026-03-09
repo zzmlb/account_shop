@@ -167,4 +167,35 @@ describe("POST /api/auth/reset-password", () => {
     const data = await res.json();
     expect(data.message).toContain("已使用");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 400 for short password", async () => {
+    const res = await POST(makeReq({ token: "valid", password: "abc" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 500 on unexpected database error", async () => {
+    mockPasswordResetFindUnique.mockRejectedValue(new Error("DB connection failed"));
+
+    const res = await POST(makeReq({ token: "some-token", password: "newpass123" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
+
+  it("queries token with user select", async () => {
+    mockPasswordResetFindUnique.mockResolvedValue(null);
+
+    await POST(makeReq({ token: "test-token", password: "newpass123" }));
+
+    expect(mockPasswordResetFindUnique).toHaveBeenCalledWith({
+      where: { token: "test-token" },
+      include: { user: { select: { id: true, username: true } } },
+    });
+  });
 });

@@ -226,4 +226,29 @@ describe("GET /api/coupons", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns empty array when user has no coupons", async () => {
+    mockUserCouponFindMany.mockResolvedValue([]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.coupons).toEqual([]);
+  });
+
+  it("orders coupons by expireAt desc and limits to 100", async () => {
+    mockUserCouponFindMany.mockResolvedValue([]);
+
+    await GET(makeReq());
+
+    const args = mockUserCouponFindMany.mock.calls[0][0];
+    expect(args.orderBy).toEqual({ coupon: { expireAt: "desc" } });
+    expect(args.take).toBe(100);
+  });
 });
