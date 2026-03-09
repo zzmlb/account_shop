@@ -482,7 +482,7 @@ export default function AdminUsersPageContent() {
             <table className="w-full" aria-label="用户管理列表">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  <th className="w-10 px-3 py-3">
+                  <th scope="col" className="w-10 px-3 py-3">
                     <input
                       type="checkbox"
                       checked={allSelected && users.length > 0}
@@ -491,31 +491,31 @@ export default function AdminUsersPageContent() {
                       aria-label="全选"
                     />
                   </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     用户名
                   </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     邮箱
                   </th>
-                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     余额
                   </th>
-                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     订单数
                   </th>
-                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3 hidden lg:table-cell">
+                  <th scope="col" className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3 hidden lg:table-cell">
                     消费总额
                   </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     角色
                   </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     状态
                   </th>
-                  <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     注册时间
                   </th>
-                  <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                  <th scope="col" className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                     操作
                   </th>
                 </tr>

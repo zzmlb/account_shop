@@ -79,22 +79,22 @@ export function OverviewRecentOrders({
         <CardContent>
           {/* Table wrapper for horizontal scroll on mobile */}
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" aria-label="最近订单">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  <th className="pb-3 text-left font-medium text-[var(--muted-foreground)]">
+                  <th scope="col" className="pb-3 text-left font-medium text-[var(--muted-foreground)]">
                     订单号
                   </th>
-                  <th className="pb-3 text-left font-medium text-[var(--muted-foreground)]">
+                  <th scope="col" className="pb-3 text-left font-medium text-[var(--muted-foreground)]">
                     商品
                   </th>
-                  <th className="pb-3 text-right font-medium text-[var(--muted-foreground)]">
+                  <th scope="col" className="pb-3 text-right font-medium text-[var(--muted-foreground)]">
                     金额
                   </th>
-                  <th className="pb-3 text-center font-medium text-[var(--muted-foreground)]">
+                  <th scope="col" className="pb-3 text-center font-medium text-[var(--muted-foreground)]">
                     状态
                   </th>
-                  <th className="pb-3 text-right font-medium text-[var(--muted-foreground)]">
+                  <th scope="col" className="pb-3 text-right font-medium text-[var(--muted-foreground)]">
                     时间
                   </th>
                 </tr>

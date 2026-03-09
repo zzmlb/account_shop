@@ -598,7 +598,7 @@ export default function AdminArticlesPageContent() {
         <table className="w-full text-sm" aria-label="文章管理列表">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
-              <th className="w-10 px-4 py-3">
+              <th scope="col" className="w-10 px-4 py-3">
                 <input
                   type="checkbox"
                   checked={articles.length > 0 && selectedIds.size === articles.length}
@@ -607,22 +607,22 @@ export default function AdminArticlesPageContent() {
                   aria-label="全选"
                 />
               </th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
                 标题
               </th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
                 分类
               </th>
-              <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
                 状态
               </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] md:table-cell">
+              <th scope="col" className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] md:table-cell">
                 浏览量
               </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] sm:table-cell">
+              <th scope="col" className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] sm:table-cell">
                 发布时间
               </th>
-              <th className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
+              <th scope="col" className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
                 操作
               </th>
             </tr>

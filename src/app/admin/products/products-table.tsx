@@ -83,29 +83,29 @@ export function ProductsDesktopTable({
           <table className="w-full text-sm" aria-label="商品管理列表">
             <thead>
               <tr className="border-b border-[var(--border)]">
-                <th className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left">
                   <Checkbox checked={allPageSelected} onCheckedChange={onSelectAll} />
                 </th>
-                <th className="cursor-pointer px-4 py-3 text-left font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("name")}>
+                <th scope="col" className="cursor-pointer px-4 py-3 text-left font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("name")}>
                   商品名称<SortIcon field="name" sortField={sortField} />
                 </th>
-                <th className="cursor-pointer px-4 py-3 text-left font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("category")}>
+                <th scope="col" className="cursor-pointer px-4 py-3 text-left font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("category")}>
                   分类<SortIcon field="category" sortField={sortField} />
                 </th>
-                <th className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("price")}>
+                <th scope="col" className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("price")}>
                   价格<SortIcon field="price" sortField={sortField} />
                 </th>
-                <th className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("stock")}>
+                <th scope="col" className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("stock")}>
                   库存<SortIcon field="stock" sortField={sortField} />
                 </th>
-                <th className="px-4 py-3 text-center font-medium text-[var(--muted-foreground)]">状态</th>
-                <th className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("sales")}>
+                <th scope="col" className="px-4 py-3 text-center font-medium text-[var(--muted-foreground)]">状态</th>
+                <th scope="col" className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("sales")}>
                   销量<SortIcon field="sales" sortField={sortField} />
                 </th>
-                <th className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("views")}>
+                <th scope="col" className="cursor-pointer px-4 py-3 text-right font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]" onClick={() => onSort("views")}>
                   浏览<SortIcon field="views" sortField={sortField} />
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">操作</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">操作</th>
               </tr>
             </thead>
             <tbody>

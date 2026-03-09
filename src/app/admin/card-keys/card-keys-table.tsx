@@ -113,7 +113,7 @@ export function CardKeysTable({
       <table className="w-full text-sm" aria-label="卡密管理列表">
         <thead>
           <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
-            <th className="w-10 px-4 py-3">
+            <th scope="col" className="w-10 px-4 py-3">
               <Checkbox
                 checked={
                   cardKeys.filter((k) => k.status !== "SOLD").length > 0 &&
@@ -125,25 +125,25 @@ export function CardKeysTable({
                 aria-label="全选"
               />
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
               商品
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
               卡密内容
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-[var(--muted-foreground)]">
               状态
             </th>
-            <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] md:table-cell">
+            <th scope="col" className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] md:table-cell">
               添加时间
             </th>
-            <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
+            <th scope="col" className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
               售出时间
             </th>
-            <th className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
+            <th scope="col" className="hidden px-4 py-3 text-left font-medium text-[var(--muted-foreground)] lg:table-cell">
               订单号
             </th>
-            <th className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
+            <th scope="col" className="px-4 py-3 text-right font-medium text-[var(--muted-foreground)]">
               操作
             </th>
           </tr>

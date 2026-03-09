@@ -157,7 +157,7 @@ export function OrdersDesktopTable({
           <table className="w-full" aria-label="订单管理列表">
             <thead>
               <tr className="border-b border-[var(--border)]">
-                <th className="w-10 px-3 py-3">
+                <th scope="col" className="w-10 px-3 py-3">
                   <input
                     type="checkbox"
                     checked={allSelected && orders.length > 0}
@@ -166,28 +166,28 @@ export function OrdersDesktopTable({
                     aria-label="全选"
                   />
                 </th>
-                <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   订单号
                 </th>
-                <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   用户
                 </th>
-                <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   商品
                 </th>
-                <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   金额
                 </th>
-                <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   支付方式
                 </th>
-                <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   状态
                 </th>
-                <th className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   时间
                 </th>
-                <th className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
+                <th scope="col" className="text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider px-4 py-3">
                   操作
                 </th>
               </tr>

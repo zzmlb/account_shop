@@ -311,13 +311,13 @@ export function OverviewStatsPanels({
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" aria-label="最近登录记录">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
-                    <th className="pb-2 font-medium">用户</th>
-                    <th className="pb-2 font-medium">状态</th>
-                    <th className="pb-2 font-medium">IP</th>
-                    <th className="pb-2 font-medium text-right">时间</th>
+                    <th scope="col" className="pb-2 font-medium">用户</th>
+                    <th scope="col" className="pb-2 font-medium">状态</th>
+                    <th scope="col" className="pb-2 font-medium">IP</th>
+                    <th scope="col" className="pb-2 font-medium text-right">时间</th>
                   </tr>
                 </thead>
                 <tbody>

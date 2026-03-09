@@ -246,12 +246,12 @@ export default function AdminLoginLogsContent() {
               <table className="w-full" aria-label="登录日志列表">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted-foreground)]">
-                    <th className="px-4 py-3">状态</th>
-                    <th className="px-4 py-3">用户名</th>
-                    <th className="px-4 py-3">IP 地址</th>
-                    <th className="px-4 py-3">浏览器</th>
-                    <th className="px-4 py-3">原因</th>
-                    <th className="px-4 py-3">时间</th>
+                    <th scope="col" className="px-4 py-3">状态</th>
+                    <th scope="col" className="px-4 py-3">用户名</th>
+                    <th scope="col" className="px-4 py-3">IP 地址</th>
+                    <th scope="col" className="px-4 py-3">浏览器</th>
+                    <th scope="col" className="px-4 py-3">原因</th>
+                    <th scope="col" className="px-4 py-3">时间</th>
                   </tr>
                 </thead>
                 <tbody>

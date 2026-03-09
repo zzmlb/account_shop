@@ -352,7 +352,7 @@ export default function AdminReviewsContent() {
           <table className="w-full" aria-label="评价管理列表">
             <thead>
               <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted-foreground)]">
-                <th className="w-10 px-4 py-3">
+                <th scope="col" className="w-10 px-4 py-3">
                   <button
                     type="button"
                     onClick={toggleSelectAll}
@@ -365,13 +365,13 @@ export default function AdminReviewsContent() {
                     {allSelected && <CheckSquare className="h-3 w-3" />}
                   </button>
                 </th>
-                <th className="px-4 py-3">用户</th>
-                <th className="px-4 py-3">商品</th>
-                <th className="px-4 py-3">评分</th>
-                <th className="px-4 py-3 max-w-xs">内容</th>
-                <th className="px-4 py-3">状态</th>
-                <th className="px-4 py-3">时间</th>
-                <th className="px-4 py-3 text-right">操作</th>
+                <th scope="col" className="px-4 py-3">用户</th>
+                <th scope="col" className="px-4 py-3">商品</th>
+                <th scope="col" className="px-4 py-3">评分</th>
+                <th scope="col" className="px-4 py-3 max-w-xs">内容</th>
+                <th scope="col" className="px-4 py-3">状态</th>
+                <th scope="col" className="px-4 py-3">时间</th>
+                <th scope="col" className="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody>
