@@ -135,39 +135,34 @@ export async function POST(request: NextRequest) {
 
     const { productId, rating, content } = parsed.data;
 
-    // Check product exists
-    const product = await db.product.findUnique({
-      where: { id: productId },
-      select: { id: true, name: true, isActive: true },
-    });
+    // Parallel validation: product exists, user purchased, no existing review
+    const [product, hasPurchased, existing] = await Promise.all([
+      db.product.findUnique({
+        where: { id: productId },
+        select: { id: true, name: true, isActive: true },
+      }),
+      db.orderItem.findFirst({
+        where: {
+          productId,
+          order: { userId: session.id, status: "DELIVERED" },
+        },
+      }),
+      db.review.findUnique({
+        where: { userId_productId: { userId: session.id, productId } },
+      }),
+    ]);
     if (!product || !product.isActive) {
       return NextResponse.json(
         { success: false, message: "商品不存在或已下架" },
         { status: 400 }
       );
     }
-
-    // Check user has purchased this product (delivered order)
-    const hasPurchased = await db.orderItem.findFirst({
-      where: {
-        productId,
-        order: {
-          userId: session.id,
-          status: "DELIVERED",
-        },
-      },
-    });
     if (!hasPurchased) {
       return NextResponse.json(
         { success: false, message: "只有购买过该商品的用户才能评价" },
         { status: 403 }
       );
     }
-
-    // Check for existing review
-    const existing = await db.review.findUnique({
-      where: { userId_productId: { userId: session.id, productId } },
-    });
     if (existing) {
       return NextResponse.json(
         { success: false, message: "您已经评价过该商品" },

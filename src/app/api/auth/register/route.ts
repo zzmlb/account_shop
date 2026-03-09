@@ -51,21 +51,17 @@ export async function POST(request: NextRequest) {
     const { username, password } = parsed.data;
     const email = parsed.data.email.toLowerCase().trim();
 
-    // Check if username already exists
-    const existingUsername = await db.user.findUnique({
-      where: { username: username.trim() },
-    });
+    // Check if username or email already exists (parallel)
+    const [existingUsername, existingEmail] = await Promise.all([
+      db.user.findUnique({ where: { username: username.trim() } }),
+      db.user.findUnique({ where: { email } }),
+    ]);
     if (existingUsername) {
       return NextResponse.json(
         { success: false, message: "用户名已被注册" },
         { status: 409 }
       );
     }
-
-    // Check if email already exists (case-insensitive)
-    const existingEmail = await db.user.findUnique({
-      where: { email },
-    });
     if (existingEmail) {
       return NextResponse.json(
         { success: false, message: "邮箱已被注册" },
