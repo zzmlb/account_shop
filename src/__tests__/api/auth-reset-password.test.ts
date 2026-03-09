@@ -198,4 +198,28 @@ describe("POST /api/auth/reset-password", () => {
       include: { user: { select: { id: true, username: true } } },
     });
   });
+
+  it("calls hashPassword before transaction", async () => {
+    mockPasswordResetFindUnique.mockResolvedValue({
+      id: "reset-1",
+      userId: "user-1",
+      token: "good-token",
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 3600000),
+      user: { id: "user-1", username: "testuser" },
+    });
+
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
+      const tx = {
+        passwordReset: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+        user: { update: vi.fn().mockResolvedValue({}) },
+      };
+      await fn(tx);
+    });
+
+    await POST(makeReq({ token: "good-token", password: "secure456" }));
+
+    expect(mockHashPassword).toHaveBeenCalledWith("secure456");
+    expect(mockHashPassword).toHaveBeenCalledBefore(mockTransaction);
+  });
 });

@@ -192,4 +192,13 @@ describe("GET /api/stats", () => {
     expect(args.orderBy).toEqual({ soldCount: "desc" });
     expect(args.take).toBe(6);
   });
+
+  it("returns empty trending array when no products have sales", async () => {
+    setupMocks(10, 10, 10, []);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.trending).toEqual([]);
+  });
 });

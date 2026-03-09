@@ -179,4 +179,15 @@ describe("GET /api/activity", () => {
 
     expect(body.activity[0].time).toBe("2026-03-08T15:30:00.000Z");
   });
+
+  it("returns empty activity array when no orders", async () => {
+    mockOrderFindMany.mockResolvedValueOnce([]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.activity).toEqual([]);
+  });
 });
