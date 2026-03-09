@@ -313,6 +313,23 @@ describe("Admin User Detail API — /api/admin/users/[id]", () => {
       expect(mockUserFindUnique).not.toHaveBeenCalled();
     });
 
+    it("returns empty arrays when user has no activity", async () => {
+      mockUserFindUnique.mockResolvedValue({ ...mockUser, _count: { orders: 0, reviews: 0, favorites: 0, notifications: 0 } });
+      mockOrderFindMany.mockResolvedValue([]);
+      mockBalanceLogFindMany.mockResolvedValue([]);
+      mockLoginLogFindMany.mockResolvedValue([]);
+      mockOrderAggregate.mockResolvedValue({ _sum: { payAmount: null } });
+
+      const req = new NextRequest("http://localhost/api/admin/users/user-1");
+      const res = await GET(req, { params: Promise.resolve({ id: "user-1" }) });
+      const json = await res.json();
+
+      expect(json.recentOrders).toEqual([]);
+      expect(json.recentBalanceLogs).toEqual([]);
+      expect(json.recentLoginLogs).toEqual([]);
+      expect(json.user.totalSpent).toBe(0);
+    });
+
     it("selects correct user fields including _count", async () => {
       mockUserFindUnique.mockResolvedValue({ ...mockUser });
       mockOrderFindMany.mockResolvedValue([]);

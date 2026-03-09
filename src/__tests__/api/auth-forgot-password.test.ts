@@ -232,4 +232,12 @@ describe("POST /api/auth/forgot-password", () => {
     expect(data.message).toContain("邮箱");
     expect(data.errors).toBeDefined();
   });
+
+  it("returns 400 for missing email field", async () => {
+    const res = await POST(makeReq({}));
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.success).toBe(false);
+  });
 });

@@ -207,4 +207,17 @@ describe("POST /api/upload", () => {
     expect(typeof data.filename).toBe("string");
     expect(data.filename).toMatch(/^\d+-[a-z0-9]+\.jpg$/);
   });
+
+  it("returns url field in successful upload response", async () => {
+    setupAdmin();
+
+    const req = makeUploadReq("image-data", "photo.png", "image/png");
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(typeof data.url).toBe("string");
+    expect(data.url).toContain("/uploads/");
+  });
 });

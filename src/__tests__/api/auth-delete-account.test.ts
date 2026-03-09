@@ -193,4 +193,13 @@ describe("POST /api/auth/delete-account", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  it("requires password in request body", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+
+    const res = await POST(makeReq({}));
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+  });
 });

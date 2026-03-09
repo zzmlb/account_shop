@@ -245,6 +245,19 @@ describe("Admin Audit Logs API — /api/admin/audit-logs", () => {
     expect(findManyCall.where).toEqual({});
   });
 
+  it("returns empty logs array when no audit logs exist", async () => {
+    mockAuditLogFindMany.mockResolvedValue([]);
+    mockAuditLogCount.mockResolvedValue(0);
+
+    const req = new NextRequest("http://localhost/api/admin/audit-logs");
+    const res = await GET(req);
+    const json = await res.json();
+
+    expect(json.success).toBe(true);
+    expect(json.logs).toEqual([]);
+    expect(json.total).toBe(0);
+  });
+
   it("includes admin relation with id and username select", async () => {
     mockAuditLogFindMany.mockResolvedValue([]);
     mockAuditLogCount.mockResolvedValue(0);

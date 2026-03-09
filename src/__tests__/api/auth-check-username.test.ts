@@ -193,6 +193,19 @@ describe("GET /api/auth/check-username", () => {
   // Edge cases
   // -----------------------------------------------------------------------
 
+  it("returns available: false for username with only spaces after trim", async () => {
+    const req = new NextRequest(
+      "http://localhost:3001/api/auth/check-username?username=%20%20%20",
+    );
+
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.available).toBe(false);
+    expect(mockUserFindUnique).not.toHaveBeenCalled();
+  });
+
   it("accepts long username and queries DB normally", async () => {
     const longUsername = "a".repeat(50);
     mockUserFindUnique.mockResolvedValue(null);

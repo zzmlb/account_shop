@@ -182,4 +182,15 @@ describe("GET /api/coupons/available", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  it("returns 200 with empty array when no coupons available", async () => {
+    mockCouponFindMany.mockResolvedValue([]);
+
+    const res = await GET(makeReq("order-1"));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.coupons).toEqual([]);
+  });
 });

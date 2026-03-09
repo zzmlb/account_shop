@@ -200,4 +200,16 @@ describe("GET /api/articles/[slug]", () => {
     const data = await res.json();
     expect(data.success).toBe(true);
   });
+
+  it("formats date as YYYY-MM-DD from createdAt", async () => {
+    const article = { ...mockArticle, createdAt: new Date("2026-06-15T18:30:00Z") };
+    mockArticleFindUnique.mockResolvedValue(article);
+
+    const res = await GET(createRequest("test-article"), {
+      params: Promise.resolve({ slug: "test-article" }),
+    });
+    const data = await res.json();
+
+    expect(data.article.date).toBe("2026-06-15");
+  });
 });

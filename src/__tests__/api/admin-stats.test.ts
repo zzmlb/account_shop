@@ -297,6 +297,18 @@ describe("Admin Stats API — /api/admin/stats", () => {
     expect(json.chartPeriod).toBe(7);
   });
 
+  it("accepts period=14 for sales chart", async () => {
+    setupAllMocks();
+
+    const req = new NextRequest("http://localhost/api/admin/stats?period=14");
+    const res = await GET(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.chartPeriod).toBe(14);
+    expect(json.salesChart.length).toBe(14);
+  });
+
   it("calculates conversion rate correctly", async () => {
     mockOrderAggregate.mockResolvedValue({ _sum: { payAmount: 500 } });
     // Setup counts: todayOrders=10, yesterdayOrders=0, todayPaidOrders=4, yesterdayPaidOrders=0, ...

@@ -221,4 +221,30 @@ describe("POST /api/orders/[id]/resend-email", () => {
     expect(data.success).toBe(false);
     expect(data.message).toContain("服务器");
   });
+
+  it("filters out items with no card keys from email payload", async () => {
+    mockGetSessionFromRequest.mockReturnValue({ id: "user-1" });
+    mockOrderFindUnique.mockResolvedValue({
+      orderNo: "ORD-002",
+      status: "DELIVERED",
+      email: "test@example.com",
+      items: [
+        { product: { name: "Product A" }, cardKeys: [{ content: "KEY-1" }] },
+        { product: { name: "Product B" }, cardKeys: [] },
+      ],
+    });
+    mockSendCardKeyDelivery.mockResolvedValue(true);
+
+    const res = await POST(makeReq(), makeParams("order-1"));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    // Only Product A should be in email items (Product B has no card keys)
+    expect(mockSendCardKeyDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [{ productName: "Product A", cardKeys: ["KEY-1"] }],
+      })
+    );
+  });
 });
