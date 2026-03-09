@@ -171,4 +171,35 @@ describe("POST /api/cron/cleanup-orders", () => {
     expect(body.success).toBe(false);
     expect(body.message).toBe("Internal server error");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("queries only PENDING orders past expiry", async () => {
+    mockFindMany.mockResolvedValue([]);
+
+    await POST(makeReq("test-secret"));
+
+    const args = mockFindMany.mock.calls[0][0];
+    expect(args.where.status).toBe("PENDING");
+    expect(args.where.expireAt).toHaveProperty("lt");
+    expect(args.where.expireAt.lt).toBeInstanceOf(Date);
+  });
+
+  it("handles order with no card keys (empty array)", async () => {
+    mockFindMany.mockResolvedValue([{
+      ...expiredOrder,
+      items: [{ productId: "p1", quantity: 1, cardKeys: [] }],
+    }]);
+
+    const res = await POST(makeReq("test-secret"));
+    const body = await res.json();
+
+    expect(body.success).toBe(true);
+    expect(body.cleaned).toBe(1);
+    expect(body.keysReleased).toBe(0);
+    // cardKey.updateMany should NOT be called when no keys
+    expect(mockTxCardKeyUpdateMany).not.toHaveBeenCalled();
+  });
 });

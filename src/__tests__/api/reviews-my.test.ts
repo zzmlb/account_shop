@@ -218,4 +218,31 @@ describe("GET /api/reviews/my", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns empty array when user has no reviews", async () => {
+    mockReviewFindMany.mockResolvedValue([]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.success).toBe(true);
+    expect(data.reviews).toEqual([]);
+  });
+
+  it("includes isVisible field in response", async () => {
+    mockReviewFindMany.mockResolvedValue([
+      { ...mockReview, isVisible: false },
+    ]);
+
+    const req = createRequest();
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(data.reviews[0].isVisible).toBe(false);
+  });
 });

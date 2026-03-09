@@ -173,4 +173,34 @@ describe("POST /api/cron/cleanup-data", () => {
     expect(body.success).toBe(false);
     expect(body.message).toBe("Internal server error");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("deletes read notifications older than 30 days", async () => {
+    const res = await POST(createPostRequest("test-cron-secret"));
+    expect(res.status).toBe(200);
+
+    expect(mockNotificationDeleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isRead: true,
+          createdAt: expect.objectContaining({ lt: expect.any(Date) }),
+        }),
+      })
+    );
+  });
+
+  it("deletes login logs older than 90 days", async () => {
+    await POST(createPostRequest("test-cron-secret"));
+
+    expect(mockLoginLogDeleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          createdAt: expect.objectContaining({ lt: expect.any(Date) }),
+        }),
+      })
+    );
+  });
 });
