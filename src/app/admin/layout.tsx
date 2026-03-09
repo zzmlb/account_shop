@@ -47,7 +47,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import AdminCommandPalette from "@/components/admin/admin-command-palette";
+import dynamic from "next/dynamic";
+
+const AdminCommandPalette = dynamic(
+  () => import("@/components/admin/admin-command-palette"),
+  { ssr: false }
+);
 
 interface Notification {
   id: string;

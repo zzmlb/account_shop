@@ -31,7 +31,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { OverviewSalesCharts } from "./overview-sales-charts";
+import dynamic from "next/dynamic";
+
+const OverviewSalesCharts = dynamic(
+  () => import("./overview-sales-charts").then((mod) => mod.OverviewSalesCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {[0, 1].map((i) => (
+          <div key={i} className="h-[350px] animate-pulse rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]" />
+        ))}
+      </div>
+    ),
+  }
+);
 import { OverviewRecentOrders } from "./overview-recent-orders";
 import { OverviewStatsPanels } from "./overview-stats-panels";
 

@@ -19,7 +19,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiFetch } from "@/lib/api-fetch";
-import { DashboardSpendingChart } from "./dashboard-spending-chart";
+import dynamic from "next/dynamic";
+
+const DashboardSpendingChart = dynamic(
+  () => import("./dashboard-spending-chart").then((mod) => mod.DashboardSpendingChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] animate-pulse rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted)]" />
+    ),
+  }
+);
 import { DashboardSecurityCard } from "./dashboard-security-card";
 import { DashboardRecentOrders } from "./dashboard-recent-orders";
 
