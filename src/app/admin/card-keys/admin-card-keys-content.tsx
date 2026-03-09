@@ -132,12 +132,6 @@ export default function AdminCardKeysPageContent() {
   // Reveal state
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
-  // Import dialog state
-  const [importOpen, setImportOpen] = useState(false);
-  const [importProduct, setImportProduct] = useState("");
-  const [importContent, setImportContent] = useState("");
-  const [importLoading, setImportLoading] = useState(false);
-
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -318,51 +312,6 @@ export default function AdminCardKeysPageContent() {
     }
   };
 
-  const handleImport = async () => {
-    if (!importProduct || !importContent.trim()) return;
-
-    const lines = importContent
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) {
-      toast.error("请输入至少一个卡密");
-      return;
-    }
-
-    setImportLoading(true);
-    try {
-      const data = await apiMutate<{
-        success: boolean;
-        message?: string;
-        count?: number;
-        duplicates?: { batch: number; existing: number };
-      }>("/api/admin/card-keys", "POST", {
-        productId: importProduct,
-        keys: lines,
-      });
-      const dupInfo = data.duplicates;
-      const dupDesc = dupInfo && (dupInfo.batch > 0 || dupInfo.existing > 0)
-        ? `跳过 ${dupInfo.batch > 0 ? `${dupInfo.batch} 个批内重复` : ""}${dupInfo.batch > 0 && dupInfo.existing > 0 ? "、" : ""}${dupInfo.existing > 0 ? `${dupInfo.existing} 个已存在` : ""}`
-        : undefined;
-      toast.success(data.message || `成功导入 ${data.count} 个卡密`, {
-        ...(dupDesc && { description: dupDesc }),
-      });
-      setImportProduct("");
-      setImportContent("");
-      setImportOpen(false);
-      setCurrentPage(1);
-      await refreshAfterMutation();
-    } catch (err) {
-      toast.error("导入卡密失败", {
-        description: err instanceof Error ? err.message : "未知错误",
-      });
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
@@ -435,25 +384,6 @@ export default function AdminCardKeysPageContent() {
     } finally {
       setMutating(false);
     }
-  };
-
-  // ---------------------------------------------------------------------------
-  // File upload handler
-  // ---------------------------------------------------------------------------
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      if (text) {
-        setImportContent((prev) => (prev ? prev + "\n" + text : text));
-      }
-    };
-    reader.readAsText(file);
-    // Reset input so the same file can be uploaded again
-    e.target.value = "";
   };
 
   // ---------------------------------------------------------------------------
@@ -568,16 +498,11 @@ export default function AdminCardKeysPageContent() {
             导出
           </Button>
           <ImportCardKeysDialog
-            open={importOpen}
-            onOpenChange={setImportOpen}
             products={products}
-            importProduct={importProduct}
-            onImportProductChange={setImportProduct}
-            importContent={importContent}
-            onImportContentChange={setImportContent}
-            importLoading={importLoading}
-            onImport={handleImport}
-            onFileUpload={handleFileUpload}
+            onSuccess={() => {
+              setCurrentPage(1);
+              refreshAfterMutation();
+            }}
           />
         </div>
       </div>

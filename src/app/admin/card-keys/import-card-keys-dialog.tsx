@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useState, useRef } from "react";
 import { Upload, FileUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,9 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
+import { apiMutate } from "@/lib/api-fetch";
 
 // ---------------------------------------------------------------------------
-// Types (local re-definitions)
+// Types
 // ---------------------------------------------------------------------------
 
 interface ProductOption {
@@ -35,16 +37,8 @@ interface ProductOption {
 // ---------------------------------------------------------------------------
 
 export interface ImportCardKeysDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   products: ProductOption[];
-  importProduct: string;
-  onImportProductChange: (value: string) => void;
-  importContent: string;
-  onImportContentChange: (value: string) => void;
-  importLoading: boolean;
-  onImport: () => void;
-  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSuccess: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,25 +46,80 @@ export interface ImportCardKeysDialogProps {
 // ---------------------------------------------------------------------------
 
 export function ImportCardKeysDialog({
-  open,
-  onOpenChange,
   products,
-  importProduct,
-  onImportProductChange,
-  importContent,
-  onImportContentChange,
-  importLoading,
-  onImport,
-  onFileUpload,
+  onSuccess,
 }: ImportCardKeysDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [importProduct, setImportProduct] = useState("");
+  const [importContent, setImportContent] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const importLineCount = importContent
     .split("\n")
     .filter((l) => l.trim()).length;
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      if (text) {
+        setImportContent((prev) => (prev ? prev + "\n" + text : text));
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleImport = async () => {
+    if (!importProduct || !importContent.trim()) return;
+
+    const lines = importContent
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) {
+      toast.error("请输入至少一个卡密");
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const data = await apiMutate<{
+        success: boolean;
+        message?: string;
+        count?: number;
+        duplicates?: { batch: number; existing: number };
+      }>("/api/admin/card-keys", "POST", {
+        productId: importProduct,
+        keys: lines,
+      });
+      const dupInfo = data.duplicates;
+      const dupDesc =
+        dupInfo && (dupInfo.batch > 0 || dupInfo.existing > 0)
+          ? `跳过 ${dupInfo.batch > 0 ? `${dupInfo.batch} 个批内重复` : ""}${dupInfo.batch > 0 && dupInfo.existing > 0 ? "、" : ""}${dupInfo.existing > 0 ? `${dupInfo.existing} 个已存在` : ""}`
+          : undefined;
+      toast.success(data.message || `成功导入 ${data.count} 个卡密`, {
+        ...(dupDesc && { description: dupDesc }),
+      });
+      setImportProduct("");
+      setImportContent("");
+      setOpen(false);
+      onSuccess();
+    } catch (err) {
+      toast.error("导入卡密失败", {
+        description: err instanceof Error ? err.message : "未知错误",
+      });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
           <Upload className="mr-2 h-4 w-4" />
@@ -89,7 +138,7 @@ export function ImportCardKeysDialog({
             <Label>选择商品</Label>
             <Select
               value={importProduct}
-              onValueChange={onImportProductChange}
+              onValueChange={setImportProduct}
             >
               <SelectTrigger>
                 <SelectValue placeholder="请选择商品" />
@@ -112,7 +161,7 @@ export function ImportCardKeysDialog({
                   type="file"
                   accept=".txt,.csv,.text"
                   className="hidden"
-                  onChange={onFileUpload}
+                  onChange={handleFileUpload}
                 />
                 <Button
                   type="button"
@@ -131,7 +180,7 @@ export function ImportCardKeysDialog({
                 "每行一个卡密，例如：\nGMAL-8K2F-J9X3-Q7WN\nGMAL-3P7R-M1D5-H8YC\n\n也可点击上方按钮从 .txt/.csv 文件导入"
               }
               value={importContent}
-              onChange={(e) => onImportContentChange(e.target.value)}
+              onChange={(e) => setImportContent(e.target.value)}
             />
             {importContent.trim() && (
               <p className="text-xs text-[var(--muted-foreground)]">
@@ -143,13 +192,13 @@ export function ImportCardKeysDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => setOpen(false)}
             disabled={importLoading}
           >
             取消
           </Button>
           <Button
-            onClick={onImport}
+            onClick={handleImport}
             disabled={
               !importProduct || !importContent.trim() || importLoading
             }
