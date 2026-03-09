@@ -86,9 +86,9 @@ export default function Header() {
     return () => container.removeEventListener("keydown", handleTab);
   }, [mobileMenuOpen]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
-  };
+  }, [theme, setTheme]);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 

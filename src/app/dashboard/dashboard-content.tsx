@@ -8,31 +8,20 @@ import {
   Clock,
   Ticket,
   ArrowRight,
-  ShoppingBag,
-  TrendingUp,
-  HelpCircle,
   Zap,
   Bell,
   RotateCcw,
   Megaphone,
-  Shield,
-  CheckCircle2,
-  AlertTriangle,
+  HelpCircle,
+  TrendingUp,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiFetch } from "@/lib/api-fetch";
+import { DashboardSpendingChart } from "./dashboard-spending-chart";
+import { DashboardSecurityCard } from "./dashboard-security-card";
+import { DashboardRecentOrders } from "./dashboard-recent-orders";
 
 /* ---- Types ---- */
 interface OrderItem {
@@ -52,39 +41,10 @@ interface Order {
   items: OrderItem[];
 }
 
-/* ---- Status mapping ---- */
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "待支付",
-  PAID: "已支付",
-  DELIVERED: "已完成",
-  CANCELLED: "已取消",
-  REFUNDED: "已退款",
-};
-
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline" | "success"> = {
-  PENDING: "default",
-  PAID: "outline",
-  DELIVERED: "success",
-  CANCELLED: "secondary",
-  REFUNDED: "secondary",
-};
-
 /* ---- Helpers ---- */
 function formatCurrency(value: number | string): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   return `¥${num.toFixed(2)}`;
-}
-
-function formatDate(iso: string): string {
-  return iso.slice(0, 10);
-}
-
-function buildProductSummary(items: OrderItem[]): string {
-  if (items.length === 0) return "未知商品";
-  const first = items[0];
-  const label = `${first.productName}${first.quantity > 1 ? ` x${first.quantity}` : ""}`;
-  if (items.length > 1) return `${label} 等${items.length}件`;
-  return label;
 }
 
 function getGreeting(): string {
@@ -188,12 +148,10 @@ export default function DashboardPageContent() {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Refresh data when tab becomes visible again
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -281,13 +239,11 @@ export default function DashboardPageContent() {
   if (loading) {
     return (
       <div className="space-y-8 animate-pulse" aria-busy="true" aria-label="加载中">
-        {/* Welcome skeleton */}
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-6">
           <div className="h-3 w-20 rounded bg-[var(--muted)]" />
           <div className="mt-3 h-6 w-48 rounded bg-[var(--muted)]" />
           <div className="mt-2 h-3 w-64 rounded bg-[var(--muted)]" />
         </div>
-        {/* Stats grid skeleton */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
@@ -301,7 +257,6 @@ export default function DashboardPageContent() {
             </div>
           ))}
         </div>
-        {/* Chart skeleton */}
         <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">
           <div className="h-4 w-32 rounded bg-[var(--muted)]" />
           <div className="mt-4 h-48 rounded bg-[var(--muted)]" />
@@ -343,7 +298,6 @@ export default function DashboardPageContent() {
               : "这是您的账户概览，随时掌握最新动态"}
           </p>
         </div>
-        {/* Decorative glow */}
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[var(--primary)]/5 blur-3xl" />
       </div>
 
@@ -399,187 +353,15 @@ export default function DashboardPageContent() {
       </div>
 
       {/* Spending Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
-            近7天消费趋势
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {spendingData.every((d) => d.amount === 0) ? (
-            <div className="flex flex-col items-center justify-center py-10 text-[var(--muted-foreground)]">
-              <TrendingUp className="mb-2 h-8 w-8 opacity-20" />
-              <p className="text-sm">暂无消费记录</p>
-              <p className="mt-1 text-xs">购买商品后将显示消费趋势</p>
-              <Button variant="ghost" size="sm" asChild className="mt-2">
-                <Link href="/products">浏览商品</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={spendingData}
-                  margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="spendingGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--border)"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => `¥${v}`}
-                    width={60}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius-md)",
-                      fontSize: "13px",
-                    }}
-                    formatter={(value: number) => [`¥${value.toFixed(2)}`, "消费金额"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="var(--primary)"
-                    strokeWidth={2}
-                    fill="url(#spendingGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <DashboardSpendingChart data={spendingData} />
 
       {/* Account Security Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5 text-[var(--success)]" />
-            账户安全
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
-              {user?.email ? (
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-5 w-5 shrink-0 text-[var(--warning)]" />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-medium">邮箱绑定</p>
-                <p className="truncate text-xs text-[var(--muted-foreground)]">
-                  {user?.email || "未绑定邮箱"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
-              <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium">登录密码</p>
-                <p className="text-xs text-[var(--muted-foreground)]">已设置</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
-              <Clock className="h-5 w-5 shrink-0 text-[var(--muted-foreground)]" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium">上次登录</p>
-                <p className="truncate text-xs text-[var(--muted-foreground)]">
-                  {lastLoginInfo
-                    ? `${lastLoginInfo.ip} · ${new Date(lastLoginInfo.time).toLocaleDateString("zh-CN")}`
-                    : "无记录"}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/settings" className="gap-1 text-xs">
-                管理安全设置
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DashboardSecurityCard email={user?.email} lastLoginInfo={lastLoginInfo} />
 
       {/* Two-column bento: Recent Orders + Quick Actions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent Orders (takes 2 cols) */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-lg">最近订单</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/orders" className="gap-1">
-                查看全部
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-[var(--muted-foreground)]">
-                  <ShoppingBag className="mb-3 h-10 w-10 opacity-40" />
-                  <p className="text-sm">暂无订单</p>
-                  <Button variant="ghost" size="sm" asChild className="mt-2">
-                    <Link href="/">去逛逛</Link>
-                  </Button>
-                </div>
-              ) : (
-                recentOrders.map((order) => (
-                  <Link
-                    key={order.id}
-                    href={`/order/${order.orderNo}`}
-                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] p-4 transition-colors hover:bg-[var(--card-hover)]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--primary)]/10">
-                        <ShoppingBag className="h-4 w-4 text-[var(--primary)]" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {buildProductSummary(order.items)}
-                        </p>
-                        <p className="text-xs text-[var(--muted-foreground)]">
-                          {order.orderNo} &middot; {formatDate(order.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-sm font-semibold">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
-                      <Badge variant={STATUS_VARIANT[order.status] ?? "default"}>
-                        {STATUS_LABEL[order.status] ?? order.status}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <DashboardRecentOrders orders={recentOrders} />
 
         {/* Quick Actions + Notifications (1 col) */}
         <div className="space-y-4">

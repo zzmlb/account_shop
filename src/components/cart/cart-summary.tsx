@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tag, Loader2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,7 +74,7 @@ export default function CartSummary({
   const subtotal = getTotal();
   const total = subtotal - discount;
 
-  const handleApplyCoupon = async () => {
+  const handleApplyCoupon = useCallback(async () => {
     setCouponError("");
     if (!couponCode.trim()) {
       setCouponError("请输入优惠码");
@@ -96,15 +96,15 @@ export default function CartSummary({
     } finally {
       setIsValidating(false);
     }
-  };
+  }, [couponCode, subtotal, onCouponChange]);
 
-  const handleRemoveCoupon = () => {
+  const handleRemoveCoupon = useCallback(() => {
     setCouponCode("");
     setCouponApplied(false);
     setCouponError("");
     setDiscount(0);
     onCouponChange?.(null);
-  };
+  }, [onCouponChange]);
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-6">

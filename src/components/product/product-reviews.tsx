@@ -163,7 +163,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     fetchReviews();
   }, [fetchReviews]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!formContent.trim()) {
       toast.error("请输入评价内容");
       return;
@@ -186,7 +186,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [formContent, formRating, productId, fetchReviews]);
 
   return (
     <div className="mt-12">

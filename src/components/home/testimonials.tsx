@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Star, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-fetch";
@@ -69,7 +69,7 @@ export default function Testimonials() {
   }, []);
 
   // Show 6 testimonials in 2 rows of 3
-  const displayed = testimonials.slice(0, 6);
+  const displayed = useMemo(() => testimonials.slice(0, 6), [testimonials]);
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">

@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,18 +52,18 @@ export default function HeroSection() {
     return () => { cancelled = true; clearTimeout(timer); ctrl.abort(); };
   }, []);
 
-  const displayStats = [
+  const displayStats = useMemo(() => [
     { value: stats?.products, label: "精选商品" },
     { value: stats?.users, label: "注册用户" },
     { value: stats?.orders, label: "成功交易" },
-  ];
+  ], [stats]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       router.push(`/products?q=${encodeURIComponent(query.trim())}`);
     }
-  };
+  }, [query, router]);
 
   return (
     <section className="relative overflow-hidden">
