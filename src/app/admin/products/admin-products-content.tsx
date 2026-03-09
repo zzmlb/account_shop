@@ -2,33 +2,19 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ProductDeleteDialog } from "./product-delete-dialog";
 import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import {
-  Search,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   EyeOff,
-  AlertTriangle,
-  Download,
-  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
+import Pagination from "@/components/shared/pagination";
+import { ProductDeleteDialog } from "./product-delete-dialog";
 import { ProductFormDialog, type ProductFormState } from "./product-form-dialog";
 import { ProductsDesktopTable, ProductsMobileCards } from "./products-table";
+import { AdminProductsSkeleton } from "./admin-products-skeleton";
+import { AdminProductsToolbar } from "./admin-products-toolbar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -284,68 +270,6 @@ export default function AdminProductsPageContent() {
     }
   }
 
-  function exportProductsCSV() {
-    const header = "商品名称,分类,价格,原价,库存,销量,浏览量,状态,Slug\n";
-    const rows = filtered
-      .map((p) =>
-        [
-          `"${p.name.replace(/"/g, '""')}"`,
-          `"${p.category}"`,
-          p.price,
-          p.originalPrice,
-          p.stock,
-          p.sales,
-          p.views,
-          p.status,
-          p.slug,
-        ].join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob(["\uFEFF" + header + rows], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `products_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("导出成功", {
-      description: `已导出 ${filtered.length} 件商品`,
-    });
-  }
-
-  const [reconciling, setReconciling] = useState(false);
-
-  async function reconcileStock() {
-    setReconciling(true);
-    try {
-      const data = await apiMutate<{
-        success: boolean;
-        message: string;
-        fixedCount: number;
-        fixes: { name: string; oldStock: number; newStock: number }[];
-      }>("/api/admin/products", "PATCH", { action: "reconcile-stock" });
-      if (data.fixedCount > 0) {
-        toast.success(data.message, {
-          description: data.fixes
-            .map((f) => `${f.name}: ${f.oldStock} → ${f.newStock}`)
-            .join("\n"),
-        });
-        await fetchProducts();
-      } else {
-        toast.success(data.message);
-      }
-    } catch (err) {
-      toast.error("库存校准失败", {
-        description: err instanceof Error ? err.message : "未知错误",
-      });
-    } finally {
-      setReconciling(false);
-    }
-  }
-
   async function toggleStatus(id: string) {
     const product = products.find((p) => p.id === id);
     if (!product) return;
@@ -566,58 +490,11 @@ export default function AdminProductsPageContent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Render helpers
-  // ---------------------------------------------------------------------------
-
-  function renderLoadingSkeleton() {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Skeleton className="h-10 w-28" />
-        </div>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex gap-3">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 w-[160px]" />
-              <Skeleton className="h-10 w-[120px]" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <div className="p-4 space-y-4">
-            {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-5 w-5" />
-                <Skeleton className="h-5 flex-1" />
-                <Skeleton className="h-5 w-20" />
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-5 w-12" />
-                <Skeleton className="h-6 w-14" />
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-8 w-32" />
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  // ---------------------------------------------------------------------------
   // JSX
   // ---------------------------------------------------------------------------
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--background)] p-4 md:p-8">
-        <div className="mx-auto max-w-7xl">{renderLoadingSkeleton()}</div>
-      </div>
-    );
+    return <AdminProductsSkeleton />;
   }
 
   return (
@@ -653,62 +530,17 @@ export default function AdminProductsPageContent() {
         </div>
 
         {/* ---- Filters ---- */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-                <Input
-                  className="pl-9"
-                  placeholder="搜索商品名称、编号..."
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                />
-              </div>
-
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full md:w-[160px]">
-                  <SelectValue placeholder="全部分类" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部分类</SelectItem>
-                  {categoryNames.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full md:w-[140px]">
-                  <SelectValue placeholder="全部状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部</SelectItem>
-                  <SelectItem value="上架">上架</SelectItem>
-                  <SelectItem value="下架">下架</SelectItem>
-                  <SelectItem value="low-stock">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="h-3 w-3 text-orange-500" />库存不足
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="out-of-stock">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="h-3 w-3 text-red-500" />已售罄
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" onClick={reconcileStock} disabled={reconciling} className="shrink-0">
-                <RefreshCw className={cn("h-4 w-4", reconciling && "animate-spin")} />库存校准
-              </Button>
-
-              <Button variant="outline" size="sm" onClick={exportProductsCSV} className="shrink-0">
-                <Download className="h-4 w-4" />导出
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <AdminProductsToolbar
+          searchQuery={searchQuery}
+          onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1); }}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}
+          statusFilter={statusFilter}
+          onStatusFilterChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
+          categoryNames={categoryNames}
+          filteredProducts={filtered}
+          onRefreshProducts={fetchProducts}
+        />
 
         {/* ---- Bulk actions ---- */}
         {selectedIds.size > 0 && (
@@ -762,28 +594,14 @@ export default function AdminProductsPageContent() {
         />
 
         {/* ---- Pagination ---- */}
-        {filtered.length > 0 && (
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <p className="text-sm text-[var(--muted-foreground)]">
-              显示 {(safePage - 1) * ITEMS_PER_PAGE + 1}–
-              {Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} 条，共{" "}
-              {filtered.length} 条
-            </p>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button key={page} variant={page === safePage ? "default" : "outline"} size="sm" className="min-w-[36px]" onClick={() => setCurrentPage(page)}>
-                  {page}
-                </Button>
-              ))}
-              <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={safePage}
+          totalPages={totalPages}
+          total={filtered.length}
+          onPageChange={setCurrentPage}
+          showPageNumbers
+          totalLabel="件商品"
+        />
       </div>
 
       {/* ---- Delete confirmation dialog ---- */}
