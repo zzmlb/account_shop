@@ -38,7 +38,8 @@ export async function GET(request: NextRequest) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [todayTotal, todayFailed, todayUniqueIPs] = await Promise.all([
+    // Single parallel batch: stats + filtered list
+    const [todayTotal, todayFailed, todayUniqueIPs, logs, total] = await Promise.all([
       db.loginLog.count({ where: { createdAt: { gte: todayStart } } }),
       db.loginLog.count({ where: { createdAt: { gte: todayStart }, success: false } }),
       db.loginLog.findMany({
@@ -46,9 +47,6 @@ export async function GET(request: NextRequest) {
         select: { ip: true },
         distinct: ["ip"],
       }),
-    ]);
-
-    const [logs, total] = await Promise.all([
       db.loginLog.findMany({
         where,
         include: {

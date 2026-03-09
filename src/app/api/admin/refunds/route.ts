@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Gather stats (always, regardless of filters)
-    const [pendingCount, approvedStats, rejectedCount] = await Promise.all([
+    // Gather stats + filtered list in a single parallel batch
+    const [pendingCount, approvedStats, rejectedCount, refunds, total] = await Promise.all([
       db.refundRequest.count({ where: { status: "PENDING" } }),
       db.refundRequest.aggregate({
         where: { status: "APPROVED" },
@@ -49,9 +49,6 @@ export async function GET(request: NextRequest) {
         _count: true,
       }),
       db.refundRequest.count({ where: { status: "REJECTED" } }),
-    ]);
-
-    const [refunds, total] = await Promise.all([
       db.refundRequest.findMany({
         where,
         include: {
