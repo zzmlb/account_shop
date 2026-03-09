@@ -103,19 +103,112 @@ export async function GET(request: NextRequest) {
     const todayConversion = todayOrders > 0 ? todayPaidOrders / todayOrders : 0;
     const yesterdayConversion = yesterdayOrders > 0 ? yesterdayPaidOrders / yesterdayOrders : 0;
 
-    // ---------- Recent Orders ----------
+    // ---------- Compute chart period before parallel block ----------
 
-    const recentOrdersRaw = await db.order.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: {
-        items: {
-          include: {
-            product: { select: { name: true } },
+    const periodParam = searchParams.get("period");
+    const chartPeriod = [7, 14, 30].includes(Number(periodParam)) ? Number(periodParam) : 7;
+    const chartStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - chartPeriod + 1);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // ---------- Parallel fetch: all remaining queries ----------
+
+    const [
+      recentOrdersRaw,
+      hotProductsRaw,
+      statusDistribution,
+      totalRevenueResult,
+      chartRaw,
+      userGrowthRaw,
+      thisMonthRevenue,
+      lastMonthRevenue,
+      thisMonthOrders,
+      lastMonthOrders,
+      paymentMethodStats,
+      lowStockProducts,
+      recentLoginsRaw,
+    ] = await Promise.all([
+      // Recent Orders
+      db.order.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          items: {
+            include: {
+              product: { select: { name: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      // Hot Products
+      db.product.findMany({
+        where: { isActive: true },
+        orderBy: { soldCount: "desc" },
+        take: 5,
+        select: { id: true, name: true, price: true, soldCount: true, viewCount: true },
+      }),
+      // Order Status Distribution
+      db.order.groupBy({ by: ["status"], _count: { id: true } }),
+      // Total Revenue (all time)
+      db.order.aggregate({
+        _sum: { payAmount: true },
+        where: { status: { in: ["PAID", "DELIVERED"] } },
+      }),
+      // Sales Chart
+      db.$queryRaw<Array<{ day: Date; revenue: unknown; orders: bigint }>>`
+        SELECT
+          DATE("createdAt") as day,
+          COALESCE(SUM(CASE WHEN status IN ('PAID', 'DELIVERED') THEN "payAmount" ELSE 0 END), 0) as revenue,
+          COUNT(*) as orders
+        FROM orders
+        WHERE "createdAt" >= ${chartStart}
+        GROUP BY DATE("createdAt")
+        ORDER BY day ASC
+      `,
+      // User Growth Chart
+      db.$queryRaw<Array<{ day: Date; count: bigint }>>`
+        SELECT
+          DATE("createdAt") as day,
+          COUNT(*) as count
+        FROM users
+        WHERE "createdAt" >= ${chartStart}
+        GROUP BY DATE("createdAt")
+        ORDER BY day ASC
+      `,
+      // Monthly Revenue Comparison
+      db.order.aggregate({
+        _sum: { payAmount: true },
+        where: { status: { in: ["PAID", "DELIVERED"] }, createdAt: { gte: thisMonthStart } },
+      }),
+      db.order.aggregate({
+        _sum: { payAmount: true },
+        where: { status: { in: ["PAID", "DELIVERED"] }, createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
+      }),
+      db.order.count({ where: { createdAt: { gte: thisMonthStart } } }),
+      db.order.count({ where: { createdAt: { gte: lastMonthStart, lt: thisMonthStart } } }),
+      // Revenue by Payment Method
+      db.order.groupBy({
+        by: ["paymentMethod"],
+        where: { status: { in: ["PAID", "DELIVERED"] } },
+        _sum: { payAmount: true },
+        _count: { id: true },
+      }),
+      // Low Stock Products
+      db.product.findMany({
+        where: { isActive: true, stockCount: { lt: 10 } },
+        orderBy: { stockCount: "asc" },
+        take: 8,
+        select: { id: true, name: true, slug: true, stockCount: true, soldCount: true, price: true },
+      }),
+      // Recent Login Activity
+      db.loginLog.findMany({
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, username: true, success: true, ip: true, createdAt: true },
+      }),
+    ]);
+
+    // ---------- Transform results ----------
 
     const recentOrders = recentOrdersRaw.map((order) => ({
       id: order.orderNo,
@@ -126,21 +219,6 @@ export async function GET(request: NextRequest) {
       createdAt: order.createdAt.toISOString(),
     }));
 
-    // ---------- Hot Products ----------
-
-    const hotProductsRaw = await db.product.findMany({
-      where: { isActive: true },
-      orderBy: { soldCount: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        soldCount: true,
-        viewCount: true,
-      },
-    });
-
     const hotProducts = hotProductsRaw.map((p, idx) => ({
       rank: idx + 1,
       name: p.name,
@@ -149,43 +227,12 @@ export async function GET(request: NextRequest) {
       revenue: Number(p.price) * p.soldCount,
     }));
 
-    // ---------- Order Status Distribution ----------
-
-    const statusDistribution = await db.order.groupBy({
-      by: ["status"],
-      _count: { id: true },
-    });
-
     const ordersByStatus = statusDistribution.map((s) => ({
       status: s.status,
       count: s._count.id,
     }));
 
-    // ---------- Total Revenue (all time) ----------
-
-    const totalRevenueResult = await db.order.aggregate({
-      _sum: { payAmount: true },
-      where: { status: { in: ["PAID", "DELIVERED"] } },
-    });
     const totalRevenue = Number(totalRevenueResult._sum.payAmount ?? 0);
-
-    // ---------- Sales Chart (configurable period, single query) ----------
-
-    const periodParam = searchParams.get("period");
-    const chartPeriod = [7, 14, 30].includes(Number(periodParam)) ? Number(periodParam) : 7;
-
-    const chartStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - chartPeriod + 1);
-
-    const chartRaw = await db.$queryRaw<Array<{ day: Date; revenue: unknown; orders: bigint }>>`
-      SELECT
-        DATE("createdAt") as day,
-        COALESCE(SUM(CASE WHEN status IN ('PAID', 'DELIVERED') THEN "payAmount" ELSE 0 END), 0) as revenue,
-        COUNT(*) as orders
-      FROM orders
-      WHERE "createdAt" >= ${chartStart}
-      GROUP BY DATE("createdAt")
-      ORDER BY day ASC
-    `;
 
     const chartMap = new Map(
       chartRaw.map((r) => {
@@ -204,18 +251,6 @@ export async function GET(request: NextRequest) {
       return { date: key, amount: data?.amount ?? 0, orders: data?.orders ?? 0 };
     });
 
-    // ---------- User Growth Chart ----------
-
-    const userGrowthRaw = await db.$queryRaw<Array<{ day: Date; count: bigint }>>`
-      SELECT
-        DATE("createdAt") as day,
-        COUNT(*) as count
-      FROM users
-      WHERE "createdAt" >= ${chartStart}
-      GROUP BY DATE("createdAt")
-      ORDER BY day ASC
-    `;
-
     const userGrowthMap = new Map(
       userGrowthRaw.map((r) => {
         const d = new Date(r.day);
@@ -232,50 +267,12 @@ export async function GET(request: NextRequest) {
       return { date: key, users: userGrowthMap.get(key) ?? 0 };
     });
 
-    // ---------- Monthly Revenue Comparison ----------
-
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-    const [thisMonthRevenue, lastMonthRevenue, thisMonthOrders, lastMonthOrders] =
-      await Promise.all([
-        db.order.aggregate({
-          _sum: { payAmount: true },
-          where: {
-            status: { in: ["PAID", "DELIVERED"] },
-            createdAt: { gte: thisMonthStart },
-          },
-        }),
-        db.order.aggregate({
-          _sum: { payAmount: true },
-          where: {
-            status: { in: ["PAID", "DELIVERED"] },
-            createdAt: { gte: lastMonthStart, lt: thisMonthStart },
-          },
-        }),
-        db.order.count({
-          where: { createdAt: { gte: thisMonthStart } },
-        }),
-        db.order.count({
-          where: { createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
-        }),
-      ]);
-
     const monthlyComparison = {
       thisMonthRevenue: Number(thisMonthRevenue._sum.payAmount ?? 0),
       lastMonthRevenue: Number(lastMonthRevenue._sum.payAmount ?? 0),
       thisMonthOrders,
       lastMonthOrders,
     };
-
-    // ---------- Revenue by Payment Method ----------
-
-    const paymentMethodStats = await db.order.groupBy({
-      by: ["paymentMethod"],
-      where: { status: { in: ["PAID", "DELIVERED"] } },
-      _sum: { payAmount: true },
-      _count: { id: true },
-    });
 
     const revenueByMethod = paymentMethodStats
       .filter((m) => m.paymentMethod)
@@ -285,35 +282,6 @@ export async function GET(request: NextRequest) {
         count: m._count.id,
       }));
 
-    // ---------- Low Stock Products (top 8) ----------
-
-    const lowStockProducts = await db.product.findMany({
-      where: { isActive: true, stockCount: { lt: 10 } },
-      orderBy: { stockCount: "asc" },
-      take: 8,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        stockCount: true,
-        soldCount: true,
-        price: true,
-      },
-    });
-
-    // ---------- Recent Login Activity (last 10) ----------
-
-    const recentLoginsRaw = await db.loginLog.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        username: true,
-        success: true,
-        ip: true,
-        createdAt: true,
-      },
-    });
     const recentLogins = recentLoginsRaw.map((l) => ({
       id: l.id,
       username: l.username,
