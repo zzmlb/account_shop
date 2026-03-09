@@ -264,6 +264,73 @@ describe("GET /api/reviews", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("clamps pageSize to max 50", async () => {
+    const req = createGetRequest({ productId: "prod-1", pageSize: "999" });
+    await GET(req);
+
+    const findManyArgs = mockReviewFindMany.mock.calls[0][0];
+    expect(findManyArgs.take).toBe(50);
+  });
+
+  it("clamps pageSize to min 1 for negative values", async () => {
+    const req = createGetRequest({ productId: "prod-1", pageSize: "-5" });
+    await GET(req);
+
+    const findManyArgs = mockReviewFindMany.mock.calls[0][0];
+    expect(findManyArgs.take).toBe(1);
+  });
+
+  it("clamps rating filter to 1-5 range", async () => {
+    const req = createGetRequest({ productId: "prod-1", rating: "99" });
+    await GET(req);
+
+    const findManyArgs = mockReviewFindMany.mock.calls[0][0];
+    expect(findManyArgs.where.rating).toBe(5);
+  });
+
+  it("computes average rating correctly from multiple groups", async () => {
+    mockReviewCount.mockResolvedValue(10);
+    mockReviewGroupBy.mockResolvedValue([
+      { rating: 5, _count: 6 },
+      { rating: 4, _count: 3 },
+      { rating: 1, _count: 1 },
+    ]);
+
+    const req = createGetRequest({ productId: "prod-1" });
+    const response = await GET(req);
+    const data = await response.json();
+
+    // (5*6 + 4*3 + 1*1) / 10 = 43/10 = 4.3
+    expect(data.stats.avgRating).toBe(4.3);
+    expect(data.stats.ratingCounts["5"]).toBe(6);
+    expect(data.stats.ratingCounts["4"]).toBe(3);
+    expect(data.stats.ratingCounts["1"]).toBe(1);
+    expect(data.stats.ratingCounts["2"]).toBe(0);
+    expect(data.stats.ratingCounts["3"]).toBe(0);
+  });
+
+  it("sets Cache-Control header on successful response", async () => {
+    const req = createGetRequest({ productId: "prod-1" });
+    const response = await GET(req);
+
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, s-maxage=60, stale-while-revalidate=300"
+    );
+  });
+
+  it("computes correct pagination skip for page > 1", async () => {
+    const req = createGetRequest({ productId: "prod-1", page: "3", pageSize: "5" });
+    await GET(req);
+
+    const findManyArgs = mockReviewFindMany.mock.calls[0][0];
+    expect(findManyArgs.skip).toBe(10); // (3-1) * 5
+    expect(findManyArgs.take).toBe(5);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -466,5 +533,52 @@ describe("POST /api/reviews", () => {
     expect(createArgs.data.content).toBe("Clean content alert('xss')with no tags");
     expect(createArgs.data.content).not.toContain("<b>");
     expect(createArgs.data.content).not.toContain("<script>");
+  });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 500 on review.create database error", async () => {
+    setupProductExists();
+    setupPurchased();
+    setupNoExistingReview();
+    mockReviewCreate.mockRejectedValue(new Error("DB write failed"));
+
+    const req = createPostRequest(validBody);
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
+
+  it("checks purchase with correct userId and DELIVERED status", async () => {
+    setupProductExists();
+    mockOrderItemFindFirst.mockResolvedValue(null);
+
+    const req = createPostRequest(validBody);
+    await POST(req);
+
+    const queryArgs = mockOrderItemFindFirst.mock.calls[0][0];
+    expect(queryArgs.where.productId).toBe("prod-1");
+    expect(queryArgs.where.order.userId).toBe("user-1");
+    expect(queryArgs.where.order.status).toBe("DELIVERED");
+  });
+
+  it("checks duplicate review with compound userId_productId key", async () => {
+    setupProductExists();
+    setupPurchased();
+    mockReviewFindUnique.mockResolvedValue({ id: "existing" });
+
+    const req = createPostRequest(validBody);
+    await POST(req);
+
+    const queryArgs = mockReviewFindUnique.mock.calls[0][0];
+    expect(queryArgs.where.userId_productId).toEqual({
+      userId: "user-1",
+      productId: "prod-1",
+    });
   });
 });

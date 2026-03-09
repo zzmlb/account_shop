@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   ChevronRight,
   ShoppingCart,
@@ -35,7 +34,7 @@ const ProductReviews = dynamic(() => import("@/components/product/product-review
 });
 import { useCartStore } from "@/stores/cart-store";
 import { useRecentlyViewedStore } from "@/stores/recently-viewed-store";
-import { BLUR_DATA_URL } from "@/lib/constants";
+import { ProductImageGallery } from "./product-image-gallery";
 
 interface Product {
   id: string;
@@ -87,15 +86,7 @@ export default function ProductDetailContent({
     return imgs;
   })();
 
-  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
-  const [mainImgError, setMainImgError] = useState(false);
-  const [thumbErrors, setThumbErrors] = useState<Set<number>>(new Set());
   const [quantity, setQuantity] = useState(1);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
-  const currentImage = (!mainImgError && allImages[selectedImageIdx]) || null;
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const cartItems = useCartStore((s) => s.items);
@@ -104,13 +95,6 @@ export default function ProductDetailContent({
   const inCartItem = cartItems.find((i) => i.productId === product.id);
   const inCartQty = inCartItem?.quantity ?? 0;
   const [stockNotifyDone, setStockNotifyDone] = useState(false);
-
-  const handleImageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setZoomPos({ x, y });
-  }, []);
 
   // Track recently viewed
   useEffect(() => {
@@ -189,130 +173,16 @@ export default function ProductDetailContent({
       {/* Product main section */}
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Left: Product image gallery */}
-        <div className="space-y-3">
-          {/* Main image */}
-          <div
-            ref={imageContainerRef}
-            className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] cursor-zoom-in touch-pan-y"
-            onMouseEnter={() => currentImage && setIsZoomed(true)}
-            onMouseLeave={() => setIsZoomed(false)}
-            onMouseMove={handleImageMouseMove}
-            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
-            onTouchEnd={(e) => {
-              if (allImages.length <= 1) return;
-              const diff = touchStartX.current - e.changedTouches[0].clientX;
-              if (Math.abs(diff) > 50) {
-                setMainImgError(false);
-                if (diff > 0) {
-                  setSelectedImageIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
-                } else {
-                  setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
-                }
-              }
-            }}
-          >
-            {currentImage ? (
-              <Image
-                src={currentImage}
-                alt={`${product.name} - ${selectedImageIdx + 1}`}
-                fill
-                className={`object-cover transition-transform duration-200 ${
-                  isZoomed ? "scale-[2]" : ""
-                }`}
-                style={
-                  isZoomed
-                    ? { transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }
-                    : undefined
-                }
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-                placeholder="blur"
-                blurDataURL={BLUR_DATA_URL}
-                onError={() => setMainImgError(true)}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)]/20 via-[var(--accent)]/10 to-[var(--primary)]/5">
-                <div className="text-center">
-                  <div className="text-7xl font-bold text-[var(--primary)]/20">
-                    {product.name.charAt(0)}
-                  </div>
-                  <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                    {product.categoryName}
-                  </p>
-                </div>
-              </div>
-            )}
-            {product.originalPrice && product.originalPrice > product.price && (
-              <div className="absolute right-4 top-4 rounded-[var(--radius-sm)] bg-[var(--destructive)] px-2 py-1 text-sm font-bold text-[var(--destructive-foreground)]">
-                -
-                {Math.round(
-                  ((product.originalPrice - product.price) /
-                    product.originalPrice) *
-                    100
-                )}
-                %
-              </div>
-            )}
-            {/* Image counter */}
-            {allImages.length > 1 && (
-              <div className="absolute bottom-3 left-3 rounded-[var(--radius-sm)] bg-black/60 px-2 py-1 text-xs font-medium text-white">
-                {selectedImageIdx + 1} / {allImages.length}
-              </div>
-            )}
-          </div>
-
-          {/* Thumbnail strip */}
-          {allImages.length > 1 && (
-            <div
-              className="flex gap-2 overflow-x-auto pb-1"
-              role="listbox"
-              aria-label="商品图片选择"
-              onKeyDown={(e) => {
-                if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setMainImgError(false);
-                  setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
-                } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setMainImgError(false);
-                  setSelectedImageIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
-                }
-              }}
-            >
-              {allImages.map((img, idx) => (
-                <button
-                  key={idx}
-                  role="option"
-                  aria-selected={idx === selectedImageIdx}
-                  aria-label={`查看第 ${idx + 1} 张图片`}
-                  onClick={() => { setSelectedImageIdx(idx); setMainImgError(false); }}
-                  className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] border-2 transition-all ${
-                    idx === selectedImageIdx
-                      ? "border-[var(--primary)] ring-1 ring-[var(--primary)]/30"
-                      : "border-[var(--border)] hover:border-[var(--primary)]/50"
-                  }`}
-                >
-                  {thumbErrors.has(idx) ? (
-                    <div className="flex h-full w-full items-center justify-center bg-[var(--muted)] text-xs text-[var(--muted-foreground)]">
-                      {idx + 1}
-                    </div>
-                  ) : (
-                    <Image
-                      src={img}
-                      alt={`${product.name} 缩略图 ${idx + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
-                      placeholder="blur"
-                      blurDataURL={BLUR_DATA_URL}
-                      onError={() => setThumbErrors((prev) => new Set(prev).add(idx))}
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductImageGallery
+          images={allImages}
+          productName={product.name}
+          categoryName={product.categoryName}
+          discountPercent={
+            product.originalPrice && product.originalPrice > product.price
+              ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+              : undefined
+          }
+        />
 
         {/* Right: Product info */}
         <div className="flex flex-col">

@@ -8,6 +8,12 @@ import {
   BLUR_DATA_URL,
   NAV_LINKS,
   TRUST_FEATURES,
+  SEARCH_DEBOUNCE_MS,
+  COPY_FEEDBACK_MS,
+  NOTIFICATION_POLL_INTERVAL_MS,
+  ACTIVITY_ROTATION_MS,
+  SHARE_POPUP_WIDTH,
+  SHARE_POPUP_HEIGHT,
 } from "../constants";
 
 describe("constants", () => {
@@ -53,5 +59,31 @@ describe("constants", () => {
       expect(feature).toHaveProperty("title");
       expect(feature).toHaveProperty("description");
     }
+  });
+
+  it("SEARCH_DEBOUNCE_MS is a reasonable debounce value", () => {
+    expect(SEARCH_DEBOUNCE_MS).toBeGreaterThanOrEqual(100);
+    expect(SEARCH_DEBOUNCE_MS).toBeLessThanOrEqual(1000);
+  });
+
+  it("COPY_FEEDBACK_MS is a reasonable feedback duration", () => {
+    expect(COPY_FEEDBACK_MS).toBeGreaterThanOrEqual(500);
+    expect(COPY_FEEDBACK_MS).toBeLessThanOrEqual(5000);
+  });
+
+  it("NOTIFICATION_POLL_INTERVAL_MS is at least 30 seconds", () => {
+    expect(NOTIFICATION_POLL_INTERVAL_MS).toBeGreaterThanOrEqual(30_000);
+  });
+
+  it("ACTIVITY_ROTATION_MS is a reasonable rotation speed", () => {
+    expect(ACTIVITY_ROTATION_MS).toBeGreaterThanOrEqual(2000);
+    expect(ACTIVITY_ROTATION_MS).toBeLessThanOrEqual(10_000);
+  });
+
+  it("SHARE_POPUP dimensions are reasonable", () => {
+    expect(SHARE_POPUP_WIDTH).toBeGreaterThanOrEqual(400);
+    expect(SHARE_POPUP_WIDTH).toBeLessThanOrEqual(1200);
+    expect(SHARE_POPUP_HEIGHT).toBeGreaterThanOrEqual(300);
+    expect(SHARE_POPUP_HEIGHT).toBeLessThanOrEqual(900);
   });
 });
