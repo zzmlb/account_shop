@@ -19,6 +19,7 @@ interface DetailUser {
   id: string;
   username: string;
   email: string;
+  avatar: string | null;
   balance: number;
   role: UserRole;
   status: "ACTIVE" | "BANNED";
@@ -26,6 +27,7 @@ interface DetailUser {
   totalSpent: number;
   lastLoginAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 const roleConfig: Record<

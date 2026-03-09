@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import {
   Search,
   MoreHorizontal,
@@ -21,16 +20,7 @@ import Pagination from "@/components/shared/pagination";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +32,8 @@ import { toast } from "sonner";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
 import { exportToCsv } from "@/lib/csv-export";
 import ConfirmDialog from "@/components/shared/confirm-dialog";
+import { BalanceAdjustDialog } from "./balance-adjust-dialog";
+import { UserDetailDialog } from "./user-detail-dialog";
 
 type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
 type UserStatus = "ACTIVE" | "BANNED";
@@ -109,8 +101,6 @@ export default function AdminUsersPageContent() {
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
   const [detailUser, setDetailUser] = useState<ApiUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
-  const [adjustAmount, setAdjustAmount] = useState("");
-  const [adjustReason, setAdjustReason] = useState("");
   const [confirmAction, setConfirmAction] = useState<{
     title: string;
     description: string;
@@ -194,33 +184,7 @@ export default function AdminUsersPageContent() {
   // Open balance adjustment dialog
   const openBalanceDialog = (user: ApiUser) => {
     setSelectedUser(user);
-    setAdjustAmount("");
-    setAdjustReason("");
     setBalanceDialogOpen(true);
-  };
-
-  // Submit balance adjustment
-  const handleBalanceAdjust = async () => {
-    if (!selectedUser || !adjustAmount) return;
-    const amount = parseFloat(adjustAmount);
-    if (isNaN(amount)) return;
-
-    setActionLoading(selectedUser.id);
-    try {
-      await apiMutate(`/api/admin/users?id=${selectedUser.id}`, "PUT", { balanceAdjust: amount });
-      toast.success(
-        `已调整用户 ${selectedUser.username} 的余额：${amount >= 0 ? "+" : ""}${amount.toFixed(2)}`
-      );
-      setBalanceDialogOpen(false);
-      setSelectedUser(null);
-      setAdjustAmount("");
-      setAdjustReason("");
-      await fetchUsers();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "余额调整失败");
-    } finally {
-      setActionLoading(null);
-    }
   };
 
   // Clear selection when filters/page change
@@ -728,185 +692,20 @@ export default function AdminUsersPageContent() {
       </Card>
 
       {/* Balance Adjustment Dialog */}
-      <Dialog open={balanceDialogOpen} onOpenChange={setBalanceDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>调整余额</DialogTitle>
-            <DialogDescription>
-              为用户{" "}
-              <span className="font-medium text-[var(--foreground)]">
-                {selectedUser?.username}
-              </span>{" "}
-              调整账户余额。 当前余额：¥
-              {selectedUser ? Number(selectedUser.balance).toFixed(2) : "0.00"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="adjust-amount">调整金额</Label>
-              <Input
-                id="adjust-amount"
-                type="number"
-                step="0.01"
-                placeholder="正数为充值，负数为扣除"
-                value={adjustAmount}
-                onChange={(e) => setAdjustAmount(e.target.value)}
-              />
-              <p className="text-xs text-[var(--muted-foreground)]">
-                输入正数增加余额，输入负数扣减余额
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="adjust-reason">调整原因</Label>
-              <Input
-                id="adjust-reason"
-                placeholder="请输入调整原因..."
-                value={adjustReason}
-                onChange={(e) => setAdjustReason(e.target.value)}
-              />
-            </div>
-            {adjustAmount &&
-              !isNaN(parseFloat(adjustAmount)) &&
-              selectedUser && (
-                <div className="rounded-[var(--radius-md)] bg-[var(--muted)] p-3">
-                  <p className="text-sm text-[var(--muted-foreground)]">
-                    调整后余额：
-                    <span className="font-semibold text-[var(--foreground)] ml-1">
-                      ¥
-                      {Math.max(
-                        0,
-                        Number(selectedUser.balance) + parseFloat(adjustAmount)
-                      ).toFixed(2)}
-                    </span>
-                  </p>
-                </div>
-              )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBalanceDialogOpen(false)}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleBalanceAdjust}
-              disabled={
-                !adjustAmount ||
-                isNaN(parseFloat(adjustAmount)) ||
-                actionLoading !== null
-              }
-            >
-              {actionLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  处理中...
-                </>
-              ) : (
-                "确认调整"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BalanceAdjustDialog
+        user={selectedUser}
+        open={balanceDialogOpen}
+        onOpenChange={setBalanceDialogOpen}
+        onSuccess={fetchUsers}
+      />
 
       {/* User Detail Dialog */}
-      <Dialog open={!!detailUser} onOpenChange={(open) => !open && setDetailUser(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>用户详情</DialogTitle>
-            <DialogDescription>
-              查看用户的详细信息
-            </DialogDescription>
-          </DialogHeader>
-          {detailUser && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-[var(--muted-foreground)]">用户名</p>
-                  <p className="font-medium text-[var(--foreground)]">{detailUser.username}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">角色</p>
-                  <Badge variant={roleConfig[detailUser.role].variant as "default" | "secondary" | "destructive" | "outline"} className={roleConfig[detailUser.role].className}>
-                    {roleConfig[detailUser.role].label}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">邮箱</p>
-                  <p className="font-medium text-[var(--foreground)] break-all">{detailUser.email}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">状态</p>
-                  <Badge variant={detailUser.status === "ACTIVE" ? "outline" : "destructive"}>
-                    {detailUser.status === "ACTIVE" ? "正常" : "已封禁"}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">余额</p>
-                  <p className="font-semibold text-[var(--primary)]">¥{Number(detailUser.balance).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">订单数</p>
-                  <p className="font-medium text-[var(--foreground)]">{detailUser.orderCount}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">消费总额</p>
-                  <p className="font-semibold text-[var(--foreground)]">¥{(detailUser.totalSpent ?? 0).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">最后登录</p>
-                  <p className="font-medium text-[var(--foreground)]">{detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleDateString("zh-CN") : "从未登录"}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">注册时间</p>
-                  <p className="font-medium text-[var(--foreground)]">{new Date(detailUser.createdAt).toLocaleDateString("zh-CN")}</p>
-                </div>
-                <div>
-                  <p className="text-[var(--muted-foreground)]">用户ID</p>
-                  <p className="font-mono text-xs text-[var(--muted-foreground)] break-all">{detailUser.id}</p>
-                </div>
-              </div>
-              <Separator />
-              <div className="flex flex-wrap gap-2">
-                <Button asChild variant="default" size="sm" className="gap-1.5">
-                  <Link href={`/admin/users/${detailUser.id}`}>
-                    <Eye className="h-3.5 w-3.5" />
-                    查看详细资料
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setDetailUser(null);
-                    openBalanceDialog(detailUser);
-                  }}
-                  className="gap-1.5"
-                >
-                  <Wallet className="h-3.5 w-3.5" />
-                  调整余额
-                </Button>
-                <Button
-                  variant={detailUser.status === "ACTIVE" ? "destructive" : "default"}
-                  size="sm"
-                  onClick={() => {
-                    setDetailUser(null);
-                    handleToggleBan(detailUser);
-                  }}
-                  className="gap-1.5"
-                >
-                  {detailUser.status === "ACTIVE" ? (
-                    <><Ban className="h-3.5 w-3.5" />封禁</>
-                  ) : (
-                    <><ShieldCheck className="h-3.5 w-3.5" />解封</>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <UserDetailDialog
+        user={detailUser}
+        onClose={() => setDetailUser(null)}
+        onAdjustBalance={openBalanceDialog}
+        onToggleBan={handleToggleBan}
+      />
 
       <ConfirmDialog
         open={!!confirmAction}
