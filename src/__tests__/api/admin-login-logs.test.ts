@@ -269,4 +269,43 @@ describe("Admin Login Logs API — /api/admin/login-logs", () => {
     expect(json.success).toBe(false);
     expect(json.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns null user when log has no associated user", async () => {
+    const logWithNoUser = { ...mockLog, user: null };
+    mockLoginLogCount
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
+    mockLoginLogFindMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([logWithNoUser]);
+
+    const req = new NextRequest("http://localhost/api/admin/login-logs");
+    const res = await GET(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.logs[0].user).toBeNull();
+  });
+
+  it("truncates search param to 200 chars", async () => {
+    const longSearch = "a".repeat(250);
+    mockLoginLogCount.mockResolvedValue(0);
+    mockLoginLogFindMany.mockResolvedValue([]);
+
+    const req = new NextRequest(`http://localhost/api/admin/login-logs?search=${longSearch}`);
+    const res = await GET(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+
+    // The paginated findMany should have search truncated to 200
+    const paginatedCall = mockLoginLogFindMany.mock.calls[1][0];
+    const searchInQuery = paginatedCall.where.OR[0].username.contains;
+    expect(searchInQuery.length).toBe(200);
+  });
 });

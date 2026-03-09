@@ -202,4 +202,32 @@ describe("POST /api/admin/test-email", () => {
     expect(mockSendMail).toHaveBeenCalledTimes(1);
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 400 for empty recipient email", async () => {
+    const res = await POST(makeReq({ to: "" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.success).toBe(false);
+  });
+
+  it("returns 400 for port 0 (below valid range)", async () => {
+    const res = await POST(
+      makeReq({
+        to: "test@example.com",
+        smtpHost: "smtp.test.com",
+        smtpPort: "0",
+        smtpUser: "user@test.com",
+        smtpPass: "pass",
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.message).toContain("端口");
+  });
 });
