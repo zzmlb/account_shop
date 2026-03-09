@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -207,18 +207,22 @@ export default function NotificationsContent() {
   const allSelected = notifications.length > 0 && selectedIds.size === notifications.length;
 
   // Group notifications by date
-  const groupedNotifications = notifications.reduce<{ group: string; items: Notification[] }[]>(
-    (groups, n) => {
-      const group = getDateGroup(n.createdAt);
-      const last = groups[groups.length - 1];
-      if (last && last.group === group) {
-        last.items.push(n);
-      } else {
-        groups.push({ group, items: [n] });
-      }
-      return groups;
-    },
-    []
+  const groupedNotifications = useMemo(
+    () =>
+      notifications.reduce<{ group: string; items: Notification[] }[]>(
+        (groups, n) => {
+          const group = getDateGroup(n.createdAt);
+          const last = groups[groups.length - 1];
+          if (last && last.group === group) {
+            last.items.push(n);
+          } else {
+            groups.push({ group, items: [n] });
+          }
+          return groups;
+        },
+        []
+      ),
+    [notifications]
   );
 
   return (

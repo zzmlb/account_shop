@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   Heart,
@@ -199,7 +199,7 @@ export default function FavoritesPageContent() {
     toast.success("已加入购物车");
   };
 
-  const sortedFavorites = sortFavorites(favorites, sortBy);
+  const sortedFavorites = useMemo(() => sortFavorites(favorites, sortBy), [favorites, sortBy]);
   const formatPrice = (price: number) => `¥${price.toFixed(2)}`;
 
   if (loading) {
