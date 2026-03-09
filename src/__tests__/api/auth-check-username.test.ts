@@ -188,4 +188,27 @@ describe("GET /api/auth/check-username", () => {
       select: { id: true },
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("accepts long username and queries DB normally", async () => {
+    const longUsername = "a".repeat(50);
+    mockUserFindUnique.mockResolvedValue(null);
+
+    const req = new NextRequest(
+      `http://localhost:3001/api/auth/check-username?username=${longUsername}`,
+    );
+
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.available).toBe(true);
+    expect(mockUserFindUnique).toHaveBeenCalledWith({
+      where: { username: longUsername },
+      select: { id: true },
+    });
+  });
 });

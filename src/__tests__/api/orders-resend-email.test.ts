@@ -192,4 +192,33 @@ describe("POST /api/orders/[id]/resend-email", () => {
     expect(res.status).toBe(500);
     expect(data.success).toBe(false);
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("queries order with userId from session for ownership check", async () => {
+    mockGetSessionFromRequest.mockReturnValue({ id: "user-99" });
+    mockOrderFindUnique.mockResolvedValue(null);
+
+    await POST(makeReq(), makeParams("order-1"));
+
+    expect(mockOrderFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "order-1", userId: "user-99" },
+      })
+    );
+  });
+
+  it("returns 500 on unexpected DB error", async () => {
+    mockGetSessionFromRequest.mockReturnValue({ id: "user-1" });
+    mockOrderFindUnique.mockRejectedValue(new Error("DB down"));
+
+    const res = await POST(makeReq(), makeParams("order-1"));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toContain("服务器");
+  });
 });

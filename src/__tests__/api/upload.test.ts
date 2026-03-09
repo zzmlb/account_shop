@@ -178,4 +178,33 @@ describe("POST /api/upload", () => {
     expect(data.success).toBe(true);
     expect(data.url).toContain(".webp");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns ENOSPC-specific error message when disk is full", async () => {
+    setupAdmin();
+    mockWriteFile.mockRejectedValue(new Error("ENOSPC: no space left on device"));
+
+    const req = makeUploadReq("test", "test.png", "image/png");
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.message).toContain("存储空间");
+  });
+
+  it("returns size and filename in successful response", async () => {
+    setupAdmin();
+
+    const req = makeUploadReq("image-data", "photo.jpg", "image/jpeg");
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(typeof data.size).toBe("number");
+    expect(typeof data.filename).toBe("string");
+    expect(data.filename).toMatch(/^\d+-[a-z0-9]+\.jpg$/);
+  });
 });

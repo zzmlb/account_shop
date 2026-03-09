@@ -134,4 +134,34 @@ describe("GET /api/auth/check-reset-token", () => {
       select: { expiresAt: true, usedAt: true },
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("accepts exactly 200-char token (boundary)", async () => {
+    const token = "a".repeat(200);
+    mockPasswordResetFindUnique.mockResolvedValue(null);
+
+    const res = await GET(makeReq(token));
+    const data = await res.json();
+
+    // 200 chars should be accepted and queried
+    expect(mockPasswordResetFindUnique).toHaveBeenCalled();
+    expect(data.valid).toBe(false);
+    expect(data.reason).toBe("invalid"); // not found
+  });
+
+  it("checks usedAt before expiresAt (used takes priority)", async () => {
+    mockPasswordResetFindUnique.mockResolvedValue({
+      expiresAt: new Date(Date.now() - 1000), // also expired
+      usedAt: new Date(), // but also used
+    });
+
+    const res = await GET(makeReq("used-and-expired"));
+    const data = await res.json();
+
+    expect(data.valid).toBe(false);
+    expect(data.reason).toBe("used"); // used takes priority
+  });
 });
