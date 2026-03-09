@@ -129,4 +129,50 @@ describe("GET /api/categories", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("服务器内部错误");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("queries with isActive=true and sortOrder asc", async () => {
+    mockCategoryFindMany.mockResolvedValue([]);
+
+    await GET(createRequest());
+
+    expect(mockCategoryFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isActive: true },
+        orderBy: { sortOrder: "asc" },
+      })
+    );
+  });
+
+  it("counts only active products in productCount", async () => {
+    mockCategoryFindMany.mockResolvedValue([]);
+
+    await GET(createRequest());
+
+    const args = mockCategoryFindMany.mock.calls[0][0];
+    expect(args.select._count).toEqual({
+      select: { products: { where: { isActive: true } } },
+    });
+  });
+
+  it("handles null description and icon gracefully", async () => {
+    mockCategoryFindMany.mockResolvedValue([{
+      id: "cat-2",
+      name: "Test",
+      slug: "test",
+      description: null,
+      icon: null,
+      _count: { products: 0 },
+    }]);
+
+    const response = await GET(createRequest());
+    const data = await response.json();
+
+    expect(data.categories[0].description).toBeNull();
+    expect(data.categories[0].icon).toBeNull();
+    expect(data.categories[0].productCount).toBe(0);
+  });
 });

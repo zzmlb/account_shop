@@ -146,4 +146,55 @@ describe("GET /api/auth/login-history", () => {
       })
     );
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 500 on database error", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+    mockLoginLogFindMany.mockRejectedValue(new Error("DB down"));
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("服务器内部错误");
+  });
+
+  it("handles null userAgent and reason fields gracefully", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+    mockLoginLogFindMany.mockResolvedValue([{
+      id: "log-null",
+      success: true,
+      ip: "127.0.0.1",
+      userAgent: null,
+      reason: null,
+      createdAt: new Date("2026-03-08T00:00:00Z"),
+    }]);
+
+    const res = await GET(makeReq());
+    const data = await res.json();
+
+    expect(data.logs[0].userAgent).toBeNull();
+    expect(data.logs[0].reason).toBeNull();
+  });
+
+  it("selects only the required fields", async () => {
+    mockGetUserSession.mockReturnValue({ session: mockSession, error: null });
+    mockLoginLogFindMany.mockResolvedValue([]);
+
+    await GET(makeReq());
+
+    const args = mockLoginLogFindMany.mock.calls[0][0];
+    expect(args.select).toEqual({
+      id: true,
+      success: true,
+      ip: true,
+      userAgent: true,
+      reason: true,
+      createdAt: true,
+    });
+  });
 });

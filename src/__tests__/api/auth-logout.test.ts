@@ -116,4 +116,29 @@ describe("POST /api/auth/logout", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("请求过于频繁");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("sets sameSite=lax on session cookie", async () => {
+    const res = await POST(makeReq());
+    const setCookie = res.headers.get("set-cookie");
+    expect(setCookie!.toLowerCase()).toContain("samesite=lax");
+  });
+
+  it("sets secure=false in non-production NODE_ENV", async () => {
+    // In test environment NODE_ENV !== "production", so secure should be false
+    const res = await POST(makeReq());
+    const setCookie = res.headers.get("set-cookie") || "";
+    // "Secure" flag should NOT be present in non-production
+    expect(setCookie).not.toContain("Secure");
+  });
+
+  it("clears session cookie value to empty string", async () => {
+    const res = await POST(makeReq());
+    const setCookie = res.headers.get("set-cookie") || "";
+    // Cookie value should be empty (session=; or session=)
+    expect(setCookie).toMatch(/session=\s*;/);
+  });
 });

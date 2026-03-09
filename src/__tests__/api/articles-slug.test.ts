@@ -131,4 +131,37 @@ describe("GET /api/articles/[slug]", () => {
     expect(res.headers.get("cache-control")).toContain("public");
     expect(res.headers.get("cache-control")).toContain("s-maxage=120");
   });
+
+  // -----------------------------------------------------------------------
+  // Edge cases
+  // -----------------------------------------------------------------------
+
+  it("returns 500 on database error", async () => {
+    mockArticleFindUnique.mockRejectedValue(new Error("DB down"));
+
+    const res = await GET(makeReq("test"), makeParams("test"));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("获取文章详情失败");
+  });
+
+  it("does not increment view count when article not found", async () => {
+    mockArticleFindUnique.mockResolvedValue(null);
+
+    await GET(makeReq("nonexistent"), makeParams("nonexistent"));
+
+    expect(mockArticleUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns content and updatedAt fields in response", async () => {
+    mockArticleFindUnique.mockResolvedValue(mockArticle);
+
+    const res = await GET(makeReq("test-article"), makeParams("test-article"));
+    const data = await res.json();
+
+    expect(data.article.content).toBe("<p>文章内容</p>");
+    expect(data.article.updatedAt).toBe(now.toISOString());
+  });
 });
