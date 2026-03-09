@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import { Ticket, Clock, CheckCircle2, XCircle, Tag, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ const TAB_CONFIG = [
   { value: "expired", label: "已过期", icon: XCircle },
 ] as const;
 
-function CouponCard({
+const CouponCard = memo(function CouponCard({
   coupon,
   onCopyCode,
   copiedId,
@@ -268,7 +268,7 @@ function CouponCard({
       )}
     </div>
   );
-}
+});
 
 
 export default function CouponsPageContent() {
