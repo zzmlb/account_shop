@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import Breadcrumb from "@/components/ui/breadcrumb";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+      <Breadcrumb items={[{ label: "隐私政策" }]} className="mb-6" />
       <h1 className="mb-8 text-3xl font-bold tracking-tight text-[var(--foreground)]">
         隐私政策
       </h1>

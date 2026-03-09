@@ -17,10 +17,6 @@ import {
   Mail,
   Pencil,
   X,
-  Trash2,
-  Globe,
-  Monitor,
-  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -35,17 +31,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { apiFetch, apiMutate } from "@/lib/api-fetch";
+import { LoginHistorySection } from "./login-history-section";
+import { DeleteAccountSection } from "./delete-account-section";
 
 interface FormMessage {
   type: "success" | "error";
@@ -83,25 +74,6 @@ export default function DashboardSettingsPageContent() {
   const [avatarHover, setAvatarHover] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  /* ---- Login history ---- */
-  interface LoginLogEntry {
-    id: string;
-    success: boolean;
-    ip: string | null;
-    userAgent: string | null;
-    reason: string | null;
-    createdAt: string;
-  }
-  const [loginHistory, setLoginHistory] = useState<LoginLogEntry[]>([]);
-  const [loginHistoryLoading, setLoginHistoryLoading] = useState(true);
-  const [loginHistoryError, setLoginHistoryError] = useState(false);
-
-  /* ---- Delete account state ---- */
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [deleting, setDeleting] = useState(false);
 
   /* ---- Password strength ---- */
   const getPasswordStrength = (
@@ -142,25 +114,6 @@ export default function DashboardSettingsPageContent() {
     }
   }, []);
 
-  /* ---- Fetch login history ---- */
-  useEffect(() => {
-    const controller = new AbortController();
-    apiFetch<{ logs: LoginLogEntry[] }>("/api/auth/login-history", {
-      signal: controller.signal,
-    })
-      .then((data) => {
-        setLoginHistory(data.logs);
-      })
-      .catch((err) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setLoginHistoryError(true);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoginHistoryLoading(false);
-      });
-    return () => controller.abort();
-  }, []);
-
   /* ---- Handlers ---- */
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +140,6 @@ export default function DashboardSettingsPageContent() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      // Server clears session cookie; redirect to login after brief delay
       setTimeout(() => {
         logout();
         router.push("/login");
@@ -229,35 +181,12 @@ export default function DashboardSettingsPageContent() {
       await apiMutate("/api/auth/email", "PUT", { email: trimmed });
       toast.success("邮箱已更新");
       setEditingEmail(false);
-      // Refresh auth state
       const { checkAuth } = useAuthStore.getState();
       checkAuth();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "更新失败");
     } finally {
       setEmailSaving(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== "DELETE") {
-      toast.error("请输入 DELETE 确认删除");
-      return;
-    }
-    if (!deletePassword) {
-      toast.error("请输入密码确认");
-      return;
-    }
-    setDeleting(true);
-    try {
-      await apiMutate("/api/auth/delete-account", "POST", { password: deletePassword });
-      toast.success("账户已删除");
-      logout();
-      router.push("/");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "删除失败");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -275,7 +204,6 @@ export default function DashboardSettingsPageContent() {
 
     setAvatarUploading(true);
     try {
-      // Upload the file
       const formData = new FormData();
       formData.append("file", file);
       formData.append("purpose", "avatar");
@@ -284,10 +212,8 @@ export default function DashboardSettingsPageContent() {
         body: formData,
       });
 
-      // Update profile with new avatar URL
       await apiMutate("/api/auth/me", "PUT", { avatar: uploadData.url });
 
-      // Refresh auth store
       useAuthStore.getState().checkAuth();
       toast.success("头像已更新");
     } catch (err) {
@@ -315,7 +241,6 @@ export default function DashboardSettingsPageContent() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ===== Left column: Personal Info ===== */}
         <div className="space-y-6 lg:col-span-1">
-          {/* Avatar card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -371,7 +296,6 @@ export default function DashboardSettingsPageContent() {
                     />
                   )}
                 </div>
-                {/* Camera overlay */}
                 <div
                   className={cn(
                     "absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--card)] shadow-sm transition-all",
@@ -384,7 +308,6 @@ export default function DashboardSettingsPageContent() {
                 </div>
               </button>
 
-              {/* User info */}
               <p className="text-sm font-medium text-[var(--foreground)]">
                 {displayUsername}
               </p>
@@ -399,7 +322,6 @@ export default function DashboardSettingsPageContent() {
 
               <Separator className="my-4 w-full" />
 
-              {/* Read-only fields */}
               <div className="w-full space-y-3">
                 <div className="space-y-1">
                   <Label className="text-xs text-[var(--muted-foreground)]">
@@ -488,7 +410,6 @@ export default function DashboardSettingsPageContent() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                {/* Current password */}
                 <div className="space-y-2">
                   <Label htmlFor="current-password">当前密码</Label>
                   <div className="relative">
@@ -516,7 +437,6 @@ export default function DashboardSettingsPageContent() {
                   </div>
                 </div>
 
-                {/* New password */}
                 <div className="space-y-2">
                   <Label htmlFor="new-password">新密码</Label>
                   <div className="relative">
@@ -542,7 +462,6 @@ export default function DashboardSettingsPageContent() {
                       )}
                     </button>
                   </div>
-                  {/* Password strength bar */}
                   {newPassword.length > 0 && (
                     <div className="space-y-1">
                       <div className="flex gap-1">
@@ -565,7 +484,6 @@ export default function DashboardSettingsPageContent() {
                   )}
                 </div>
 
-                {/* Confirm new password */}
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">确认新密码</Label>
                   <div className="relative">
@@ -604,7 +522,6 @@ export default function DashboardSettingsPageContent() {
                     )}
                 </div>
 
-                {/* Message */}
                 <div aria-live="assertive" aria-atomic="true">
                   {passwordMessage && (
                     <div
@@ -659,7 +576,6 @@ export default function DashboardSettingsPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Order notifications */}
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-0.5">
                   <Label
@@ -683,7 +599,6 @@ export default function DashboardSettingsPageContent() {
 
               <Separator />
 
-              {/* Promotional emails */}
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-0.5">
                   <Label
@@ -728,174 +643,10 @@ export default function DashboardSettingsPageContent() {
       </div>
 
       {/* Login History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5 text-[var(--primary)]" />
-            登录记录
-          </CardTitle>
-          <CardDescription>
-            最近20条登录活动，如发现异常请立即修改密码
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loginHistoryLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
-            </div>
-          ) : loginHistoryError ? (
-            <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--destructive)]/10 px-3 py-2 text-sm text-[var(--destructive)]">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              加载登录记录失败，请刷新页面重试
-            </div>
-          ) : loginHistory.length === 0 ? (
-            <p className="text-sm text-[var(--muted-foreground)]">暂无登录记录</p>
-          ) : (
-            <div className="space-y-2">
-              {loginHistory.slice(0, 10).map((entry) => {
-                const d = new Date(entry.createdAt);
-                const timeStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-                const browser = entry.userAgent
-                  ? entry.userAgent.includes("Chrome") && !entry.userAgent.includes("Edg")
-                    ? "Chrome"
-                    : entry.userAgent.includes("Edg")
-                      ? "Edge"
-                      : entry.userAgent.includes("Firefox")
-                        ? "Firefox"
-                        : entry.userAgent.includes("Safari")
-                          ? "Safari"
-                          : "其他"
-                  : "-";
-                return (
-                  <div
-                    key={entry.id}
-                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2"
-                  >
-                    <div className="flex items-center gap-3">
-                      {entry.success ? (
-                        <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-[var(--destructive)]" />
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className={entry.success ? "text-[var(--foreground)]" : "text-[var(--destructive)]"}>
-                            {entry.success ? "登录成功" : "登录失败"}
-                          </span>
-                          {entry.reason && (
-                            <span className="text-xs text-[var(--muted-foreground)]">
-                              ({entry.reason})
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
-                          <span className="flex items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            {entry.ip || "-"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Monitor className="h-3 w-3" />
-                            {browser}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-xs text-[var(--muted-foreground)]">
-                      {timeStr}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <LoginHistorySection />
 
       {/* Danger Zone */}
-      <Card className="border-[var(--destructive)]/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-[var(--destructive)]">
-            <Trash2 className="h-5 w-5" />
-            危险操作
-          </CardTitle>
-          <CardDescription>
-            删除账户后，所有个人数据将被清除，此操作不可恢复
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="destructive"
-            className="gap-2"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            删除账户
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Delete Account Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-[var(--destructive)]">
-              确认删除账户
-            </DialogTitle>
-            <DialogDescription>
-              此操作不可恢复。您的个人信息将被清除，但订单记录会保留。
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>输入密码确认身份</Label>
-              <Input
-                type="password"
-                placeholder="请输入当前密码"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>
-                输入 <span className="font-mono font-bold">DELETE</span> 确认
-              </Label>
-              <Input
-                placeholder="输入 DELETE"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                maxLength={6}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setDeletePassword("");
-                setDeleteConfirmText("");
-              }}
-            >
-              取消
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleting || deleteConfirmText !== "DELETE" || !deletePassword}
-              onClick={handleDeleteAccount}
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  删除中...
-                </>
-              ) : (
-                "确认删除"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DeleteAccountSection />
     </div>
   );
 }

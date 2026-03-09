@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, ArrowLeft, Eye, Calendar } from "lucide-react";
+import { ArrowLeft, Eye, Calendar } from "lucide-react";
+import Breadcrumb from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -41,17 +42,13 @@ export default function ArticleDetailContent({ article, relatedArticles }: Props
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1 text-sm text-[var(--muted-foreground)]">
-        <Link href="/" className="transition-colors hover:text-[var(--foreground)]">
-          首页
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link href="/articles" className="transition-colors hover:text-[var(--foreground)]">
-          帮助中心
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="truncate text-[var(--foreground)]">{article.title}</span>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "帮助中心", href: "/articles" },
+          { label: article.title },
+        ]}
+        className="mb-6"
+      />
 
       {/* Back button */}
       <Link href="/articles">
